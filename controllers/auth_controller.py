@@ -2,9 +2,11 @@ import bcrypt
 import re
 import mysql.connector
 from models.database import connect_db
-from PyQt5.QtWidgets import QMessageBox, QPushButton
+from PyQt5.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout, QMessageBox
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
+from views.seleccion_usuario import TitleBar
+
 
 # Autentificación para contraseña encriptada
 def hash_password(password):
@@ -15,15 +17,32 @@ def hash_password(password):
 def check_password(password, hashed_password):
     return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
 
-def show_message(title, message, type="info"):
-    msg = QMessageBox()
-    
+def show_message(title, message, type="info", parent=None):
+    dialog = QDialog(parent)
+    dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+    dialog.setFixedSize(330, 220)
+    dialog.setStyleSheet("""
+        QDialog {
+            background-color: #1E1B2E;
+            border: 2px solid black;
+            border-radius: 10px;
+        }
+    """)
+        
+
+    main_layout = QVBoxLayout()
+    main_layout.setContentsMargins(10, 5, 10, 15)
+
+    # Barra de título personalizada
+    title_bar = TitleBar(dialog)
+    main_layout.addWidget(title_bar)
+
     # Definir íconos y colores según el tipo de mensaje
     if type == "error":
         color = "#F10D32"  # Rojo fuerte para errores
-        icon = "🚨"  # Emoji para simular el ícono
+        icon = "🚨"
     elif type == "warning":
-        color = "#F10D32"
+        color = "#F39C12"
         icon = "⚠️"
     elif type == "success":
         color = "#08D9D6"
@@ -31,30 +50,20 @@ def show_message(title, message, type="info"):
     else:
         color = "#08D9D6"
         icon = "ℹ️"
-    
-    # msg.setIcon(QMessageBox.Information)
-    # Configurar la ventana y mensaje
-    msg.setWindowTitle(title)
-    msg.setText(f"<div style='text-align: center;'>"
-                f"<h1>{icon}</h1>"
-                f"<h2 style='color: white;'>{title}</h2>"
-                f"<p style='font-size: 14px; color: white; font: bold;'>{message}</p></div>")
-    
-    # Remover botones automáticos y agregar uno personalizado
-    msg.setStandardButtons(QMessageBox.NoButton)
-    btn = msg.addButton("Aceptar", QMessageBox.AcceptRole)
-    
-    # Estilizar la ventana y el botón
-    msg.setStyleSheet(f"""
-        QMessageBox {{
-            background-color: #201c35;  /* Fondo oscuro */
-            border-radius: 10px;
-            color: white;
-            font-family: Arial;
-            font-size: 14px;
-        }}
+
+    content_layout = QVBoxLayout()
+
+    label = QLabel(f"<div style='text-align: center;'>"
+                    f"<h1>{icon}</h1>"
+                    f"<h2 style='color: white;'>{title}</h2>"
+                    f"<p style='font-size: 14px; color: white; font: bold;'>{message}</p></div>")
+    label.setAlignment(Qt.AlignCenter)
+    content_layout.addWidget(label)
+
+    accept_button = QPushButton("Aceptar")
+    accept_button.setStyleSheet(f"""
         QPushButton {{
-            background-color: {color}; /* Botón con color dinámico */
+            background-color: {color};
             color: white;
             border-radius: 10px;
             padding: 10px;
@@ -63,28 +72,15 @@ def show_message(title, message, type="info"):
             text-align: center;
         }}
         QPushButton:hover {{
-            background-color: #E43F5A; /* Color más fuerte al pasar el mouse */
+            background-color: #E43F5A;
         }}
     """)
-    
-    # Personalizar los botones
-    # btn = msg.addButton("Aceptar", QMessageBox.AcceptRole)
-    # btn.setStyleSheet("""
-    #     QPushButton {
-    #         background-color: #FF2E63;
-    #         color: white;
-    #         border-radius: 10px;
-    #         padding: 10px;
-    #         font-size: 14px;
-    #         min-width: 100px;
-    #     }
-    #     QPushButton:hover {
-    #         background-color: #E43F5A;
-    #     }
-    # """)
-    
-    msg.exec_()
-    
+    accept_button.clicked.connect(dialog.accept)
+    content_layout.addWidget(accept_button, alignment=Qt.AlignCenter)
+
+    main_layout.addLayout(content_layout)
+    dialog.setLayout(main_layout)
+    dialog.exec_()
 
 # Validación del correo electrónico, que contenga @ y .com
 def is_valid_email(email):
@@ -95,36 +91,36 @@ def is_valid_phone(telefono):
 
 
 # Función para registrar un nuevo usuario
-def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, password, acepta_terminos):
+def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, password, acepta_terminos, parent=None):
     if not all([nombre, apellido_paterno, apellido_materno, email, telefono, password]):
-        show_message("Campos vacíos", "Por favor ingresa todos los campos.", "warning")
+        show_message("Campos vacíos", "Por favor ingresa todos los campos.", "warning", parent)
         return
 
     # Validar formato del correo electrónico
     if not is_valid_email(email):
-        show_message("Correo inválido", "Por favor ingresa un correo electrónico válido.", "error")
+        show_message("Correo inválido", "Por favor ingresa un correo electrónico válido.", "error", parent)
         return
     
     # Validar número de teléfono
     if not is_valid_phone(telefono):
-        show_message("Teléfono inválido", "El número de teléfono debe tener al menos 10 digitos.", "error")
+        show_message("Teléfono inválido", "El número de teléfono debe tener al menos 10 digitos.", "error", parent)
         return False
     
     if not acepta_terminos:
         # QMessageBox.warning(None, "Términos y Condiciones", "Debes aceptar los términos y condiciones para registrarte.")
-        show_message("Términos y Condiciones", "Debes aceptar los términos y condiciones para registrarte.", "error")
+        show_message("Términos y Condiciones", "Debes aceptar los términos y condiciones para registrarte.", "error", parent)
         return False
     
     conn = connect_db()
     if conn is None:
-        show_message("Error", "No se pudo conectar a la base de datos.", "error")
+        show_message("Error", "No se pudo conectar a la base de datos.", "error", parent)
         return False
     
     c = conn.cursor()
     c.execute("SELECT email FROM usuarios WHERE email=%s", (email,))
     
     if c.fetchone():
-        show_message("Usuario ya existe", "El correo electrónico ya está registrado.", "warning")
+        show_message("Usuario ya existe", "El correo electrónico ya está registrado.", "warning", parent)
         c.close()
         conn.close()
         return False
@@ -138,11 +134,11 @@ def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, p
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (nombre, apellido_paterno, apellido_materno, email, telefono, hashed_password))
         conn.commit()
-        show_message("Registro exitoso", "¡Usuario registrado con éxito!", "success")
+        show_message("Registro exitoso", "¡Usuario registrado con éxito!", "success", parent)
         return True
         
     except mysql.connector.IntegrityError as e:
-        show_message("Error", "No se pudo registrar el usuario.", "error")
+        show_message("Error", "No se pudo registrar el usuario.", "error", parent)
         print(f"Error SQL: {e}")
         return False
     
@@ -151,16 +147,16 @@ def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, p
         conn.close()
 
 # Función para iniciar sesión
-def login_user(email, password):
+def login_user(email, password, parent=None):
     """Inicia sesión validando correo y contraseña en la base de datos."""
     
     if not email or not password:
-        show_message("Campos vacíos", "Por favor ingresa todos los campos.", "warning")
+        show_message("Campos vacíos", "Por favor ingresa todos los campos.", "warning", parent)
         return False
 
     conn = connect_db()
     if conn is None:
-        show_message("Error", "No se pudo conectar a la base de datos.", "error")
+        show_message("Error", "No se pudo conectar a la base de datos.", "error", parent)
         return False
     
     c = conn.cursor()
@@ -170,8 +166,8 @@ def login_user(email, password):
     conn.close()
 
     if user and check_password(password, user[1]):
-        show_message("Inicio de sesión exitoso", f"¡Bienvenido, {user[0]}!", "success")
+        show_message("Inicio de sesión exitoso", f"¡Bienvenido, {user[0]}!", "success", parent)
         return True
     else:
-        show_message("Inicio de sesión fallido", "Correo o contraseña incorrectos.", "warning")
+        show_message("Inicio de sesión fallido", "Correo o contraseña incorrectos.", "warning", parent)
         return False

@@ -14,11 +14,11 @@ class TitleBar(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.setFixedHeight(30)
+        self.setFixedHeight(40)
         self.setStyleSheet("background-color: #1E1B2E; color: white;")
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(5, 0, 5, 0)
+        layout.setContentsMargins(10, 0, 0, 10)
         layout.setSpacing(5)
 
         self.title = QLabel("Sistema Hidropónico")

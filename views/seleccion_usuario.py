@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QDialog, QMessageBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
+# from controllers.auth_controller import show_message
 
 class TitleBar(QWidget):
     def __init__(self, parent):
@@ -24,14 +25,6 @@ class TitleBar(QWidget):
         self.minimize_button.setCursor(Qt.PointingHandCursor)
         self.minimize_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
         layout.addWidget(self.minimize_button)
-
-        self.maximize_button = QPushButton("🟢")
-        self.maximize_button.setFixedSize(30, 30)
-        self.maximize_button.setStyleSheet("background-color: transparent; color: white;")
-        self.maximize_button.clicked.connect(self.toggle_maximize)
-        self.maximize_button.setCursor(Qt.PointingHandCursor)
-        self.maximize_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
-        layout.addWidget(self.maximize_button)
 
         self.close_button = QPushButton("🔴")
         self.close_button.setFixedSize(30, 30)
@@ -115,10 +108,17 @@ class SeleccionUsuarioWidget(QWidget):
         """Muestra un cuadro de confirmación antes de cambiar de vista."""
         dialog = QDialog(self)
         dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        dialog.setFixedSize(430, 150)
+        dialog.setFixedSize(450, 150)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1E1B2E;
+                border: 2px solid black;
+                border-radius: 10px;
+            }
+        """)
         
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(10, 5, 10, 15)
         
         title_bar = TitleBar(dialog)
         main_layout.addWidget(title_bar)
@@ -174,14 +174,19 @@ class SeleccionUsuarioWidget(QWidget):
         
     def prompt_admin_password(self):
         """Muestra un cuadro de diálogo para ingresar la clave de administrador."""
-        print("Se abrió el cuadro de contraseña del administrador")  # Para depuración
-
         dialog = QDialog(self if self.isVisible() else None)
         dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        dialog.setFixedSize(320, 150)
+        dialog.setFixedSize(320, 160)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1E1B2E;
+                border: 2px solid black;
+                border-radius: 10px;
+            }
+        """)
         
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(10, 5, 10, 15)
 
         # Barra de título personalizada
         title_bar = TitleBar(dialog)
@@ -227,12 +232,14 @@ class SeleccionUsuarioWidget(QWidget):
 
     def check_admin_password(self, password, dialog):
         """Verifica si la clave de administrador es correcta y cambia a la vista de login."""
-        ADMIN_PASSWORD = "1234"  # Puedes cambiarla o validar con una base de datos
+        from controllers.auth_controller import show_message
+        ADMIN_PASSWORD = "qwerty"  # Puedes cambiarla o validar con una base de datos
         if password == ADMIN_PASSWORD:
             dialog.accept()
             self.switch_to_admin()
         else:
             dialog.reject()
+            show_message("Acceso denegado", "Contraseña incorrecta. Intenta nuevamente.", "error", self)
     
     
     def accept_worker(self, dialog):

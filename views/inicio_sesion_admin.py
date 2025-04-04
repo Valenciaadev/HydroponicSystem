@@ -22,6 +22,7 @@ class InicioSesionAdministradorWidget(QWidget):
         self.email_input.setPlaceholderText("Ingresa tu correo electrónico")
         self.email_input.setFont(QFont("Candara", 10))
         self.email_input.setStyleSheet("font: bold; padding: 10px; border: 2px solid #ccc; border-radius: 5px; color: white;")
+        self.email_input.returnPressed.connect(self.login_action)
         form_layout.addRow("", self.email_input)
         
         self.password_input = QLineEdit()
@@ -29,6 +30,7 @@ class InicioSesionAdministradorWidget(QWidget):
         self.password_input.setFont(QFont("Candara", 10))
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setStyleSheet("font: bold; margin-bottom: 40px; padding: 10px; border: 2px solid #ccc; border-radius: 5px; color: white;")
+        self.password_input.returnPressed.connect(self.login_action)
         form_layout.addRow("", self.password_input)
 
         layout.addLayout(form_layout)
