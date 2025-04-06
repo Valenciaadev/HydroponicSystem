@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushB
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from controllers.auth_controller import login_user
+from views.homeapp_admin import HomeappAdmin
 
 class InicioSesionAdministradorWidget(QWidget):
     def __init__(self):
@@ -62,4 +63,11 @@ class InicioSesionAdministradorWidget(QWidget):
         email = self.email_input.text()
         password = self.password_input.text()
         
-        login_user(email, password)
+        if login_user(email, password):
+            self.openHomeAppAdmin()
+            
+            
+    def openHomeAppAdmin(self):
+        self.homeapp_admin = HomeappAdmin(self)
+        self.homeapp_admin.showFullScreen()
+        self.close()
