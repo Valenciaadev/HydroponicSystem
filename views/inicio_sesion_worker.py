@@ -1,12 +1,13 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from controllers.auth_controller import login_user
 
 class InicioSesionWidget(QWidget):
-    def __init__(self, switch_to_register):
+    def __init__(self, parent_app=None):
         super().__init__()
 
+        self.parent_app = parent_app
         layout = QVBoxLayout()
         form_layout = QFormLayout()
 
@@ -34,6 +35,8 @@ class InicioSesionWidget(QWidget):
         form_layout.addRow("", self.password_input)
 
         layout.addLayout(form_layout)
+        
+        button_layout = QHBoxLayout()
 
         # Botones
         login_button = QPushButton("Iniciar sesión")
@@ -53,32 +56,55 @@ class InicioSesionWidget(QWidget):
             }
         """)
         login_button.clicked.connect(self.login_action)
-
-        switch_button = QPushButton("¿No tienes una cuenta?, Regístrate")
-        switch_button.setStyleSheet("""
+        button_layout.addWidget(login_button)
+        
+        back_button = QPushButton("Volver")
+        back_button.setStyleSheet("""
             QPushButton {
-                background-color: transparent;
-                color: #0078D7;
-                font-size: 12px;
-                border: none;
-                text-decoration: underline;
+                background-color: #555;
+                color: white;
+                border-radius: 5px;
+                padding: 8px;
+                font-size: 14px;
             }
             QPushButton:hover {
-                color: #005A9E;
-            }
-            QPushButton:pressed {
-                color: #004080;
+                background-color: #444;
             }
         """)
-        switch_button.clicked.connect(switch_to_register)
 
-        layout.addWidget(login_button)
-        layout.addWidget(switch_button)
+        back_button.clicked.connect(self.back_to_selection)
+        button_layout.addWidget(back_button)
+        
+        # switch_button = QPushButton("¿No tienes una cuenta?, Regístrate")
+        # switch_button.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: transparent;
+        #         color: #0078D7;
+        #         font-size: 12px;
+        #         border: none;
+        #         text-decoration: underline;
+        #     }
+        #     QPushButton:hover {
+        #         color: #005A9E;
+        #     }
+        #     QPushButton:pressed {
+        #         color: #004080;
+        #     }
+        # """)
+        # switch_button.clicked.connect(switch_to_register)
 
+        # layout.addWidget(switch_button)
+
+        layout.addLayout(button_layout)
         self.setLayout(layout)
 
     def login_action(self):
         email = self.email_input.text()
         password = self.password_input.text()
         
-        login_user(email, password)
+        if login_user(email, password):
+            self.parent_app.mostrar_panel_worker()
+    
+    def back_to_selection(self):
+        if self.parent_app:
+            self.parent_app.switch_to_user_selection()

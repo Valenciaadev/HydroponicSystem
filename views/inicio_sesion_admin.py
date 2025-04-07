@@ -1,13 +1,13 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from controllers.auth_controller import login_user
 from views.homeapp_admin import HomeappAdmin
 
 class InicioSesionAdministradorWidget(QWidget):
-    def __init__(self):
+    def __init__(self, parent_app=None):
         super().__init__()
-
+        self.parent_app = parent_app
         layout = QVBoxLayout()
         form_layout = QFormLayout()
 
@@ -36,6 +36,8 @@ class InicioSesionAdministradorWidget(QWidget):
 
         layout.addLayout(form_layout)
 
+        button_layout = QHBoxLayout()
+        
         # Botones
         login_button = QPushButton("Iniciar sesión")
         login_button.setStyleSheet("""
@@ -54,9 +56,28 @@ class InicioSesionAdministradorWidget(QWidget):
             }
         """)
         login_button.clicked.connect(self.login_action)
-
-        layout.addWidget(login_button)
-
+        button_layout.addWidget(login_button)
+        
+        
+        back_button = QPushButton("Volver")
+        back_button.setStyleSheet("""
+            QPushButton {
+                background-color: #555;
+                color: white;
+                border-radius: 5px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #444;
+            }
+        """)
+        
+        back_button.clicked.connect(self.back_to_selection)
+        button_layout.addWidget(back_button)
+        
+        
+        layout.addLayout(button_layout)
         self.setLayout(layout)
 
     def login_action(self):
@@ -64,10 +85,8 @@ class InicioSesionAdministradorWidget(QWidget):
         password = self.password_input.text()
         
         if login_user(email, password):
-            self.openHomeAppAdmin()
-            
-            
-    def openHomeAppAdmin(self):
-        self.homeapp_admin = HomeappAdmin(self)
-        self.homeapp_admin.showFullScreen()
-        self.close()
+            self.parent_app.mostrar_panel_admin()
+    
+    def back_to_selection(self):
+        if self.parent_app:
+            self.parent_app.switch_to_user_selection()

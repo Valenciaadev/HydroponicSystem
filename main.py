@@ -9,6 +9,7 @@ from views.registro import RegistroWidget
 from views.inicio_sesion_worker import InicioSesionWidget
 from views.seleccion_usuario import SeleccionUsuarioWidget
 from views.inicio_sesion_admin import InicioSesionAdministradorWidget
+from views.homeapp_admin import HomeappAdmin
 
 class TitleBar(QWidget):
     def __init__(self, parent):
@@ -79,19 +80,14 @@ class LoginRegisterApp(QDialog):
         self.setWindowFlags(Qt.FramelessWindowHint)
 
         self.center_window()
-
-    def center_window(self):
-        screen = QApplication.primaryScreen().geometry()  # Obtener el tamaño de la pantalla
-        window_rect = self.frameGeometry()  # Obtener el tamaño de la ventana
-        window_rect.moveCenter(screen.center())  # Mover la geometría de la ventana al centro
-        self.move(window_rect.topLeft())  # Establecer la posición final de la ventana
-
+        
         # Creación del stack de vistas
         self.stack = QStackedWidget()
+
         self.register_widget = RegistroWidget(self.switch_to_login)
-        self.login_widget = InicioSesionWidget(self.switch_to_register)
+        self.login_widget = InicioSesionWidget(parent_app=self)
         self.user_select_widget = SeleccionUsuarioWidget(self.switch_to_admin, self.switch_to_worker)
-        self.login_admin_widget = InicioSesionAdministradorWidget()
+        self.login_admin_widget = InicioSesionAdministradorWidget(parent_app=self)
 
         self.stack.addWidget(self.user_select_widget)
         self.stack.addWidget(self.login_admin_widget)
@@ -108,6 +104,17 @@ class LoginRegisterApp(QDialog):
         # Mostrar la vista de login por defecto
         self.stack.setCurrentWidget(self.user_select_widget)
 
+    def center_window(self):
+        screen = QApplication.primaryScreen().geometry()  # Obtener el tamaño de la pantalla
+        window_rect = self.frameGeometry()  # Obtener el tamaño de la ventana
+        window_rect.moveCenter(screen.center())  # Mover la geometría de la ventana al centro
+        self.move(window_rect.topLeft())  # Establecer la posición final de la ventana
+    
+    def mostrar_panel_admin(self):
+        self.homeapp_admin = HomeappAdmin(self)
+        self.homeapp_admin.showFullScreen()
+        self.hide()
+
     def switch_to_register(self):
         self.stack.setCurrentWidget(self.register_widget)
 
@@ -121,7 +128,10 @@ class LoginRegisterApp(QDialog):
     def switch_to_worker(self): 
         # Permitir acceso directo a la pantalla de login
         self.stack.setCurrentWidget(self.login_widget)
-
+    
+    def switch_to_user_selection(self):
+        self.stack.setCurrentWidget(self.user_select_widget)
+        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
