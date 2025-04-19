@@ -1,6 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QSpacerItem, QSizePolicy, QStackedLayout
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
+from views.actuatorsapp_admin import ActuatorsAppAdmin
+from views.sensorsapp_admin import SensorsAppAdmin
+from views.devicesapp_admin import DevicesAppAdmin
 
 class HomeappAdmin(QWidget):
     def __init__(self, ventana_login):
@@ -10,6 +13,21 @@ class HomeappAdmin(QWidget):
         self.showFullScreen()
 
         layout_principal = QHBoxLayout()
+
+        # Stacked layout para cambiar entre vistas
+        self.stacked_layout = QStackedLayout()
+        
+        # Crear las vistas de cada sección
+        self.inicio_widget = self.pantalla_inicio()
+        self.actuadores_widget = ActuatorsAppAdmin(self.ventana_login, embed=True)
+        self.sensores_widget = SensorsAppAdmin(self.ventana_login, embed=True)
+        self.dispositivos_widget = DevicesAppAdmin(self.ventana_login, embed=True)
+
+        # Agregar vistas al stacked layout
+        self.stacked_layout.addWidget(self.inicio_widget)
+        self.stacked_layout.addWidget(self.actuadores_widget)
+        self.stacked_layout.addWidget(self.sensores_widget)
+        self.stacked_layout.addWidget(self.dispositivos_widget)
         
         # Sidebar
         sidebar = QVBoxLayout()
@@ -32,28 +50,27 @@ class HomeappAdmin(QWidget):
                 background-color: #2471a3;
             }
         """
-        
+
         btn_home = QPushButton("Inicio")
         btn_home.setStyleSheet(btn_style)
-        
+        btn_home.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(0))
+
         btn_actuators = QPushButton("Actuadores")
         btn_actuators.setStyleSheet(btn_style)
-        btn_actuators.clicked.connect(self.ir_a_actuadores)
-        
+        btn_actuators.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(1))
+
         btn_sensors = QPushButton("Sensores")
         btn_sensors.setStyleSheet(btn_style)
-        
+        btn_sensors.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(2))
+
         btn_devices = QPushButton("Dispositivos")
         btn_devices.setStyleSheet(btn_style)
-        
-        btn_config = QPushButton("Configuración")
-        btn_config.setStyleSheet(btn_style)
-        
+        btn_devices.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(3))
+
         btn_exit = QPushButton("Salir")
         btn_exit.setStyleSheet(btn_style)
-        btn_exit.clicked.connect(self.cerrar_sesion)
+        btn_exit.clicked.connect(self.log_out)
 
-        # Estructura del sidebar
         sidebar_widget = QWidget()
         sidebar_widget.setLayout(sidebar)
         sidebar_widget.setFixedWidth(200)
@@ -65,39 +82,39 @@ class HomeappAdmin(QWidget):
             border-bottom-right-radius: 15px;
         """)
 
-        # Espacio superior más pequeño
         sidebar.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Fixed))
-
-        # Botones principales
         sidebar.addWidget(btn_home)
         sidebar.addWidget(btn_actuators)
         sidebar.addWidget(btn_sensors)
         sidebar.addWidget(btn_devices)
-        sidebar.addWidget(btn_config)
-
-        # Espacio entre botones y "Salir"
         sidebar.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
         sidebar.addWidget(btn_exit)
-
-        # Espacio inferior
         sidebar.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
-        # Contenido principal
-        content = QLabel("Bienvenido al panel de administrador")
-        content.setAlignment(Qt.AlignCenter)
-        content.setFont(QFont("Candara", 16))
-
         layout_principal.addWidget(sidebar_widget)
-        layout_principal.addWidget(content)
+
+        # Contenido principal
+        content_widget = QWidget()
+        content_widget.setLayout(self.stacked_layout)
+        layout_principal.addWidget(content_widget)
 
         self.setLayout(layout_principal)
 
-    def ir_a_actuadores(self):
-        from views.actuatorsapp_admin import ActuatorsAppAdmin
-        self.close()
-        self.actuators = ActuatorsAppAdmin(self.ventana_login)
-        self.actuators.show()
-        
-    def cerrar_sesion(self):
+        # Mostrar pantalla de inicio por defecto
+        self.stacked_layout.setCurrentIndex(0)
+
+    def pantalla_inicio(self):
+        label = QLabel("Bienvenido al panel de administrador")
+        label.setAlignment(Qt.AlignCenter)
+        label.setFont(QFont("Candara", 16))
+        return label
+
+    def pantalla_placeholder(self, texto):
+        label = QLabel(texto)
+        label.setAlignment(Qt.AlignCenter)
+        label.setFont(QFont("Candara", 16))
+        return label
+
+    def log_out(self):
         self.ventana_login.show()
         self.close()
