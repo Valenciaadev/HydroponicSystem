@@ -107,7 +107,6 @@ def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, p
         return False
     
     if not acepta_terminos:
-        # QMessageBox.warning(None, "Términos y Condiciones", "Debes aceptar los términos y condiciones para registrarte.")
         show_message("Términos y Condiciones", "Debes aceptar los términos y condiciones para registrarte.", "error", parent)
         return False
     
@@ -120,7 +119,7 @@ def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, p
     c.execute("SELECT email FROM usuarios WHERE email=%s", (email,))
     
     if c.fetchone():
-        show_message("Usuario ya existe", "El correo electrónico ya está registrado.", "warning", parent)
+        show_message("Usuari@ ya existe", "El correo electrónico ya está registrado.", "warning", parent)
         c.close()
         conn.close()
         return False
@@ -134,11 +133,11 @@ def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, p
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (nombre, apellido_paterno, apellido_materno, email, telefono, hashed_password))
         conn.commit()
-        show_message("Registro exitoso", "¡Usuario registrado con éxito!", "success", parent)
+        show_message("Registro exitoso", "¡Usuari@ registrado con éxito!", "success", parent)
         return True
         
     except mysql.connector.IntegrityError as e:
-        show_message("Error", "No se pudo registrar el usuario.", "error", parent)
+        show_message("Error", "No se pudo registrar el usuari@.", "error", parent)
         print(f"Error SQL: {e}")
         return False
     
@@ -166,7 +165,7 @@ def login_user(email, password, parent=None):
     conn.close()
 
     if user and check_password(password, user[1]):
-        show_message("Inicio de sesión exitoso", f"¡Bienvenido, {user[0]}!", "success", parent)
+        show_message("Inicio de sesión exitoso", f"¡Bienvenid@, {user[0]}!", "success", parent)
         return True
     else:
         show_message("Inicio de sesión fallido", "Correo o contraseña incorrectos.", "warning", parent)
