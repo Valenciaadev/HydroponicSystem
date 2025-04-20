@@ -3,8 +3,8 @@ import mysql.connector
 from models.trabajador import Trabajador
 from models.administrador import Administrador
 from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QStackedWidget, QWidget, QHBoxLayout, QPushButton, QLabel, QInputDialog, QLineEdit, QMessageBox
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QPalette, QColor
+from PyQt5.QtCore import Qt, QPoint, QSize
+from PyQt5.QtGui import QPalette, QColor, QIcon
 from views.registro import RegistroWidget
 from views.inicio_sesion_worker import InicioSesionWidget
 from views.seleccion_usuario import SeleccionUsuarioWidget
@@ -26,7 +26,9 @@ class TitleBar(QWidget):
         self.title.setStyleSheet("font-size: 14px;")
         layout.addWidget(self.title)
 
-        self.minimize_button = QPushButton("🟡")
+        self.minimize_button = QPushButton("")
+        self.minimize_button.setIcon(QIcon("assets/icons/btn-minimize-white.svg"))
+        self.minimize_button.setIconSize(QSize(24, 24))
         self.minimize_button.setFixedSize(30, 30)
         self.minimize_button.setStyleSheet("background-color: transparent; color: white;")
         self.minimize_button.clicked.connect(self.parent.showMinimized)
@@ -34,7 +36,9 @@ class TitleBar(QWidget):
         self.minimize_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
         layout.addWidget(self.minimize_button)
 
-        self.maximize_button = QPushButton("🟢")
+        self.maximize_button = QPushButton("")
+        self.maximize_button.setIcon(QIcon("assets/icons/btn-maximize-white.svg"))
+        self.maximize_button.setIconSize(QSize(16, 16))
         self.maximize_button.setFixedSize(30, 30)
         self.maximize_button.setStyleSheet("background-color: transparent; color: white;")
         self.maximize_button.clicked.connect(self.toggle_maximize)
@@ -42,7 +46,9 @@ class TitleBar(QWidget):
         self.maximize_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
         layout.addWidget(self.maximize_button)
 
-        self.close_button = QPushButton("🔴") 
+        self.close_button = QPushButton("")
+        self.close_button.setIcon(QIcon("assets/icons/btn-close-white.svg"))
+        self.close_button.setIconSize(QSize(24, 24))
         self.close_button.setFixedSize(30, 30)
         self.close_button.setStyleSheet("background-color: transparent; color: white;")
         self.close_button.clicked.connect(self.parent.close)

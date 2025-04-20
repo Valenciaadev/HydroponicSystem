@@ -46,6 +46,8 @@ class InicioSesionAdministradorWidget(QWidget):
         
         # Botones
         login_button = QPushButton("Iniciar sesión")
+        login_button.setIcon(QIcon("assets/icons/btn-enter-white.svg"))
+        login_button.setIconSize(QSize(24, 24))
         login_button.setStyleSheet("""
             QPushButton {
                 background-color: blue;
@@ -67,6 +69,8 @@ class InicioSesionAdministradorWidget(QWidget):
         
         
         back_button = QPushButton("Volver")
+        back_button.setIcon(QIcon("assets/icons/btn-undo-white.svg"))
+        back_button.setIconSize(QSize(24, 24))
         back_button.setStyleSheet("""
             QPushButton {
                 background-color: gray;
