@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QDialog, QMessageBox
-from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtCore import Qt, QSize
 # from controllers.auth_controller import show_message
 
 class TitleBar(QWidget):
@@ -70,6 +70,8 @@ class SeleccionUsuarioWidget(QWidget):
 
         # Botón Administrador
         admin_button = QPushButton("Administrador")
+        admin_button.setIcon(QIcon("assets/icons/admin-icon-white.svg"))
+        admin_button.setIconSize(QSize(24, 24))
         admin_button.setStyleSheet("""
             QPushButton {
                 background-color: blue;
@@ -87,6 +89,7 @@ class SeleccionUsuarioWidget(QWidget):
 
         # Botón Trabajador
         worker_button = QPushButton("Trabajador")
+        worker_button.setIcon(QIcon("assets/icons/user-icon-white.svg"))
         worker_button.setStyleSheet("""
             QPushButton {
                 background-color: gray;

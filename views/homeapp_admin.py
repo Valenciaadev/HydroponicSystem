@@ -1,9 +1,11 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QSpacerItem, QSizePolicy, QStackedLayout
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
+from views.summaryapp_admin import SummaryAppAdmin
 from views.actuatorsapp_admin import ActuatorsAppAdmin
 from views.sensorsapp_admin import SensorsAppAdmin
 from views.devicesapp_admin import DevicesAppAdmin
+from views.historyapp_admin import HistoryAppAdmin
 
 class HomeappAdmin(QWidget):
     def __init__(self, ventana_login):
@@ -18,16 +20,21 @@ class HomeappAdmin(QWidget):
         self.stacked_layout = QStackedLayout()
         
         # Crear las vistas de cada sección
-        self.inicio_widget = self.pantalla_inicio()
+        # self.inicio_widget = self.pantalla_inicio()
+        self.inicio_widget = SummaryAppAdmin(self.ventana_login, embed=True)
         self.actuadores_widget = ActuatorsAppAdmin(self.ventana_login, embed=True)
         self.sensores_widget = SensorsAppAdmin(self.ventana_login, embed=True)
         self.dispositivos_widget = DevicesAppAdmin(self.ventana_login, embed=True)
+        self.historial_widget = HistoryAppAdmin(self.ventana_login, embed=True)
 
         # Agregar vistas al stacked layout
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
         self.stacked_layout.addWidget(self.sensores_widget)
         self.stacked_layout.addWidget(self.dispositivos_widget)
+        self.stacked_layout.addWidget(self.historial_widget)
+        
+        self.stacked_layout.setCurrentIndex(0)
         
         # Sidebar
         sidebar = QVBoxLayout()
@@ -66,6 +73,10 @@ class HomeappAdmin(QWidget):
         btn_devices = QPushButton("Dispositivos")
         btn_devices.setStyleSheet(btn_style)
         btn_devices.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(3))
+        
+        btn_history = QPushButton("Historial")
+        btn_history.setStyleSheet(btn_style)
+        btn_history.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(4))
 
         btn_exit = QPushButton("Salir")
         btn_exit.setStyleSheet(btn_style)
@@ -87,6 +98,7 @@ class HomeappAdmin(QWidget):
         sidebar.addWidget(btn_actuators)
         sidebar.addWidget(btn_sensors)
         sidebar.addWidget(btn_devices)
+        sidebar.addWidget(btn_history)
         sidebar.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
         sidebar.addWidget(btn_exit)
         sidebar.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Fixed))
@@ -99,21 +111,6 @@ class HomeappAdmin(QWidget):
         layout_principal.addWidget(content_widget)
 
         self.setLayout(layout_principal)
-
-        # Mostrar pantalla de inicio por defecto
-        self.stacked_layout.setCurrentIndex(0)
-
-    def pantalla_inicio(self):
-        label = QLabel("Bienvenido al panel de administrador")
-        label.setAlignment(Qt.AlignCenter)
-        label.setFont(QFont("Candara", 16))
-        return label
-
-    def pantalla_placeholder(self, texto):
-        label = QLabel(texto)
-        label.setAlignment(Qt.AlignCenter)
-        label.setFont(QFont("Candara", 16))
-        return label
 
     def log_out(self):
         self.ventana_login.show()
