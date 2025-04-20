@@ -42,13 +42,13 @@ def show_message(title, message, type="info", parent=None):
         color = "#F10D32"  # Rojo fuerte para errores
         icon = "🚨"
     elif type == "warning":
-        color = "#F39C12"
+        color = "#F10D32"
         icon = "⚠️"
     elif type == "success":
         color = "#08D9D6"
         icon = "✅"
     else:
-        color = "#08D9D6"
+        color = "#F10D32"
         icon = "ℹ️"
 
     content_layout = QVBoxLayout()

@@ -18,7 +18,9 @@ class TitleBar(QWidget):
         self.title.setStyleSheet("font-size: 14px;")
         layout.addWidget(self.title)
 
-        self.minimize_button = QPushButton("🟡")
+        self.minimize_button = QPushButton("")
+        self.minimize_button.setIcon(QIcon("assets/icons/btn-minimize-white.svg"))
+        self.minimize_button.setIconSize(QSize(24, 24))
         self.minimize_button.setFixedSize(30, 30)
         self.minimize_button.setStyleSheet("background-color: transparent; color: white;")
         self.minimize_button.clicked.connect(self.parent.showMinimized)
@@ -26,7 +28,10 @@ class TitleBar(QWidget):
         self.minimize_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
         layout.addWidget(self.minimize_button)
 
-        self.close_button = QPushButton("🔴")
+        
+        self.close_button = QPushButton("")
+        self.close_button.setIcon(QIcon("assets/icons/btn-close-white.svg"))
+        self.close_button.setIconSize(QSize(24, 24))
         self.close_button.setFixedSize(30, 30)
         self.close_button.setStyleSheet("background-color: transparent; color: white;")
         self.close_button.clicked.connect(self.parent.close)
@@ -69,7 +74,7 @@ class SeleccionUsuarioWidget(QWidget):
         layout.addWidget(title_label)
 
         # Botón Administrador
-        admin_button = QPushButton("Administrador")
+        admin_button = QPushButton(" Administrador")
         admin_button.setIcon(QIcon("assets/icons/admin-icon-white.svg"))
         admin_button.setIconSize(QSize(24, 24))
         admin_button.setStyleSheet("""
@@ -79,6 +84,7 @@ class SeleccionUsuarioWidget(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #005A9E;
@@ -88,8 +94,9 @@ class SeleccionUsuarioWidget(QWidget):
         layout.addWidget(admin_button)
 
         # Botón Trabajador
-        worker_button = QPushButton("Trabajador")
+        worker_button = QPushButton(" Trabajador")
         worker_button.setIcon(QIcon("assets/icons/user-icon-white.svg"))
+        worker_button.setIconSize(QSize(24, 24))
         worker_button.setStyleSheet("""
             QPushButton {
                 background-color: gray;
@@ -97,6 +104,7 @@ class SeleccionUsuarioWidget(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #505050;
@@ -117,6 +125,7 @@ class SeleccionUsuarioWidget(QWidget):
                 background-color: #1E1B2E;
                 border: 2px solid black;
                 border-radius: 10px;
+                font: bold;
             }
         """)
         
@@ -135,7 +144,9 @@ class SeleccionUsuarioWidget(QWidget):
         
         button_layout = QHBoxLayout()
         
-        confirm_button = QPushButton("Aceptar")
+        confirm_button = QPushButton(" Aceptar")
+        confirm_button.setIcon(QIcon("assets/icons/btn-accept-white.svg"))
+        confirm_button.setIconSize(QSize(24, 24))
         confirm_button.setStyleSheet("""
             QPushButton {
                 background-color: blue;
@@ -143,6 +154,7 @@ class SeleccionUsuarioWidget(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #005A9E;
@@ -151,7 +163,9 @@ class SeleccionUsuarioWidget(QWidget):
         confirm_button.clicked.connect(lambda: self.accept_worker(dialog))
         button_layout.addWidget(confirm_button)
         
-        cancel_button = QPushButton("Regresar")
+        cancel_button = QPushButton(" Regresar")
+        cancel_button.setIcon(QIcon("assets/icons/btn-return-white.svg"))
+        cancel_button.setIconSize(QSize(24, 24))
         cancel_button.setStyleSheet("background-color: gray; color: white; padding: 5px; border-radius: 5px;")
         cancel_button.setStyleSheet("""
         QPushButton {
@@ -160,6 +174,7 @@ class SeleccionUsuarioWidget(QWidget):
             border-radius: 5px;
             padding: 10px;
             font-size: 14px;
+            font: bold;
         }
         QPushButton:hover {
             background-color: #505050;
@@ -208,7 +223,9 @@ class SeleccionUsuarioWidget(QWidget):
         password_input.setStyleSheet("background-color: white; color: black; padding: 5px; border-radius: 5px; width:70%")
         content_layout.addWidget(password_input)
 
-        submit_button = QPushButton("Aceptar")
+        submit_button = QPushButton(" Aceptar")
+        submit_button.setIcon(QIcon("assets/icons/btn-accept-white.svg"))
+        submit_button.setIconSize(QSize(24, 24))
         password_input.returnPressed.connect(submit_button.click)
         submit_button.setStyleSheet("""
             QPushButton {
@@ -217,6 +234,7 @@ class SeleccionUsuarioWidget(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #005A9E;
