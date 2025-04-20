@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QSpacerItem, QSizePolicy, QStackedLayout
-from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtCore import Qt, QSize
 from views.summaryapp_admin import SummaryAppAdmin
 from views.actuatorsapp_admin import ActuatorsAppAdmin
 from views.sensorsapp_admin import SensorsAppAdmin
@@ -49,6 +49,7 @@ class HomeappAdmin(QWidget):
                 border-radius: 10px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #2980b9;
@@ -58,28 +59,40 @@ class HomeappAdmin(QWidget):
             }
         """
 
-        btn_home = QPushButton("Inicio")
+        btn_home = QPushButton(" Inicio")
         btn_home.setStyleSheet(btn_style)
         btn_home.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(0))
+        btn_home.setIcon(QIcon("assets/icons/home-white.svg"))
+        btn_home.setIconSize(QSize(24, 24))
 
-        btn_actuators = QPushButton("Actuadores")
+        btn_actuators = QPushButton(" Actuadores")
         btn_actuators.setStyleSheet(btn_style)
         btn_actuators.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(1))
+        btn_actuators.setIcon(QIcon("assets/icons/actuators-white.svg"))
+        btn_actuators.setIconSize(QSize(24, 24))
 
-        btn_sensors = QPushButton("Sensores")
+        btn_sensors = QPushButton(" Sensores")
         btn_sensors.setStyleSheet(btn_style)
         btn_sensors.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(2))
+        btn_sensors.setIcon(QIcon("assets/icons/sensors-white.svg"))
+        btn_sensors.setIconSize(QSize(24, 24))
 
-        btn_devices = QPushButton("Dispositivos")
+        btn_devices = QPushButton(" Dispositivos")
         btn_devices.setStyleSheet(btn_style)
         btn_devices.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(3))
+        btn_devices.setIcon(QIcon("assets/icons/devices-white.svg"))
+        btn_devices.setIconSize(QSize(24, 24))
         
-        btn_history = QPushButton("Historial")
+        btn_history = QPushButton(" Historial")
         btn_history.setStyleSheet(btn_style)
         btn_history.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(4))
+        btn_history.setIcon(QIcon("assets/icons/history-white.svg"))
+        btn_history.setIconSize(QSize(24, 24))
 
-        btn_exit = QPushButton("Salir")
+        btn_exit = QPushButton(" Cerrar sesión")
         btn_exit.setStyleSheet(btn_style)
+        btn_exit.setIcon(QIcon("assets/icons/log_out-white.svg"))
+        btn_exit.setIconSize(QSize(24, 24))
         btn_exit.clicked.connect(self.log_out)
 
         sidebar_widget = QWidget()

@@ -69,7 +69,7 @@ class SeleccionUsuarioWidget(QWidget):
         layout.addWidget(title_label)
 
         # Botón Administrador
-        admin_button = QPushButton("Administrador")
+        admin_button = QPushButton(" Administrador")
         admin_button.setIcon(QIcon("assets/icons/admin-icon-white.svg"))
         admin_button.setIconSize(QSize(24, 24))
         admin_button.setStyleSheet("""
@@ -79,6 +79,7 @@ class SeleccionUsuarioWidget(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #005A9E;
@@ -88,8 +89,9 @@ class SeleccionUsuarioWidget(QWidget):
         layout.addWidget(admin_button)
 
         # Botón Trabajador
-        worker_button = QPushButton("Trabajador")
+        worker_button = QPushButton(" Trabajador")
         worker_button.setIcon(QIcon("assets/icons/user-icon-white.svg"))
+        worker_button.setIconSize(QSize(24, 24))
         worker_button.setStyleSheet("""
             QPushButton {
                 background-color: gray;
@@ -97,6 +99,7 @@ class SeleccionUsuarioWidget(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #505050;
@@ -117,6 +120,7 @@ class SeleccionUsuarioWidget(QWidget):
                 background-color: #1E1B2E;
                 border: 2px solid black;
                 border-radius: 10px;
+                font: bold;
             }
         """)
         
@@ -143,6 +147,7 @@ class SeleccionUsuarioWidget(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #005A9E;
@@ -160,6 +165,7 @@ class SeleccionUsuarioWidget(QWidget):
             border-radius: 5px;
             padding: 10px;
             font-size: 14px;
+            font: bold;
         }
         QPushButton:hover {
             background-color: #505050;
@@ -217,6 +223,7 @@ class SeleccionUsuarioWidget(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
                 background-color: #005A9E;
