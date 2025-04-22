@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushB
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt, QSize
 from controllers.auth_controller import login_user
+from controllers.auth_controller import show_message
 # from main import switch_to_register
 from views.homeapp_worker import HomeappWorker
 
@@ -115,10 +116,19 @@ class InicioSesionWidget(QWidget):
     def login_action(self):
         email = self.email_input.text()
         password = self.password_input.text()
+
+        user_data = login_user(email, password, parent=self)
         
-        if login_user(email, password):
-            self.parent_app.mostrar_panel_worker()
-    
+        if user_data:
+            if user_data["tipo_usuario"] == "trabajador":
+                show_message("Inicio de sesión exitoso", f"¡Bienvenid@, {user_data['nombre']}!", "success", self)
+                self.parent_app.mostrar_panel_worker()
+                # (nombre=user_data["nombre"])
+            else:
+                show_message("Acceso denegado", "Este usuario no tiene acceso a esta sección.", "warning", self)
+        else:
+            show_message("Inicio de sesión fallido", "Correo o contraseña incorrectos.", "warning", self)
+            
     def back_to_selection(self):
         if self.parent_app:
             self.parent_app.switch_to_user_selection()
