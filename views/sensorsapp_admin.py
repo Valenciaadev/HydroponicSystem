@@ -6,7 +6,7 @@ class SensorsAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__()
         layout = QVBoxLayout()
-        label = QLabel("Pantalla de Sensores")
+        label = QLabel("Pantalla de Sensores (Dylan)")
         label.setAlignment(Qt.AlignCenter)
         label.setFont(QFont("Candara", 16))
         layout.addWidget(label)
