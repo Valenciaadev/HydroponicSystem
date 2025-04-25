@@ -6,7 +6,7 @@ class SummaryAppWorker(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__()
         layout = QVBoxLayout()
-        label = QLabel("Resumen general de datos del Sistema Hidropónico")
+        label = QLabel("Resumen general de datos del Sistema Hidropónico (DESDE LA VISTA DE TRABAJADORES)")
         label.setAlignment(Qt.AlignCenter)
         label.setFont(QFont("Candara", 16))
         layout.addWidget(label)

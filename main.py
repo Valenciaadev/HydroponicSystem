@@ -1,5 +1,6 @@
 import sys
 import mysql.connector
+from models.usuario import Usuario
 from models.trabajador import Trabajador
 from models.administrador import Administrador
 from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QStackedWidget, QWidget, QHBoxLayout, QPushButton, QLabel, QInputDialog, QLineEdit, QMessageBox
@@ -9,7 +10,46 @@ from views.registro import RegistroWidget
 from views.inicio_sesion_worker import InicioSesionWidget
 from views.seleccion_usuario import SeleccionUsuarioWidget
 from views.inicio_sesion_admin import InicioSesionAdministradorWidget
+from controllers.auth_controller import hash_password
 from views.homeapp_admin import HomeappAdmin
+from views.homeapp_worker import HomeappWorker
+
+# Crear un nuevo usuario trabajador
+usuario_trabajador = Usuario(
+    nombre="Alexis",
+    apellido_paterno="Verduzco",
+    apellido_materno="Lopez",
+    email="wverduzco@ucol.mx",
+    clabe=123456,
+    password=hash_password("qwerty"),
+    telefono="3141234567",
+    tipo_usuario="trabajador"
+)
+
+id_usuario_trabajador = usuario_trabajador.guardar_en_db()
+
+if id_usuario_trabajador:
+    trabajador = Trabajador(id_usuario=id_usuario_trabajador)
+    trabajador.guardar_en_db()
+
+# Crear un nuevo usuario administrador
+usuario_admin = Usuario(
+    nombre="Manuel",
+    apellido_paterno="Valencia",
+    apellido_materno="Antonio",
+    email="mvalencia18@ucol.mx",
+    clabe=789101,
+    password=hash_password("qwerty"),
+    telefono="3147654321",
+    tipo_usuario="administrador"
+)
+
+id_usuario_admin = usuario_admin.guardar_en_db()
+
+if id_usuario_admin:
+    administrador = Administrador(id_usuario=id_usuario_admin)
+    administrador.guardar_en_db()
+
 
 class TitleBar(QWidget):
     def __init__(self, parent):
@@ -119,6 +159,11 @@ class LoginRegisterApp(QDialog):
     def mostrar_panel_admin(self):
         self.homeapp_admin = HomeappAdmin(self)
         self.homeapp_admin.showFullScreen()
+        self.hide()
+    
+    def mostrar_panel_worker(self):
+        self.homeapp_worker = HomeappWorker(self)
+        self.homeapp_worker.showFullScreen()
         self.hide()
 
     def switch_to_register(self):

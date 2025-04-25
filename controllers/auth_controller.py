@@ -147,26 +147,25 @@ def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, p
 
 # Función para iniciar sesión
 def login_user(email, password, parent=None):
-    """Inicia sesión validando correo y contraseña en la base de datos."""
-    
+    """Inicia sesión validando correo y contraseña en la base de datos, y retorna info del usuario si es válida."""
+
     if not email or not password:
         show_message("Campos vacíos", "Por favor ingresa todos los campos.", "warning", parent)
-        return False
+        return None
 
     conn = connect_db()
     if conn is None:
         show_message("Error", "No se pudo conectar a la base de datos.", "error", parent)
-        return False
-    
-    c = conn.cursor()
+        return None
 
-    c.execute("SELECT nombre, password FROM usuarios WHERE email=%s", (email,))
+    c = conn.cursor()
+    c.execute("SELECT nombre, password, tipo_usuario FROM usuarios WHERE email=%s", (email,))
     user = c.fetchone()
     conn.close()
 
     if user and check_password(password, user[1]):
-        show_message("Inicio de sesión exitoso", f"¡Bienvenid@, {user[0]}!", "success", parent)
-        return True
+        # show_message("Inicio de sesión exitoso", f"¡Bienvenid@, {user[0]}!", "success", parent)
+        return {"nombre": user[0], "tipo_usuario": user[2]}
     else:
-        show_message("Inicio de sesión fallido", "Correo o contraseña incorrectos.", "warning", parent)
-        return False
+        # show_message("Inicio de sesión fallido", "Correo o contraseña incorrectos.", "warning", parent)
+        return None
