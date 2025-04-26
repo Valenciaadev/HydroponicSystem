@@ -102,8 +102,7 @@ class HomeappAdmin(QWidget):
         sidebar_widget.setStyleSheet("""
             background-color: #2c3e50;
             color: white;
-            border-top-right-radius: 15px;
-            border-bottom-right-radius: 15px;
+            border-radius: 15px;
         """)
 
         sidebar.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Fixed))
