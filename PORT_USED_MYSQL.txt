@@ -1,0 +1,8 @@
+netstat -ano | findstr :3306 
+                        3306 : PUERTO USADO PARA MYSQL
+
+tasklist | findstr 7804
+                    APLICACION EN SEGUNDO PLANO HACIENDO USO DEL MYSQL (BLOQUEANDO EL ACCESO A MYSQL)
+
+taskkill /PID 7804 /F
+                DETENER EL PROCESO ASÍ HABILITANDO EL PUERTO A MYSQL
