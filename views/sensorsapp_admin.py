@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
@@ -13,9 +13,9 @@ class SensorsAppAdmin(QWidget):
         box.setFixedSize(1200, 700) #for mi when i will changig size, first is the WIDTH and then go the Height
         box.setStyleSheet("""
             QFrame {
-        background-color: #2C6E63;  /* color entre azul marino y verde */
+        background-color: #040A08;  /* color entre azul marino y verde */
         border-radius: 10px;
-        border: 2px solid #1E4D45;
+        border: 2px solid #00AAA5;
             }
         """)
         
@@ -35,9 +35,9 @@ class SensorsAppAdmin(QWidget):
         inner_box.setFixedSize(1100, 550)
         inner_box.setStyleSheet("""
             QFrame {
-        background-color: #3D8A7A;
+        background-color: #040A08;
         border-radius: 8px;
-        border: 1px solid #256056;
+        border: 1px solid #DE209F;
             }
         """)
         
@@ -50,6 +50,83 @@ class SensorsAppAdmin(QWidget):
         # Agregar la caja principal al layout de la ventana
         layout.addWidget(box, alignment=Qt.AlignCenter)
         self.setLayout(layout)
+        
+        #Layout interno para inner-box
+        
+        inner_box_layout = QVBoxLayout()
+        inner_box_layout.setContentsMargins(20, 20, 20, 20)
+        inner_box_layout.setSpacing(15)
+        
+        #Lista con los nombres de los sensores
+        sensores = [
+            "Sensor de pH / Sensor de RCI / Sensor de temperatura",
+            "Sensor Ultrasónico",
+            "Sensor de temperatura",
+            "Sensor de humedad"
+        ]
+        
+        for nombre in sensores:
+            # Frame para cada sensor
+            sensor_frame = QFrame()
+            sensor_frame.setStyleSheet("""
+                QFrame() {
+                    background-color: #11211F;
+                    border: 1px solid #00FF00;
+                    border-radius: 20px;
+                }
+            """)
+
+            sensor_frame.setFixedHeight(60)
+            
+            #Layout horizontal para los elementos
+            sensor_layout = QHBoxLayout()
+            sensor_layout.setContentsMargins(10, 5, 10, 5)
+            sensor_layout.setSpacing(20)
+            
+            #Circulo verde que representa el estado del sensor
+            led = QLabel()
+            led.setFixedSize(20, 20)
+            led.setStyleSheet("""
+                QLabel {
+                    background-color: #00FF00;
+                    border-radius: 10px;
+                }
+            """)
+            
+            #Nombre del sensor
+            sensor_label = QLabel(nombre)
+            sensor_label.setStyleSheet("color: white; font-size: 16px")
+            
+            #Botón de características
+            chars_btn = QPushButton("Características")
+            chars_btn.setFixedSize(120,30)
+            chars_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #0B1C4D;
+                    color: white;
+                    border: 1px solid #3B5998; 
+                    border-radius: 10px;
+                    padding: 5px;
+                }
+                QPushButton:hover {
+                    background-color: #1A2F7A;
+                }
+            """)
+            
+            #Agregar los widgets al layout del sensor
+            sensor_layout.addWidget(led)
+            sensor_layout.addWidget(sensor_label)
+            sensor_layout.addStretch()
+            sensor_layout.addWidget(chars_btn)
+            
+            sensor_frame.setLayout(sensor_layout)
+            
+            #Agregar el frame del sensor al layout general
+            inner_box_layout.addWidget(sensor_frame)
+            
+        #Aplicar el layout al inner-box
+        inner_box.setLayout(inner_box_layout)
+            
         
         
     def testSlot(self):
