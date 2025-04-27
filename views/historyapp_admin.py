@@ -106,10 +106,19 @@ class HistoryAppAdmin(QWidget):
             QComboBox:hover {
                 border-color: #357ABD;
             }
+            QComboBox QAbstractItemView {
+                background-color: #1E1E2E;
+                color: white;
+                selection-background-color: #357ABD;
+                selection-color: white;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                font-weight: bold; 
+            }
         """)
 
         self.filter_combo.addItems([
-            "Todo", "Mes anterior", "Último trimestre", "Últimos 6 meses", "Último"
+            "Todo", "Mes anterior", "Último trimestre", "Último semestre", "Último año"
         ])
 
         top_buttons_layout.addWidget(self.pdf_button)
@@ -124,7 +133,7 @@ class HistoryAppAdmin(QWidget):
         subtitle.setObjectName("Subtitle")
 
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
+        self.table.setColumnCount(7)
         self.table.setStyleSheet("""
             QHeaderView::section {
                 background-color: #7FD1B9;
@@ -133,8 +142,14 @@ class HistoryAppAdmin(QWidget):
                 border: none;
                 font-weight: bold;
             }
+                                 
+            QTableCornerButton::section {
+                background-color: #1f2232;
+                border: none;
+            }
         """)
-        self.table.setHorizontalHeaderLabels(["N°", "PH", "CE", "Temperatura", "Nivel del agua", "Fecha"])
+        self.table.setHorizontalHeaderLabels(["PH", "CE", "Temperatura en Agua", "Nivel del agua", "Temperatura en Ambiente", "Humedad", "Fecha"])
+        self.table.horizontalHeader().setFixedHeight(25)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.populate_table()
@@ -148,37 +163,38 @@ class HistoryAppAdmin(QWidget):
         historial_layout.addWidget(registro_frame)
 
         layout.addWidget(historial_frame)
-
+    
     def populate_table(self):
         datos = [
-            [6.5, 1.2, 22, 80, "2025-04-25"],
-            [6.8, 1.3, 23, 78, "2025-04-24"],
-            [7.0, 1.5, 21, 82, "2025-04-23"],
+            [6.5, 1.2, 22, 1.2, 10, 80, "2025-04-25"],
+            [6.5, 1.2, 23, 1.3, 5, 78, "2025-04-24"],
+            [6.5, 1.2, 21, 1.5, 15, 82, "2025-04-23"],
         ]
 
         self.table.setRowCount(len(datos))
-        self.table.verticalHeader().setVisible(False)
 
-        # Establecer negrita para la columna "N°"
+        # Personalizar el encabezado vertical (para numeración automática)
+        vertical_header = self.table.verticalHeader()
+        vertical_header.setDefaultAlignment(Qt.AlignCenter)
+        vertical_header.setStyleSheet("""
+            QHeaderView::section {
+                background-color: #7FD1B9;
+                color: black;
+                font-weight: bold;
+                border: none;
+            }
+        """)
+
         bold_font = QFont()
         bold_font.setBold(True)
 
         for i, fila in enumerate(datos):
-            item_num = QTableWidgetItem(str(i + 1))
-            item_num.setTextAlignment(Qt.AlignCenter)
-            item_num.setBackground(QColor("#7FD1B9"))
-            item_num.setForeground(QBrush(QColor("black")))
-            item_num.setFont(bold_font)
-            self.table.setItem(i, 0, item_num)
-
-            # Los demás datos
             for j, valor in enumerate(fila):
                 item = QTableWidgetItem(str(valor))
                 item.setTextAlignment(Qt.AlignCenter)
-                self.table.setItem(i, j + 1, item)
-        
-        self.table.setColumnWidth(0, 50)  #No funciona bien
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
+                self.table.setItem(i, j, item)
+
+
 
 
 
