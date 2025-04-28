@@ -10,10 +10,10 @@ class SensorsAppAdmin(QWidget):
         
         #Caja container
         box = QFrame()
-        box.setFixedSize(1200, 700) #for mi when i will changig size, first is the WIDTH and then go the Height
+        box.setFixedSize(1200, 700) #Width x Heigth
         box.setStyleSheet("""
             QFrame {
-        background-color: #040A08;  /* color entre azul marino y verde */
+        background-color: #040A08;
         border-radius: 10px;
         border: 2px solid #00AAA5;
             }
@@ -26,15 +26,23 @@ class SensorsAppAdmin(QWidget):
         
         #Título
         label = QLabel("SENSORES")
-        label.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
+        label.setObjectName("Titulo")
+        label.setStyleSheet("""
+                QLabel#Titulo
+                color: white; 
+                font-size: 18px; 
+                font-weight: bold;
+                border: transparent;
+            """)
         label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         inner_layout.addWidget(label, alignment=Qt.AlignLeft)
         
         #Caja contenido
         inner_box = QFrame()
+        inner_box.setObjectName("InnerBox")
         inner_box.setFixedSize(1100, 550)
         inner_box.setStyleSheet("""
-            QFrame {
+            QFrame#InnerBox {
         background-color: #040A08;
         border-radius: 8px;
         border: 1px solid #DE209F;
@@ -69,9 +77,9 @@ class SensorsAppAdmin(QWidget):
             # Frame para cada sensor
             sensor_frame = QFrame()
             sensor_frame.setStyleSheet("""
-                QFrame() {
+                QFrame {
                     background-color: #11211F;
-                    border: 1px solid #00FF00;
+                    border: 1px solid transparent;
                     border-radius: 20px;
                 }
             """)
