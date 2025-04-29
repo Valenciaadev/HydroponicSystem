@@ -33,3 +33,109 @@ def get_admin_password():
         if conn.is_connected():
             cursor.close()
             conn.close()
+        
+def getAll():
+    """Obtiene todos los datos del historial."""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        query = "SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha FROM registro_mediciones"
+        cursor.execute(query)
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Error al obtener todos los datos: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def getbyMonth():
+    """Obtiene los datos del último mes."""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha
+            FROM registro_mediciones
+            WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+        """
+        cursor.execute(query)
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Error al obtener datos del último mes: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def getbyQuarter():
+    """Obtiene los datos del último trimestre."""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha
+            FROM registro_mediciones
+            WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+        """
+        cursor.execute(query)
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Error al obtener datos del último trimestre: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def getbySemester():
+    """Obtiene los datos del último semestre."""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha
+            FROM registro_mediciones
+            WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        """
+        cursor.execute(query)
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Error al obtener datos del último semestre: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def getbyYear():
+    """Obtiene los datos del último año."""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha
+            FROM registro_mediciones
+            WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
+        """
+        cursor.execute(query)
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Error al obtener datos del último año: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()

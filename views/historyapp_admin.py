@@ -16,6 +16,13 @@ from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QHBoxLayout, QFrame, QHeaderView
 )
+from models.database import (
+    getAll,
+    getbyMonth,
+    getbyQuarter,
+    getbySemester,
+    getbyYear,
+)
 from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QIcon
@@ -78,8 +85,8 @@ class HistoryAppAdmin(QWidget):
         top_buttons_layout.addStretch()
 
         self.pdf_button = QPushButton()
-        self.pdf_button.setIcon(QIcon("assets/icons/home-white.svg")) 
-        self.pdf_button.setFixedSize(40, 40)  
+        self.pdf_button.setIcon(QIcon("assets/icons/bxs-file-pdf.svg")) 
+        self.pdf_button.setFixedSize(50, 50)  
         self.pdf_button.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
@@ -124,6 +131,8 @@ class HistoryAppAdmin(QWidget):
         top_buttons_layout.addWidget(self.pdf_button)
         top_buttons_layout.addWidget(self.filter_combo)
 
+        self.filter_combo.currentIndexChanged.connect(self.populate_table)
+
         # --- Cuadro Tabla dentro del historial ---
         registro_frame = QFrame()
         registro_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
@@ -165,11 +174,22 @@ class HistoryAppAdmin(QWidget):
         layout.addWidget(historial_frame)
     
     def populate_table(self):
-        datos = [
-            [6.5, 1.2, 22, 1.2, 10, 80, "2025-04-25"],
-            [6.5, 1.2, 23, 1.3, 5, 78, "2025-04-24"],
-            [6.5, 1.2, 21, 1.5, 15, 82, "2025-04-23"],
-        ]
+        """Llena la tabla con datos según el filtro seleccionado."""
+        filtro = self.filter_combo.currentText()
+        
+        match filtro:
+            case "Todo":
+                datos = getAll()
+            case "Mes anterior":
+                datos = getbyMonth()
+            case "Último trimestre":
+                datos = getbyQuarter()
+            case "Último semestre":
+                datos = getbySemester()
+            case "Último año":
+                datos = getbyYear()
+            case _:
+                datos = []
 
         self.table.setRowCount(len(datos))
 
@@ -184,9 +204,6 @@ class HistoryAppAdmin(QWidget):
                 border: none;
             }
         """)
-
-        bold_font = QFont()
-        bold_font.setBold(True)
 
         for i, fila in enumerate(datos):
             for j, valor in enumerate(fila):
