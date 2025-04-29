@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QDialog,QTextBrowser
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
@@ -30,12 +30,39 @@ class SensorsAppAdmin(QWidget):
         label.setStyleSheet("""
                 QLabel#Titulo
                 color: white; 
-                font-size: 18px; 
+                font-size: 25px; 
                 font-weight: bold;
                 border: transparent;
             """)
         label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         inner_layout.addWidget(label, alignment=Qt.AlignLeft)
+        
+        #botón agregar sensor
+        addSensBtn = QPushButton("+ Agregar Sensor")
+        addSensBtn.setObjectName("AgregarSensorBtn")
+        addSensBtn.setFixedSize(160,40)
+        addSensBtn.setStyleSheet("""
+            QPushButton#AgregarSensorBtn {
+                background-color: transparent;
+                color: #eee;
+                border-radius: 15px;
+                font-size: 15px;
+                font-weight: normal;
+                border: 1px solid #039066;
+            }
+            
+            QPushButton#AgregarSensorBtn:hover {
+                background-color: #0f2623
+                
+            }
+            """)
+        #inner_layout.addWidget(addSensBtn) 
+        btnAddSens_layout = QHBoxLayout()
+        btnAddSens_layout.addStretch()
+        btnAddSens_layout.addWidget(addSensBtn)
+        
+        inner_layout.addLayout(btnAddSens_layout)
+        addSensBtn.clicked.connect(self.testSlot)
         
         #Caja contenido
         inner_box = QFrame()
@@ -120,6 +147,8 @@ class SensorsAppAdmin(QWidget):
                     background-color: #1A2F7A;
                 }
             """)
+            #probar la funcionalidad de los botones
+            chars_btn.clicked.connect(self.testSlot)
             
             #Agregar los widgets al layout del sensor
             sensor_layout.addWidget(led)
@@ -134,10 +163,34 @@ class SensorsAppAdmin(QWidget):
             
         #Aplicar el layout al inner-box
         inner_box.setLayout(inner_box_layout)
-            
-        
         
     def testSlot(self):
-        print("Hola mundo")
+        """Abre una ventana emergente con los términos y condiciones."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Términos y Condiciones")
+        dialog.setGeometry(100, 100, 400, 300)
+
+        layout = QVBoxLayout()
+        text_browser = QTextBrowser()
+        text_browser.setText("""
+            <h3>Términos y Condiciones</h3>
+            <p>Bienvenido a nuestra plataforma. Antes de continuar, por favor lee los siguientes términos:</p>
+            <ul>
+                <li>No compartas tu contraseña con terceros.</li>
+                <li>Respetar a los demás usuarios en la comunidad.</li>
+                <li>No utilizar información falsa en el registro.</li>
+                <li>El uso indebido de la plataforma puede resultar en la suspensión de la cuenta.</li>
+            </ul>
+            <p>Al continuar, aceptas estos términos.</p>
+        """)
+        text_browser.setOpenExternalLinks(True)
+
+        close_button = QPushButton("Cerrar")
+        close_button.clicked.connect(dialog.accept)
+
+        layout.addWidget(text_browser)
+        layout.addWidget(close_button)
+        dialog.setLayout(layout)
+        dialog.exec_()
         
         
