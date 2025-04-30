@@ -23,6 +23,9 @@ from models.database import (
     getbySemester,
     getbyYear,
 )
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QIcon
@@ -157,7 +160,7 @@ class HistoryAppAdmin(QWidget):
                 border: none;
             }
         """)
-        self.table.setHorizontalHeaderLabels(["PH", "CE", "Temperatura en Agua", "Nivel del agua", "Temperatura en Ambiente", "Humedad", "Fecha"])
+        self.table.setHorizontalHeaderLabels(["PH", "CE", "Temperatura en Agua", "Nivel del agua", "Temperatura en Ambiente", "Humedad", "Fecha y Hora"])
         self.table.horizontalHeader().setFixedHeight(25)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
@@ -172,6 +175,8 @@ class HistoryAppAdmin(QWidget):
         historial_layout.addWidget(registro_frame)
 
         layout.addWidget(historial_frame)
+
+        self.pdf_button.clicked.connect(self.generate_pdf)
     
     def populate_table(self):
         """Llena la tabla con datos según el filtro seleccionado."""
@@ -210,6 +215,57 @@ class HistoryAppAdmin(QWidget):
                 item = QTableWidgetItem(str(valor))
                 item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(i, j, item)
+            
+    def generate_pdf(self):
+        """Genera un PDF con los datos visibles en la tabla."""
+        # Abrir un cuadro de diálogo para guardar el archivo
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Guardar PDF", "", "Archivos PDF (*.pdf)", options=options
+        )
+
+        if not file_path:
+            return  # Si el usuario cancela, no hacer nada
+
+        # Crear el PDF
+        c = canvas.Canvas(file_path, pagesize=letter)
+        width, height = letter
+
+        # Título del PDF
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, height - 50, "Historial de Mediciones")
+
+        # Subtítulo con el filtro seleccionado
+        filtro = self.filter_combo.currentText()
+        c.setFont("Helvetica", 12)
+        c.drawString(50, height - 80, f"Filtro aplicado: {filtro}")
+
+        # Encabezados de la tabla
+        headers = ["PH", "CE", "Temp. Agua", "Nivel Agua", "Temp. Ambiente", "Humedad", "Fecha y Hora"]
+        x_offset = 50
+        y_offset = height - 120
+        c.setFont("Helvetica-Bold", 10)
+        for i, header in enumerate(headers):
+            c.drawString(x_offset + i * 80, y_offset, header)
+
+        # Dibujar los datos de la tabla
+        c.setFont("Helvetica", 10)
+        y_offset -= 20
+        for row in range(self.table.rowCount()):
+            for col in range(self.table.columnCount()):
+                item = self.table.item(row, col)
+                if item is not None:
+                    c.drawString(x_offset + col * 80, y_offset, item.text())
+            y_offset -= 20
+            if y_offset < 50:  # Crear una nueva página si no hay espacio
+                c.showPage()
+                y_offset = height - 50
+
+        # Guardar el PDF
+        c.save()
+
+        # Confirmación
+        print(f"PDF guardado en: {file_path}")
 
 
 

@@ -42,7 +42,7 @@ def getAll():
 
     try:
         cursor = conn.cursor()
-        query = "SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha FROM registro_mediciones"
+        query = "SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha FROM registro_mediciones"
         cursor.execute(query)
         return cursor.fetchall()
     except Exception as e:
@@ -61,7 +61,7 @@ def getbyMonth():
     try:
         cursor = conn.cursor()
         query = """
-            SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha
+            SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
         """
@@ -83,7 +83,7 @@ def getbyQuarter():
     try:
         cursor = conn.cursor()
         query = """
-            SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha
+            SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
         """
@@ -105,7 +105,7 @@ def getbySemester():
     try:
         cursor = conn.cursor()
         query = """
-            SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha
+            SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
         """
@@ -127,7 +127,7 @@ def getbyYear():
     try:
         cursor = conn.cursor()
         query = """
-            SELECT ph, ce, t_agua, ultrasonico t_ambiente, humedad, fecha
+            SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
         """
