@@ -14,7 +14,7 @@ class HistoryAppAdmin(QWidget):
 
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QHBoxLayout, QFrame, QHeaderView
+    QVBoxLayout, QHBoxLayout, QFrame, QHeaderView, QFileDialog
 )
 from models.database import (
     getAll,
@@ -23,14 +23,13 @@ from models.database import (
     getbySemester,
     getbyYear,
 )
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtGui import QFont
-from PyQt5.QtGui import QColor
-from PyQt5.QtGui import QIcon
-from PyQt5.QtGui import QBrush
+from reportlab.lib.pagesizes import ( landscape, letter
+)
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QBrush, QIcon, QColor, QFont
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
 
 
 class HistoryAppAdmin(QWidget):
@@ -217,60 +216,76 @@ class HistoryAppAdmin(QWidget):
                 self.table.setItem(i, j, item)
             
     def generate_pdf(self):
-        """Genera un PDF con los datos visibles en la tabla."""
-        # Abrir un cuadro de diálogo para guardar el archivo
+        """Genera un PDF con los datos visibles en la tabla, usando múltiples páginas si es necesario."""
+        # Diálogo para guardar
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Guardar PDF", "", "Archivos PDF (*.pdf)", options=options
         )
 
         if not file_path:
-            return  # Si el usuario cancela, no hacer nada
+            return
 
-        # Crear el PDF
-        c = canvas.Canvas(file_path, pagesize=letter)
-        width, height = letter
+        c = canvas.Canvas(file_path, pagesize=landscape(letter))
+        width, height = landscape(letter)
 
-        # Título del PDF
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(50, height - 50, "Historial de Mediciones")
-
-        # Subtítulo con el filtro seleccionado
         filtro = self.filter_combo.currentText()
-        c.setFont("Helvetica", 12)
-        c.drawString(50, height - 80, f"Filtro aplicado: {filtro}")
 
-        # Encabezados de la tabla
+        # Encabezado de la tabla
         headers = ["PH", "CE", "Temp. Agua", "Nivel Agua", "Temp. Ambiente", "Humedad", "Fecha y Hora"]
-        x_offset = 50
-        y_offset = height - 120
-        c.setFont("Helvetica-Bold", 10)
-        for i, header in enumerate(headers):
-            c.drawString(x_offset + i * 80, y_offset, header)
+        data = [headers]
 
-        # Dibujar los datos de la tabla
-        c.setFont("Helvetica", 10)
-        y_offset -= 20
         for row in range(self.table.rowCount()):
+            row_data = []
             for col in range(self.table.columnCount()):
                 item = self.table.item(row, col)
-                if item is not None:
-                    c.drawString(x_offset + col * 80, y_offset, item.text())
-            y_offset -= 20
-            if y_offset < 50:  # Crear una nueva página si no hay espacio
-                c.showPage()
-                y_offset = height - 50
+                row_data.append(item.text() if item is not None else "")
+            data.append(row_data)
 
-        # Guardar el PDF
+        # Estilo de la tabla
+        table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#4A90E2")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#F5F5F5")),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ])
+
+        # Parámetros de paginación
+        margin_top = 100
+        margin_bottom = 50
+        available_height = height - margin_top - margin_bottom
+        row_height = 20  # Altura aproximada de cada fila
+
+        max_rows_per_page = int(available_height // row_height) - 1  # -1 para el encabezado
+
+        current_row = 1  # Saltamos encabezado porque ya está en data[0]
+        total_rows = len(data) - 1
+
+        def draw_header():
+            c.setFont("Helvetica-Bold", 20)
+            c.drawCentredString(width / 2, height - 40, "Historial de Mediciones")
+            c.setFont("Helvetica", 14)
+            c.drawCentredString(width / 2, height - 65, f"Filtro aplicado: {filtro}")
+
+        while current_row <= total_rows:
+            draw_header()
+
+            page_data = [headers] + data[current_row: current_row + max_rows_per_page]
+            colWidths = [80, 80, 80, 80, 110, 80, 160]
+            table = Table(page_data, colWidths=colWidths)
+            table.setStyle(table_style)
+
+            table_width, table_height = table.wrap(0, 0)
+            x_position = (width - table_width) / 2
+            y_position = height - margin_top - table_height
+
+            table.drawOn(c, x_position, y_position)
+            c.showPage()
+            current_row += max_rows_per_page
+
         c.save()
-
-        # Confirmación
         print(f"PDF guardado en: {file_path}")
-
-
-
-
-
-
-
-
