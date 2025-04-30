@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QDialog,QTextBrowser
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QDialog, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
@@ -165,31 +165,140 @@ class SensorsAppAdmin(QWidget):
         inner_box.setLayout(inner_box_layout)
         
     def testSlot(self):
-        """Abre una ventana emergente con los términos y condiciones."""
+        """Abre una ventana con un formulario para añadir un nuevo Sensor."""
         dialog = QDialog(self)
-        dialog.setWindowTitle("Términos y Condiciones")
-        dialog.setGeometry(100, 100, 400, 300)
-
+        dialog.setWindowTitle("Agregar nuevo sensor")
+        dialog.setGeometry(100, 100, 500, 700)
+        
+        #cambiar el color de la ventana
+        dialog.setStyleSheet("background-color: #040e0c ; color:white;")
+        
         layout = QVBoxLayout()
-        text_browser = QTextBrowser()
-        text_browser.setText("""
-            <h3>Términos y Condiciones</h3>
-            <p>Bienvenido a nuestra plataforma. Antes de continuar, por favor lee los siguientes términos:</p>
-            <ul>
-                <li>No compartas tu contraseña con terceros.</li>
-                <li>Respetar a los demás usuarios en la comunidad.</li>
-                <li>No utilizar información falsa en el registro.</li>
-                <li>El uso indebido de la plataforma puede resultar en la suspensión de la cuenta.</li>
-            </ul>
-            <p>Al continuar, aceptas estos términos.</p>
-        """)
-        text_browser.setOpenExternalLinks(True)
+        
+        tituloModal = QLabel("Añadir sensor")
+        tituloModal.setObjectName("title")
+        tituloModal.setStyleSheet("""
+            QLabel#title{
+                color: white;
+                font-size: 15px;
+                font-weight: bold;
+                }""")
+        
+        addSensorBox = QFrame()
+        addSensorBox.setFixedSize(450, 650)
+        addSensorBox.setObjectName("AddSensorContainer")
+        addSensorBox.setStyleSheet("""
+            QFrame#AddSensorContainer {
+                border: 2px solid #00AAA5;
+                border-radius: 8px;
+                }""")
+        
+        box_layout = QVBoxLayout()
+        box_layout.setContentsMargins(15, 15, 15, 15)
+        box_layout.setSpacing(30)
+        
+        #campos para rellenar
+        nombreSensorField = QLineEdit(self)
+        busField = QLineEdit(self)
+        addressField = QLineEdit(self)
+        tasaFlujoField = QLineEdit(self)
+        modoSalidaField = QLineEdit(self)
+        
+        #Place holders de los campos
+        nombreSensorField.setPlaceholderText("Nombre del sensor")
+        busField.setPlaceholderText("Bus")
+        addressField.setPlaceholderText("Address")
+        tasaFlujoField.setPlaceholderText("Tasa de Flujo")
+        modoSalidaField.setPlaceholderText("Modo de salida")
+        
+        # Estilos para los placeholders
+        nombreSensorField.setObjectName("NombreDeSensor")
+        busField.setObjectName("Bus")
+        addressField.setObjectName("Address")
+        tasaFlujoField.setObjectName("TasaDeFlujo")
+        modoSalidaField.setObjectName("ModoDeSalida")
+        
+        nombreSensorField.setStyleSheet("""
+                QLineEdit#NombreDeSensor {
+                    background-color: #2e3048; 
+                    color:white;
+                    border-radius: 25px;
+                    }
+                    """)
+        busField.setStyleSheet("""
+                QLineEdit#Bus {
+                    background-color: #2e3048; 
+                    color:white;
+                    border-radius: 25px;
+                    }
+                    """)
+        addressField.setStyleSheet("""
+                QLineEdit#Address {
+                    background-color: #2e3048; 
+                    color:white;
+                    border-radius: 25px;
+                    }
+                    """)
+        tasaFlujoField.setStyleSheet("""
+                QLineEdit#TasaDeFlujo {
+                    background-color: #2e3048; 
+                    color:white;
+                    border-radius: 25px;
+                }
+                """)
+        modoSalidaField.setStyleSheet("""
+                QLineEdit#ModoDeSalida {
+                    background-color: #2e3048; 
+                    color:white;
+                    border-radius: 25px;
+                }
+                """)
+        
+        
+        #posicionar los QLineEdit(s)
+        nombreSensorField.setFixedHeight(60)
+        busField.setFixedHeight(60)
+        addressField.setFixedHeight(60)
+        tasaFlujoField.setFixedHeight(60)
+        modoSalidaField.setFixedHeight(60)
+        
+        #Botones de guardar y cancelar
+        guardar_btn = QPushButton("Guardar")
+        cancelar_btn = QPushButton("Cancelar")
+        
+        #Tamaño de los botones "Guardar" y "Cancelar"
+        guardar_btn.setFixedWidth(100)
+        cancelar_btn.setFixedWidth(100)
+        
+        
+        #se añaden widgets al layout del contenedor
+        box_layout.addWidget(nombreSensorField)
+        box_layout.addWidget(busField)
+        box_layout.addWidget(addressField)
+        box_layout.addWidget(tasaFlujoField)
+        box_layout.addWidget(modoSalidaField)
+        
+        #Añadir Botones de "Guardar" y "Cancelar"
+        box_layout.addStretch()
+        botones_layout = QHBoxLayout()
+        botones_layout.addWidget(guardar_btn)
+        botones_layout.addWidget(cancelar_btn)
+        botones_layout.setAlignment(Qt.AlignHCenter)
+        box_layout.addLayout(botones_layout)
 
-        close_button = QPushButton("Cerrar")
-        close_button.clicked.connect(dialog.accept)
-
-        layout.addWidget(text_browser)
-        layout.addWidget(close_button)
+        
+        #se asigna el layout al QFrame
+        addSensorBox.setLayout(box_layout)
+        
+        #se agregan widgets al layout principal
+        tituloModal.setAlignment(Qt.AlignHCenter)
+        layout.addWidget(tituloModal)
+        
+        
+        
+        
+        layout.addWidget(addSensorBox, alignment= Qt.AlignHCenter)
+        
         dialog.setLayout(layout)
         dialog.exec_()
         
