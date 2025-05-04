@@ -38,7 +38,12 @@ class HistoryAppAdmin(QWidget):
         self.ventana_login = ventana_login
         self.init_ui()
 
+
+
     def init_ui(self):
+        self.datos_completos = []
+        self.pagina_actual = 0
+        self.registros_por_pagina = 15
         self.setStyleSheet("""
             QLabel#Title {
                 font-size: 20px;
@@ -139,6 +144,8 @@ class HistoryAppAdmin(QWidget):
         registro_frame = QFrame()
         registro_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
         registro_layout = QVBoxLayout(registro_frame)
+        registro_layout.setSpacing(5)
+
 
         subtitle = QLabel("Registro de datos")
         subtitle.setObjectName("Subtitle")
@@ -163,10 +170,50 @@ class HistoryAppAdmin(QWidget):
         self.table.horizontalHeader().setFixedHeight(25)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-        self.populate_table()
 
         registro_layout.addWidget(subtitle)
         registro_layout.addWidget(self.table)
+
+        self.paginacion_layout = QHBoxLayout()
+        self.paginacion_layout.setAlignment(Qt.AlignCenter)
+
+        self.boton_anterior = QPushButton("← Anterior")
+        self.boton_siguiente = QPushButton("Siguiente →")
+        self.boton_anterior.setStyleSheet("""
+            QPushButton {
+                background-color: #4A90E2;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 10px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #357ABD;
+            }
+        """)
+
+        self.boton_siguiente.setStyleSheet("""
+            QPushButton {
+                background-color: #4A90E2;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 10px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #357ABD;
+            }
+        """)
+
+        self.boton_anterior.clicked.connect(self.ir_pagina_anterior)
+        self.boton_siguiente.clicked.connect(self.ir_pagina_siguiente)
+
+        self.paginacion_layout.addWidget(self.boton_anterior)
+        self.paginacion_layout.addWidget(self.boton_siguiente)
+
+        registro_layout.addLayout(self.paginacion_layout)
+        self.populate_table()
+
 
         historial_layout.addWidget(title_historial)
         historial_layout.addLayout(top_buttons_layout)
@@ -178,42 +225,51 @@ class HistoryAppAdmin(QWidget):
         self.pdf_button.clicked.connect(self.generate_pdf)
     
     def populate_table(self):
-        """Llena la tabla con datos según el filtro seleccionado."""
         filtro = self.filter_combo.currentText()
-        
+
         match filtro:
             case "Todo":
-                datos = getAll()
+                self.datos_completos = getAll()
             case "Mes anterior":
-                datos = getbyMonth()
+                self.datos_completos = getbyMonth()
             case "Último trimestre":
-                datos = getbyQuarter()
+                self.datos_completos = getbyQuarter()
             case "Último semestre":
-                datos = getbySemester()
+                self.datos_completos = getbySemester()
             case "Último año":
-                datos = getbyYear()
+                self.datos_completos = getbyYear()
             case _:
-                datos = []
+                self.datos_completos = []
 
-        self.table.setRowCount(len(datos))
+        self.pagina_actual = 0
+        self.mostrar_pagina()
 
-        # Personalizar el encabezado vertical (para numeración automática)
-        vertical_header = self.table.verticalHeader()
-        vertical_header.setDefaultAlignment(Qt.AlignCenter)
-        vertical_header.setStyleSheet("""
-            QHeaderView::section {
-                background-color: #7FD1B9;
-                color: black;
-                font-weight: bold;
-                border: none;
-            }
-        """)
+    def mostrar_pagina(self):
+        inicio = self.pagina_actual * self.registros_por_pagina
+        fin = inicio + self.registros_por_pagina
+        pagina_datos = self.datos_completos[inicio:fin]
 
-        for i, fila in enumerate(datos):
+        self.table.setRowCount(len(pagina_datos))
+
+        for i, fila in enumerate(pagina_datos):
             for j, valor in enumerate(fila):
                 item = QTableWidgetItem(str(valor))
                 item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(i, j, item)
+
+        # Mostrar/ocultar botones
+        total_paginas = (len(self.datos_completos) - 1) // self.registros_por_pagina
+        self.boton_anterior.setVisible(self.pagina_actual > 0)
+        self.boton_siguiente.setVisible(self.pagina_actual < total_paginas)
+
+    def ir_pagina_siguiente(self):
+        self.pagina_actual += 1
+        self.mostrar_pagina()
+
+    def ir_pagina_anterior(self):
+        self.pagina_actual -= 1
+        self.mostrar_pagina()
+
             
     def generate_pdf(self):
         """Genera un PDF con los datos visibles en la tabla, usando múltiples páginas si es necesario."""
