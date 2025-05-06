@@ -5,6 +5,7 @@ from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt, QSize
 from views.seleccion_usuario import TitleBar
 from views.create_device_modal import CreateDeviceWidget
+from views.about_device_modal import AboutDeviceWidget
 
 class DevicesAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
@@ -168,25 +169,26 @@ class DevicesAppAdmin(QWidget):
                     background-color: #429E88;
                 }
             """)
+            features_button.clicked.connect(self.about_devices)
 
-            shutdown_button = QPushButton("Apagar")
-            shutdown_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #FF6B6B;
-                    color: white;
-                    font-weight: bold;
-                    border-radius: 14px;
-                    padding: 6px 14px;
-                }
-                QPushButton:hover {
-                    background-color: #e85c5c;
-                }
-            """)
+            # shutdown_button = QPushButton("Apagar")
+            # shutdown_button.setStyleSheet("""
+            #     QPushButton {
+            #         background-color: #FF6B6B;
+            #         color: white;
+            #         font-weight: bold;
+            #         border-radius: 14px;
+            #         padding: 6px 14px;
+            #     }
+            #     QPushButton:hover {
+            #         background-color: #e85c5c;
+            #     }
+            # """)
 
             buttons_layout = QHBoxLayout()
             buttons_layout.setSpacing(10)
             buttons_layout.addWidget(features_button)
-            buttons_layout.addWidget(shutdown_button)
+            # buttons_layout.addWidget(shutdown_button)
 
             device_layout.addWidget(name_label)
             device_layout.addStretch()
@@ -202,4 +204,8 @@ class DevicesAppAdmin(QWidget):
     
     def create_device(self):
         dialog = CreateDeviceWidget(self) 
+        dialog.exec_()
+
+    def about_devices(self):
+        dialog = AboutDeviceWidget(self)
         dialog.exec_()

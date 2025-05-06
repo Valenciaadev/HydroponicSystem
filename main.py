@@ -51,7 +51,6 @@ if id_usuario_admin:
     administrador.guardar_en_db() 
 """
 
-class TitleBar(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
