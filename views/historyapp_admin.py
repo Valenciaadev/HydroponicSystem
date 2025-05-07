@@ -272,7 +272,7 @@ class HistoryAppAdmin(QWidget):
 
             
     def generate_pdf(self):
-        """Genera un PDF con los datos visibles en la tabla, usando múltiples páginas si es necesario."""
+        """Genera un PDF con todos los datos del filtro seleccionado, no solo los visibles en la tabla."""
         # Diálogo para guardar
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(
@@ -289,14 +289,7 @@ class HistoryAppAdmin(QWidget):
 
         # Encabezado de la tabla
         headers = ["PH", "CE", "Temp. Agua", "Nivel Agua", "Temp. Ambiente", "Humedad", "Fecha y Hora"]
-        data = [headers]
-
-        for row in range(self.table.rowCount()):
-            row_data = []
-            for col in range(self.table.columnCount()):
-                item = self.table.item(row, col)
-                row_data.append(item.text() if item is not None else "")
-            data.append(row_data)
+        data = [headers] + self.datos_completos  # Usar todos los datos del filtro seleccionado
 
         # Estilo de la tabla
         table_style = TableStyle([
@@ -322,14 +315,17 @@ class HistoryAppAdmin(QWidget):
         total_rows = len(data) - 1
 
         def draw_header():
+            """Dibuja el encabezado en la página actual."""
             c.setFont("Helvetica-Bold", 20)
             c.drawCentredString(width / 2, height - 40, "Historial de Mediciones")
             c.setFont("Helvetica", 14)
             c.drawCentredString(width / 2, height - 65, f"Filtro aplicado: {filtro}")
 
         while current_row <= total_rows:
-            draw_header()
+            if current_row == 1:  # Solo dibujar el encabezado en la primera página
+                draw_header()
 
+            # Obtener los datos para la página actual
             page_data = [headers] + data[current_row: current_row + max_rows_per_page]
             colWidths = [80, 80, 80, 80, 110, 80, 160]
             table = Table(page_data, colWidths=colWidths)
@@ -340,8 +336,13 @@ class HistoryAppAdmin(QWidget):
             y_position = height - margin_top - table_height
 
             table.drawOn(c, x_position, y_position)
-            c.showPage()
+
             current_row += max_rows_per_page
+
+            if current_row <= total_rows:  # Si hay más datos, crear una nueva página
+                c.showPage()
+                # En las páginas siguientes, no dibujar el encabezado
+                y_position = height - margin_top
 
         c.save()
         print(f"PDF guardado en: {file_path}")
