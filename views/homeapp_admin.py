@@ -28,7 +28,7 @@ class HomeappAdmin(QWidget):
         self.dispositivos_widget = DevicesAppAdmin(self.ventana_login, embed=True)
         self.historial_widget = HistoryAppAdmin(self.ventana_login, embed=True)
         self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
-
+        
         # Agregar vistas al stacked layout
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
@@ -36,7 +36,6 @@ class HomeappAdmin(QWidget):
         self.stacked_layout.addWidget(self.dispositivos_widget)
         self.stacked_layout.addWidget(self.historial_widget)
         self.stacked_layout.addWidget(self.gestion_usuarios_widget)
-        
         self.stacked_layout.setCurrentIndex(0)
         
         # Sidebar
@@ -91,7 +90,7 @@ class HomeappAdmin(QWidget):
         btn_history.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(4))
         btn_history.setIcon(QIcon("assets/icons/history-white.svg"))
         btn_history.setIconSize(QSize(24, 24))
-        
+
         btn_users = QPushButton(" Gestionar usuarios")
         btn_users.setStyleSheet(btn_style)
         btn_users.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(4))
@@ -111,8 +110,7 @@ class HomeappAdmin(QWidget):
         sidebar_widget.setStyleSheet("""
             background-color: #2c3e50;
             color: white;
-            border-top-right-radius: 15px;
-            border-bottom-right-radius: 15px;
+            border-radius: 15px;
         """)
 
         sidebar.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Fixed))
@@ -122,6 +120,7 @@ class HomeappAdmin(QWidget):
         sidebar.addWidget(btn_devices)
         sidebar.addWidget(btn_history)
         sidebar.addWidget(btn_users)
+
         sidebar.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
         sidebar.addWidget(btn_exit)
         sidebar.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Fixed))
