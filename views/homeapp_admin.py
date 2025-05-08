@@ -6,6 +6,7 @@ from views.actuatorsapp_admin import ActuatorsAppAdmin
 from views.sensorsapp_admin import SensorsAppAdmin
 from views.devicesapp_admin import DevicesAppAdmin
 from views.historyapp_admin import HistoryAppAdmin
+from views.managment_users_admin import ManagmentAppAdmin
 
 class HomeappAdmin(QWidget):
     def __init__(self, ventana_login):
@@ -26,14 +27,15 @@ class HomeappAdmin(QWidget):
         self.sensores_widget = SensorsAppAdmin(self.ventana_login, embed=True)
         self.dispositivos_widget = DevicesAppAdmin(self.ventana_login, embed=True)
         self.historial_widget = HistoryAppAdmin(self.ventana_login, embed=True)
-
+        self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
+        
         # Agregar vistas al stacked layout
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
         self.stacked_layout.addWidget(self.sensores_widget)
         self.stacked_layout.addWidget(self.dispositivos_widget)
         self.stacked_layout.addWidget(self.historial_widget)
-        
+        self.stacked_layout.addWidget(self.gestion_usuarios_widget)
         self.stacked_layout.setCurrentIndex(0)
         
         # Sidebar
@@ -89,6 +91,12 @@ class HomeappAdmin(QWidget):
         btn_history.setIcon(QIcon("assets/icons/history-white.svg"))
         btn_history.setIconSize(QSize(24, 24))
 
+        btn_users = QPushButton(" Gestionar usuarios")
+        btn_users.setStyleSheet(btn_style)
+        btn_users.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(4))
+        btn_users.setIcon(QIcon("assets/icons/history-white.svg"))
+        btn_users.setIconSize(QSize(24, 24))
+
         btn_exit = QPushButton(" Cerrar sesión")
         btn_exit.setStyleSheet(btn_style)
         btn_exit.setIcon(QIcon("assets/icons/log_out-white.svg"))
@@ -111,6 +119,8 @@ class HomeappAdmin(QWidget):
         sidebar.addWidget(btn_sensors)
         sidebar.addWidget(btn_devices)
         sidebar.addWidget(btn_history)
+        sidebar.addWidget(btn_users)
+
         sidebar.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
         sidebar.addWidget(btn_exit)
         sidebar.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Fixed))
