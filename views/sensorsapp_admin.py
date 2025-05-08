@@ -10,18 +10,17 @@ class SensorsAppAdmin(QWidget):
         
         #Caja container
         box = QFrame()
-        box.setFixedSize(1200, 700) #Width x Heigth
+        box.setFixedSize(1600, 900) #Width x Heigth
         box.setStyleSheet("""
             QFrame {
-        background-color: #040A08;
-        border-radius: 10px;
-        border: 2px solid #00AAA5;
+        background-color: #28243C;
+        border-radius: 15px;
             }
         """)
         
         #Layout interno de la caja
         inner_layout = QVBoxLayout()
-        inner_layout.setContentsMargins(20, 20, 20, 20) #margenes para que no quede pegado
+        inner_layout.setContentsMargins(0, 5, 20, 20) #margenes para que no quede pegado
         inner_layout.setSpacing(20) #espacio entre los widgets internos
         
         #Título
@@ -33,6 +32,7 @@ class SensorsAppAdmin(QWidget):
                 font-size: 25px; 
                 font-weight: bold;
                 border: transparent;
+                padding: 5px;
             """)
         label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         inner_layout.addWidget(label, alignment=Qt.AlignLeft)
@@ -40,19 +40,21 @@ class SensorsAppAdmin(QWidget):
         #botón agregar sensor
         addSensBtn = QPushButton("+ Agregar Sensor")
         addSensBtn.setObjectName("AgregarSensorBtn")
-        addSensBtn.setFixedSize(160,40)
+        addSensBtn.setFixedSize(190,40)
         addSensBtn.setStyleSheet("""
             QPushButton#AgregarSensorBtn {
-                background-color: transparent;
-                color: #eee;
+                background-color: #1F2232;
+                color: white;
                 border-radius: 15px;
                 font-size: 15px;
-                font-weight: normal;
-                border: 1px solid #039066;
+                font-weight: bold;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 30px;
             }
             
             QPushButton#AgregarSensorBtn:hover {
-                background-color: #0f2623
+                background-color: #1F2F32;
                 
             }
             """)
@@ -62,17 +64,16 @@ class SensorsAppAdmin(QWidget):
         btnAddSens_layout.addWidget(addSensBtn)
         
         inner_layout.addLayout(btnAddSens_layout)
-        addSensBtn.clicked.connect(self.testSlot)
+        addSensBtn.clicked.connect(self.feature)
         
         #Caja contenido
         inner_box = QFrame()
         inner_box.setObjectName("InnerBox")
-        inner_box.setFixedSize(1100, 550)
+        inner_box.setFixedSize(1400, 750)
         inner_box.setStyleSheet("""
             QFrame#InnerBox {
-        background-color: #040A08;
-        border-radius: 8px;
-        border: 1px solid #DE209F;
+        background-color: #28243C;
+        border-radius: 15px;
             }
         """)
         
@@ -89,8 +90,8 @@ class SensorsAppAdmin(QWidget):
         #Layout interno para inner-box
         
         inner_box_layout = QVBoxLayout()
-        inner_box_layout.setContentsMargins(20, 20, 20, 20)
-        inner_box_layout.setSpacing(15)
+        inner_box_layout.setContentsMargins(5, 20, 20, 20)
+        inner_box_layout.setSpacing(30)
         
         #Lista con los nombres de los sensores
         sensores = [
@@ -101,70 +102,83 @@ class SensorsAppAdmin(QWidget):
         ]
         
         for nombre in sensores:
-            # Frame para cada sensor
-            sensor_frame = QFrame()
-            sensor_frame.setStyleSheet("""
+            sensor_frameOuter = QFrame()
+            sensor_frameOuter.setStyleSheet("""
                 QFrame {
-                    background-color: #11211F;
-                    border: 1px solid transparent;
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #60D4B8, stop:1 #1E2233);
+                    border-radius: 22px;
+                    padding: 2px;
+                }
+            """)
+            sensor_frameOuter.setFixedHeight(75)
+
+            # Contenedor interno con fondo sólido
+            sensor_frameInner = QFrame()
+            sensor_frameInner.setStyleSheet("""
+                QFrame {
+                    background-color: #1f2232;
                     border-radius: 20px;
                 }
             """)
+            sensor_frameInner.setFixedHeight(70)
 
-            sensor_frame.setFixedHeight(60)
-            
-            #Layout horizontal para los elementos
+            # Layout para el contenido interno
             sensor_layout = QHBoxLayout()
             sensor_layout.setContentsMargins(10, 5, 10, 5)
             sensor_layout.setSpacing(20)
-            
-            #Circulo verde que representa el estado del sensor
-            led = QLabel()
-            led.setFixedSize(20, 20)
-            led.setStyleSheet("""
+
+            # LED, nombre y botón
+            LED = QLabel()
+            LED.setFixedSize(20, 20)
+            LED.setStyleSheet("""
                 QLabel {
                     background-color: #00FF00;
                     border-radius: 10px;
                 }
             """)
-            
-            #Nombre del sensor
+
             sensor_label = QLabel(nombre)
-            sensor_label.setStyleSheet("color: white; font-size: 16px")
-            
-            #Botón de características
-            chars_btn = QPushButton("Características")
-            chars_btn.setFixedSize(120,30)
+            sensor_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
+
+            chars_btn = QPushButton("características")
+            chars_btn.setFixedSize(150, 30)
             chars_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #0B1C4D;
-                    color: white;
-                    border: 1px solid #3B5998; 
-                    border-radius: 10px;
-                    padding: 5px;
+                    background-color: #7FD1B9;
+                    color: black;
+                    font-weight: bold;
+                    border-radius: 15px;
+                    padding: 5px 15px;
                 }
                 QPushButton:hover {
-                    background-color: #1A2F7A;
+                    background-color: #429E88 ;
                 }
             """)
-            #probar la funcionalidad de los botones
-            chars_btn.clicked.connect(self.testSlot)
-            
-            #Agregar los widgets al layout del sensor
-            sensor_layout.addWidget(led)
+
+            chars_btn.clicked.connect(self.feature)
+
+            # Añadir al layout interno
+            sensor_layout.addWidget(LED)
             sensor_layout.addWidget(sensor_label)
             sensor_layout.addStretch()
             sensor_layout.addWidget(chars_btn)
-            
-            sensor_frame.setLayout(sensor_layout)
-            
-            #Agregar el frame del sensor al layout general
-            inner_box_layout.addWidget(sensor_frame)
+
+            sensor_frameInner.setLayout(sensor_layout)
+
+            # Envolverlo en el layout del borde
+            outer_layout = QVBoxLayout()
+            outer_layout.setContentsMargins(0, 0, 0, 0)
+            outer_layout.addWidget(sensor_frameInner)
+            sensor_frameOuter.setLayout(outer_layout)
+
+            # Agregar al layout principal
+            inner_box_layout.addWidget(sensor_frameOuter)
             
         #Aplicar el layout al inner-box
         inner_box.setLayout(inner_box_layout)
         
-    def testSlot(self):
+    def feature(self):
         """Abre una ventana con un formulario para añadir un nuevo Sensor."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Agregar nuevo sensor")
@@ -296,10 +310,8 @@ class SensorsAppAdmin(QWidget):
         
         
         
-        
         layout.addWidget(addSensorBox, alignment= Qt.AlignHCenter)
         
         dialog.setLayout(layout)
         dialog.exec_()
-        
         
