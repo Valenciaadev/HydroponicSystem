@@ -82,7 +82,7 @@ class HistoryAppAdmin(QWidget):
 
         # --- Cuadro Historial ---
         historial_frame = QFrame()
-        historial_frame.setStyleSheet("background-color: #27243A; border-radius: 15px;")
+        historial_frame.setStyleSheet("background-color: #27243A; border-radius: 15px; padding: 15px")
         historial_layout = QVBoxLayout(historial_frame)
 
         title_historial = QLabel("Historial")
@@ -142,7 +142,7 @@ class HistoryAppAdmin(QWidget):
 
         # --- Cuadro Tabla dentro del historial ---
         registro_frame = QFrame()
-        registro_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
+        registro_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px; ")
         registro_layout = QVBoxLayout(registro_frame)
         registro_layout.setSpacing(5)
 
