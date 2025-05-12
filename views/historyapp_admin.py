@@ -1,20 +1,6 @@
-""" from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
-
-class HistoryAppAdmin(QWidget):
-    def __init__(self, ventana_login, embed=False):
-        super().__init__()
-        layout = QVBoxLayout()
-        label = QLabel("Pantalla de Historial")
-        label.setAlignment(Qt.AlignCenter)
-        label.setFont(QFont("Candara", 16))
-        layout.addWidget(label)
-        self.setLayout(layout) """
-
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QHBoxLayout, QFrame, QHeaderView, QFileDialog
+    QAbstractItemView, QWidget, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QHBoxLayout, QFrame, QHeaderView, QFileDialog, QSizePolicy
 )
 from models.database import (
     getAll,
@@ -23,14 +9,12 @@ from models.database import (
     getbySemester,
     getbyYear,
 )
-from reportlab.lib.pagesizes import ( landscape, letter
-)
+from reportlab.lib.pagesizes import landscape, letter
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QBrush, QIcon, QColor, QFont
+from PyQt5.QtGui import QIcon
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas
-
 
 class HistoryAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=None):
@@ -38,22 +22,24 @@ class HistoryAppAdmin(QWidget):
         self.ventana_login = ventana_login
         self.init_ui()
 
-
-
     def init_ui(self):
         self.datos_completos = []
         self.pagina_actual = 0
         self.registros_por_pagina = 15
         self.setStyleSheet("""
             QLabel#Title {
-                font-size: 20px;
+                font-size: 32px;
                 font-weight: bold;
                 color: white;
+                margin-left: 15px;
+                margin-top: 5px; /* Reducir el margen superior */
+                margin-bottom: 10px; /* Añadir un poco de margen inferior */
             }
             QLabel#Subtitle {
-                font-size: 16px;
+                font-size: 22px;
                 font-weight: bold;
                 color: white;
+                margin-top: 20px;
             }
             QPushButton {
                 padding: 5px 10px;
@@ -74,7 +60,7 @@ class HistoryAppAdmin(QWidget):
                 gridline-color: #7FD1B9;
                 color: white;
                 border: none;
-                overflow: hidden; 
+                overflow: hidden;
             }
         """)
 
@@ -82,25 +68,25 @@ class HistoryAppAdmin(QWidget):
 
         # --- Cuadro Historial ---
         historial_frame = QFrame()
-        historial_frame.setStyleSheet("background-color: #27243A; border-radius: 15px; padding: 15px")
-        historial_layout = QVBoxLayout(historial_frame)
+        historial_frame.setStyleSheet("background-color: #27243A; border-radius: 10px;")
+        self.historial_layout = QVBoxLayout(historial_frame)
 
         title_historial = QLabel("Historial")
         title_historial.setObjectName("Title")
 
         top_buttons_layout = QHBoxLayout()
-        top_buttons_layout.addStretch()
+        # top_buttons_layout.addStretch() # Eliminar el stretch de aquí
 
         self.pdf_button = QPushButton()
-        self.pdf_button.setIcon(QIcon("assets/icons/bxs-file-pdf.svg")) 
-        self.pdf_button.setFixedSize(50, 50)  
+        self.pdf_button.setIcon(QIcon("assets/icons/bxs-file-pdf.svg"))
+        self.pdf_button.setFixedSize(50, 50)
         self.pdf_button.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
                 border: none;
                 margin-right: 5px;
-
             }
+
             QPushButton:hover {
                 background-color: #444;
                 border-radius: 20px;
@@ -127,7 +113,7 @@ class HistoryAppAdmin(QWidget):
                 selection-color: white;
             }
             QComboBox QAbstractItemView::item:hover {
-                font-weight: bold; 
+                font-weight: bold;
             }
         """)
 
@@ -137,15 +123,34 @@ class HistoryAppAdmin(QWidget):
 
         top_buttons_layout.addWidget(self.pdf_button)
         top_buttons_layout.addWidget(self.filter_combo)
+        top_buttons_layout.addStretch(1) # Añadir stretch al final para alinear a la izquierda
 
         self.filter_combo.currentIndexChanged.connect(self.populate_table)
 
-        # --- Cuadro Tabla dentro del historial ---
-        registro_frame = QFrame()
-        registro_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px; ")
-        registro_layout = QVBoxLayout(registro_frame)
-        registro_layout.setSpacing(5)
+        # --- Lista de dispositivos ---
+        self.devices_list_layout = QVBoxLayout()
+        self.devices_list_layout.setSpacing(15)
 
+        # --- Cuadro Tabla ---
+        self.create_table_frame()
+
+        self.historial_layout.addWidget(title_historial)
+        self.historial_layout.addLayout(top_buttons_layout)
+        self.historial_layout.addLayout(self.devices_list_layout)
+        self.historial_layout.addStretch(1) # Añadir stretch al final del layout del historial
+
+        layout.addWidget(historial_frame)
+
+        self.pdf_button.clicked.connect(self.generate_pdf)
+        self.populate_devices()
+        self.populate_table()
+
+    def create_table_frame(self):
+        """Crea el frame de la tabla que se usará para 'Datos con tabla'"""
+        self.registro_frame = QFrame()
+        self.registro_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
+        registro_layout = QVBoxLayout(self.registro_frame)
+        registro_layout.setAlignment(Qt.AlignCenter)
 
         subtitle = QLabel("Registro de datos")
         subtitle.setObjectName("Subtitle")
@@ -154,25 +159,28 @@ class HistoryAppAdmin(QWidget):
         self.table.setColumnCount(7)
         self.table.setStyleSheet("""
             QHeaderView::section {
-                background-color: #7FD1B9;
+                background: #60D4B8;
                 color: black;
                 padding: 5px;
                 border: none;
                 font-weight: bold;
             }
-                                 
+
             QTableCornerButton::section {
                 background-color: #1f2232;
                 border: none;
             }
         """)
-        self.table.setHorizontalHeaderLabels(["PH", "CE", "Temperatura en Agua", "Nivel del agua", "Temperatura en Ambiente", "Humedad", "Fecha y Hora"])
-        self.table.horizontalHeader().setFixedHeight(25)
+        self.table.setHorizontalHeaderLabels(["PH", "CE", "Temperatura en Agua", "Nivel del agua",
+                                            "Temperatura en Ambiente", "Humedad", "Fecha y Hora"])
+        self.table.horizontalHeader().setFixedHeight(35)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setFixedSize(1450, 620)
 
-
-        registro_layout.addWidget(subtitle)
-        registro_layout.addWidget(self.table)
+        registro_layout.addWidget(subtitle, alignment=Qt.AlignCenter)
+        registro_layout.addSpacing(30)
+        registro_layout.addWidget(self.table, alignment=Qt.AlignCenter)
 
         self.paginacion_layout = QHBoxLayout()
         self.paginacion_layout.setAlignment(Qt.AlignCenter)
@@ -181,11 +189,12 @@ class HistoryAppAdmin(QWidget):
         self.boton_siguiente = QPushButton("Siguiente →")
         self.boton_anterior.setStyleSheet("""
             QPushButton {
-                background-color: #4A90E2;
+                background-color: #27243A;
                 color: white;
                 padding: 8px 16px;
                 border-radius: 10px;
                 font-weight: bold;
+                margin-bottom: 20px;
             }
             QPushButton:hover {
                 background-color: #357ABD;
@@ -194,11 +203,12 @@ class HistoryAppAdmin(QWidget):
 
         self.boton_siguiente.setStyleSheet("""
             QPushButton {
-                background-color: #4A90E2;
+                background-color: #27243A;
                 color: white;
                 padding: 8px 16px;
                 border-radius: 10px;
                 font-weight: bold;
+                margin-bottom: 20px;
             }
             QPushButton:hover {
                 background-color: #357ABD;
@@ -212,18 +222,106 @@ class HistoryAppAdmin(QWidget):
         self.paginacion_layout.addWidget(self.boton_siguiente)
 
         registro_layout.addLayout(self.paginacion_layout)
-        self.populate_table()
 
+    def populate_devices(self):
+        dispositivos = ["Datos con gráficas", "Datos con tabla"]
 
-        historial_layout.addWidget(title_historial)
-        historial_layout.addLayout(top_buttons_layout)
-        historial_layout.addSpacing(10)
-        historial_layout.addWidget(registro_frame)
+        for nombre in dispositivos:
+            # --- Frame exterior ---
+            outer_frame = QFrame()
+            outer_frame.setFixedHeight(75)
+            outer_frame.setStyleSheet("""
+                QFrame {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #60D4B8, stop:1 #1E2233);
+                    border-radius: 35px;
+                    padding: 2px;
+                }
+            """)
 
-        layout.addWidget(historial_frame)
+            # --- Frame interior ---
+            device_frame = QFrame()
+            device_frame.setStyleSheet("""
+                background-color: #1f2232;
+                border-radius: 35px;
+            """)
+            device_frame.setFixedHeight(70)
+            device_layout = QHBoxLayout(device_frame)
+            device_layout.setContentsMargins(20, 10, 20, 10)
 
-        self.pdf_button.clicked.connect(self.generate_pdf)
-    
+            name_label = QLabel(nombre)
+            name_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
+
+            # Botón de flecha
+            arrow_button = QPushButton()
+            arrow_button.setIcon(QIcon("assets/icons/bxs-down-arrow.svg"))
+            arrow_button.setFixedSize(30, 30)
+            arrow_button.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    border: none;
+                }
+                QPushButton:hover {
+                    background-color: #444;
+                    border-radius: 15px;
+                }
+            """)
+
+            # Configurar el frame de contenido
+            if nombre == "Datos con gráficas":
+                content_frame = QFrame()
+                content_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
+                content_frame.setFixedHeight(680)
+                content_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                content_layout = QVBoxLayout(content_frame)
+                content_layout.addWidget(QLabel("Aquí irán las gráficas"))
+
+                arrow_button.clicked.connect(lambda checked, f=content_frame, b=arrow_button:
+                                           self.toggle_content_frame(f, b))
+
+                self.devices_list_layout.addWidget(outer_frame)
+                self.devices_list_layout.addWidget(content_frame)
+                content_frame.hide()
+            else:
+                # Para "Datos con tabla", crear un frame contenedor
+                table_content_frame = QFrame()
+                table_content_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
+                table_content_frame.setFixedHeight(680)
+                table_content_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                table_content_layout = QVBoxLayout(table_content_frame)
+
+                # Añadir el registro_frame dentro de este frame
+                table_content_layout.addWidget(self.registro_frame)
+
+                arrow_button.clicked.connect(lambda checked, f=table_content_frame, b=arrow_button:
+                                           self.toggle_content_frame(f, b))
+
+                self.devices_list_layout.addWidget(outer_frame)
+                self.devices_list_layout.addWidget(table_content_frame)
+                table_content_frame.hide()
+
+            buttons_layout = QHBoxLayout()
+            buttons_layout.setSpacing(10)
+            buttons_layout.addWidget(arrow_button)
+
+            device_layout.addWidget(name_label)
+            device_layout.addStretch()
+            device_layout.addLayout(buttons_layout)
+
+            # Asignar el interior al exterior
+            outer_layout = QVBoxLayout(outer_frame)
+            outer_layout.setContentsMargins(0, 0, 0, 0)
+            outer_layout.addWidget(device_frame)
+
+    def toggle_content_frame(self, frame, button):
+        """Alterna la visibilidad del frame de contenido y cambia el icono del botón."""
+        if frame.isVisible():
+            frame.hide()
+            button.setIcon(QIcon("assets/icons/bxs-down-arrow.svg"))
+        else:
+            frame.show()
+            button.setIcon(QIcon("assets/icons/bxs-up-arrow.svg"))
+
     def populate_table(self):
         filtro = self.filter_combo.currentText()
 
@@ -270,10 +368,8 @@ class HistoryAppAdmin(QWidget):
         self.pagina_actual -= 1
         self.mostrar_pagina()
 
-            
     def generate_pdf(self):
         """Genera un PDF con todos los datos del filtro seleccionado, no solo los visibles en la tabla."""
-        # Diálogo para guardar
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Guardar PDF", "", "Archivos PDF (*.pdf)", options=options
@@ -287,11 +383,9 @@ class HistoryAppAdmin(QWidget):
 
         filtro = self.filter_combo.currentText()
 
-        # Encabezado de la tabla
         headers = ["PH", "CE", "Temp. Agua", "Nivel Agua", "Temp. Ambiente", "Humedad", "Fecha y Hora"]
-        data = [headers] + self.datos_completos  # Usar todos los datos del filtro seleccionado
+        data = [headers] + self.datos_completos
 
-        # Estilo de la tabla
         table_style = TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#4A90E2")),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -303,29 +397,25 @@ class HistoryAppAdmin(QWidget):
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ])
 
-        # Parámetros de paginación
         margin_top = 100
         margin_bottom = 50
         available_height = height - margin_top - margin_bottom
-        row_height = 20  # Altura aproximada de cada fila
+        row_height = 20
+        max_rows_per_page = int(available_height // row_height) - 1
 
-        max_rows_per_page = int(available_height // row_height) - 1  # -1 para el encabezado
-
-        current_row = 1  # Saltamos encabezado porque ya está en data[0]
+        current_row = 1
         total_rows = len(data) - 1
 
         def draw_header():
-            """Dibuja el encabezado en la página actual."""
             c.setFont("Helvetica-Bold", 20)
             c.drawCentredString(width / 2, height - 40, "Historial de Mediciones")
             c.setFont("Helvetica", 14)
             c.drawCentredString(width / 2, height - 65, f"Filtro aplicado: {filtro}")
 
         while current_row <= total_rows:
-            if current_row == 1:  # Solo dibujar el encabezado en la primera página
+            if current_row == 1:
                 draw_header()
 
-            # Obtener los datos para la página actual
             page_data = [headers] + data[current_row: current_row + max_rows_per_page]
             colWidths = [80, 80, 80, 80, 110, 80, 160]
             table = Table(page_data, colWidths=colWidths)
@@ -339,9 +429,8 @@ class HistoryAppAdmin(QWidget):
 
             current_row += max_rows_per_page
 
-            if current_row <= total_rows:  # Si hay más datos, crear una nueva página
+            if current_row <= total_rows:
                 c.showPage()
-                # En las páginas siguientes, no dibujar el encabezado
                 y_position = height - margin_top
 
         c.save()
