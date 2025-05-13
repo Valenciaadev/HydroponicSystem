@@ -31,15 +31,15 @@ class HistoryAppAdmin(QWidget):
                 font-size: 32px;
                 font-weight: bold;
                 color: white;
-                margin-left: 15px;
-                margin-top: 5px; /* Reducir el margen superior */
-                margin-bottom: 10px; /* Añadir un poco de margen inferior */
+                margin-left: 30px;
+                margin-top: 20px;
+                margin-bottom: 20px;
             }
             QLabel#Subtitle {
                 font-size: 22px;
                 font-weight: bold;
                 color: white;
-                margin-top: 20px;
+                margin-top: 10px;
             }
             QPushButton {
                 padding: 5px 10px;
@@ -71,11 +71,15 @@ class HistoryAppAdmin(QWidget):
         historial_frame.setStyleSheet("background-color: #27243A; border-radius: 10px;")
         self.historial_layout = QVBoxLayout(historial_frame)
 
+        # --- Layout para el título y los botones ---
+        title_buttons_layout = QHBoxLayout()
+
         title_historial = QLabel("Historial")
         title_historial.setObjectName("Title")
+        title_buttons_layout.addWidget(title_historial)
+        title_buttons_layout.addStretch(1) # Empuja los widgets siguientes a la derecha
 
         top_buttons_layout = QHBoxLayout()
-        # top_buttons_layout.addStretch() # Eliminar el stretch de aquí
 
         self.pdf_button = QPushButton()
         self.pdf_button.setIcon(QIcon("assets/icons/bxs-file-pdf.svg"))
@@ -97,7 +101,7 @@ class HistoryAppAdmin(QWidget):
         self.filter_combo.setStyleSheet("""
             QComboBox {
                 padding: 5px 10px;
-                border: 2px solid #4A90E2;
+                border: 4px solid #60D4B8;
                 border-radius: 10px;
                 background-color: #1E1E2E;
                 color: white;
@@ -123,7 +127,8 @@ class HistoryAppAdmin(QWidget):
 
         top_buttons_layout.addWidget(self.pdf_button)
         top_buttons_layout.addWidget(self.filter_combo)
-        top_buttons_layout.addStretch(1) # Añadir stretch al final para alinear a la izquierda
+
+        title_buttons_layout.addLayout(top_buttons_layout) # Añadir el layout de botones al layout título-botones
 
         self.filter_combo.currentIndexChanged.connect(self.populate_table)
 
@@ -134,10 +139,9 @@ class HistoryAppAdmin(QWidget):
         # --- Cuadro Tabla ---
         self.create_table_frame()
 
-        self.historial_layout.addWidget(title_historial)
-        self.historial_layout.addLayout(top_buttons_layout)
+        self.historial_layout.addLayout(title_buttons_layout) # Añadir el layout combinado al historial_layout
         self.historial_layout.addLayout(self.devices_list_layout)
-        self.historial_layout.addStretch(1) # Añadir stretch al final del layout del historial
+        self.historial_layout.addStretch(1)
 
         layout.addWidget(historial_frame)
 
@@ -179,7 +183,7 @@ class HistoryAppAdmin(QWidget):
         self.table.setFixedSize(1450, 620)
 
         registro_layout.addWidget(subtitle, alignment=Qt.AlignCenter)
-        registro_layout.addSpacing(30)
+        registro_layout.addSpacing(20)
         registro_layout.addWidget(self.table, alignment=Qt.AlignCenter)
 
         self.paginacion_layout = QHBoxLayout()
@@ -193,8 +197,8 @@ class HistoryAppAdmin(QWidget):
                 color: white;
                 padding: 8px 16px;
                 border-radius: 10px;
+                border: 4px solid #60D4B8;
                 font-weight: bold;
-                margin-bottom: 20px;
             }
             QPushButton:hover {
                 background-color: #357ABD;
@@ -207,8 +211,8 @@ class HistoryAppAdmin(QWidget):
                 color: white;
                 padding: 8px 16px;
                 border-radius: 10px;
+                border: 4px solid #60D4B8;
                 font-weight: bold;
-                margin-bottom: 20px;
             }
             QPushButton:hover {
                 background-color: #357ABD;
@@ -271,7 +275,7 @@ class HistoryAppAdmin(QWidget):
             if nombre == "Datos con gráficas":
                 content_frame = QFrame()
                 content_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
-                content_frame.setFixedHeight(680)
+                content_frame.setFixedHeight(750)
                 content_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 content_layout = QVBoxLayout(content_frame)
                 content_layout.addWidget(QLabel("Aquí irán las gráficas"))
@@ -286,7 +290,7 @@ class HistoryAppAdmin(QWidget):
                 # Para "Datos con tabla", crear un frame contenedor
                 table_content_frame = QFrame()
                 table_content_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
-                table_content_frame.setFixedHeight(680)
+                table_content_frame.setFixedHeight(750)
                 table_content_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 table_content_layout = QVBoxLayout(table_content_frame)
 
