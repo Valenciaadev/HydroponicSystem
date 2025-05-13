@@ -4,7 +4,6 @@ from PyQt5.QtCore import Qt, QSize
 from views.summaryapp_admin import SummaryAppAdmin
 from views.actuatorsapp_admin import ActuatorsAppAdmin
 from views.sensorsapp_admin import SensorsAppAdmin
-from views.devicesapp_admin import DevicesAppAdmin
 from views.historyapp_admin import HistoryAppAdmin
 from views.managment_users_admin import ManagmentAppAdmin
 
@@ -21,11 +20,9 @@ class HomeappAdmin(QWidget):
         self.stacked_layout = QStackedLayout()
         
         # Crear las vistas de cada sección
-        # self.inicio_widget = self.pantalla_inicio()
         self.inicio_widget = SummaryAppAdmin(self.ventana_login, embed=True)
         self.actuadores_widget = ActuatorsAppAdmin(self.ventana_login, embed=True)
         self.sensores_widget = SensorsAppAdmin(self.ventana_login, embed=True)
-        self.dispositivos_widget = DevicesAppAdmin(self.ventana_login, embed=True)
         self.historial_widget = HistoryAppAdmin(self.ventana_login, embed=True)
         self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
         
@@ -33,7 +30,6 @@ class HomeappAdmin(QWidget):
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
         self.stacked_layout.addWidget(self.sensores_widget)
-        self.stacked_layout.addWidget(self.dispositivos_widget)
         self.stacked_layout.addWidget(self.historial_widget)
         self.stacked_layout.addWidget(self.gestion_usuarios_widget)
         self.stacked_layout.setCurrentIndex(0)
@@ -79,15 +75,9 @@ class HomeappAdmin(QWidget):
         btn_sensors.setIcon(QIcon("assets/icons/sensors-white.svg"))
         btn_sensors.setIconSize(QSize(24, 24))
 
-        btn_devices = QPushButton(" Dispositivos")
-        btn_devices.setStyleSheet(btn_style)
-        btn_devices.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(3))
-        btn_devices.setIcon(QIcon("assets/icons/devices-white.svg"))
-        btn_devices.setIconSize(QSize(24, 24))
-        
         btn_history = QPushButton(" Historial")
         btn_history.setStyleSheet(btn_style)
-        btn_history.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(4))
+        btn_history.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(3))
         btn_history.setIcon(QIcon("assets/icons/history-white.svg"))
         btn_history.setIconSize(QSize(24, 24))
 
@@ -117,7 +107,6 @@ class HomeappAdmin(QWidget):
         sidebar.addWidget(btn_home)
         sidebar.addWidget(btn_actuators)
         sidebar.addWidget(btn_sensors)
-        sidebar.addWidget(btn_devices)
         sidebar.addWidget(btn_history)
         sidebar.addWidget(btn_users)
 

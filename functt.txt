@@ -1,0 +1,186 @@
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QFrame, QPushButton
+from PyQt5.QtCore import Qt, QTimer, QPointF, QRect
+from PyQt5.QtGui import QFont, QPainter, QColor, QPen, QConicalGradient, QBrush, QPixmap
+import pyqtgraph as pg
+import numpy as np
+import random
+import math
+
+
+class SummaryAppAdmin(QWidget):
+    def __init__(self, ventana_login, embed=False):
+        super().__init__()
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        # Layout superior de tarjetas
+        top_cards_layout = QHBoxLayout()
+        top_cards_layout.setSpacing(20)
+
+        cards_info = [
+            ("Temperatura del aire", "24°", "26/2 21:23:04"),
+            ("Humedad del aire", "61.2", "26/2 21:23:04"),
+            ("Temperatura del agua", "26°", "26/2 21:23:04"),
+            ("Nivel pH del agua", "5 pH", "26/2 21:23:04"),
+            ("Nivel del agua", "0 bool", "26/2 21:23:04"),
+        ]
+
+        for title, value, timestamp in cards_info:
+            card = self.create_card(title, value, timestamp)
+            top_cards_layout.addWidget(card)
+
+        layout.addLayout(top_cards_layout)
+
+        # Layout inferior con tres bloques
+        graphs_layout = QHBoxLayout()
+        graphs_layout.setSpacing(30)
+
+        # Izquierda: Medidores circulares
+        # gauges_layout = QVBoxLayout()
+        # gauge_frame = QFrame()
+        # gauge_frame.setFixedWidth(260)
+        # gauge_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
+        # gauge_frame_layout = QVBoxLayout()
+        # gauge_frame_layout.addWidget(self.create_circular_gauge("Temperatura del aire"))
+        # gauge_frame_layout.addWidget(self.create_circular_gauge("Humedad del aire"))
+        # gauge_frame.setLayout(gauge_frame_layout)
+        # gauges_layout.addWidget(gauge_frame)
+        # bottom_layout.addLayout(gauges_layout)
+        
+        # Gráfica izquierda con pyqtgraph
+        left_graph = QFrame()
+        left_graph.setFixedSize(610, 100)
+        left_graph.setStyleSheet("background-color: #102020; border-radius: 15px;")
+        left_graph_layout = QVBoxLayout()
+        left_graph_layout.setContentsMargins(0, 0, 0, 0)
+
+        left_plot = pg.PlotWidget()
+        left_plot.setBackground("#102020")
+        left_plot.setYRange(0, 10)
+        left_plot.showGrid(x=True, y=True)
+        left_plot.getPlotItem().hideAxis('bottom')
+        left_plot.getPlotItem().hideAxis('left')
+
+        # Datos simulados
+        x = np.arange(100)
+        y = np.random.normal(5, 1, 100)
+        left_plot.plot(x, y, pen=pg.mkPen(color='cyan', width=2))
+
+        left_graph_layout.addWidget(left_plot)
+        left_graph.setLayout(left_graph_layout)
+
+        # Gráfica derecha con pyqtgraph
+        right_graph = QFrame()
+        right_graph.setFixedSize(610, 100)
+        right_graph.setStyleSheet("background-color: #102020; border-radius: 15px;")
+        right_graph_layout = QVBoxLayout()
+        right_graph_layout.setContentsMargins(0, 0, 0, 0)
+
+        right_plot = pg.PlotWidget()
+        right_plot.setBackground("#102020")
+        right_plot.setYRange(0, 100)
+        right_plot.showGrid(x=True, y=True)
+        right_plot.getPlotItem().hideAxis('bottom')
+        right_plot.getPlotItem().hideAxis('left')
+
+        y2 = np.random.uniform(20, 80, 100)
+        right_plot.plot(x, y2, pen=pg.mkPen(color='magenta', width=2))
+
+        right_graph_layout.addWidget(right_plot)
+        right_graph.setLayout(right_graph_layout)
+
+        graphs_layout.addWidget(left_graph)
+        graphs_layout.addWidget(right_graph)
+
+        layout.addLayout(graphs_layout)
+        
+
+    def create_card(self, title, value, timestamp):
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #1e2b3c;
+                border-radius: 25px;
+                padding: 10px;
+                color: white;
+            }
+            QLabel {
+                qproperty-alignment: AlignCenter;
+            }
+        """)
+        card.setFixedSize(260, 185)
+
+        vbox = QVBoxLayout()
+        vbox.setAlignment(Qt.AlignCenter)
+
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Arial", 11, QFont.Bold))
+
+        value_label = QLabel(value)
+        value_label.setFont(QFont("Arial", 18, QFont.Bold))
+        value_label.setMinimumHeight(40)
+
+        time_label = QLabel(timestamp)
+        time_label.setFont(QFont("Arial", 9))
+
+        vbox.addWidget(title_label)
+        vbox.addWidget(value_label)
+        vbox.addWidget(time_label)
+
+        card.setLayout(vbox)
+        return card
+
+    # def create_circular_gauge(self, title="Gauge"):
+    #     class CircularGauge(QWidget):
+    #         def __init__(self, title="Gauge"):
+    #             super().__init__()
+    #             self.value = 24.1
+    #             self.title = title
+    #             self.setFixedSize(150, 150)
+    #             self.timer = QTimer(self)
+    #             self.timer.timeout.connect(self.update_value)
+    #             self.timer.start(2000)
+
+    #         def update_value(self):
+    #             self.value = round(random.uniform(15.0, 35.0), 1)
+    #             self.update()
+
+    #         def paintEvent(self, event):
+    #             painter = QPainter(self)
+    #             painter.setRenderHint(QPainter.Antialiasing)
+    #             rect = self.rect()
+    #             center = rect.center()
+    #             radius = min(rect.width(), rect.height()) / 2 - 10
+
+    #             painter.setBrush(QColor("#101b1c"))
+    #             painter.setPen(Qt.NoPen)
+    #             painter.drawRect(rect)
+
+    #             painter.setPen(Qt.white)
+    #             font = QFont("Candara", 8)
+    #             painter.setFont(font)
+    #             painter.drawText(0, 20, rect.width(), 20, Qt.AlignCenter, self.title)
+
+    #             gradient = QConicalGradient(center, -90)
+    #             gradient.setColorAt(0.0, Qt.green)
+    #             gradient.setColorAt(0.5, Qt.cyan)
+    #             gradient.setColorAt(1.0, Qt.green)
+    #             painter.setPen(QPen(QBrush(gradient), 12))
+    #             arc_rect = QRect(
+    #                 int(center.x() - radius), int(center.y() - radius),
+    #                 int(2 * radius), int(2 * radius)
+    #             )
+    #             painter.drawArc(arc_rect, 45 * 16, 270 * 16)
+
+    #             angle = 45 + (self.value - 15) / 20 * 270
+    #             needle_length = radius - 10
+    #             needle_x = center.x() + needle_length * math.cos(math.radians(angle - 90))
+    #             needle_y = center.y() + needle_length * math.sin(math.radians(angle - 90))
+    #             painter.setPen(QPen(Qt.white, 2))
+    #             painter.drawLine(center, QPointF(needle_x, needle_y))
+
+    #             font.setPointSize(10)
+    #             painter.setFont(font)
+    #             painter.drawText(0, int(center.y() - radius + 50), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
+
+    #     return CircularGauge(title)
