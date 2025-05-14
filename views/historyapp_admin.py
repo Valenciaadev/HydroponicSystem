@@ -10,7 +10,7 @@ from models.database import (
     getbyYear,
 )
 from reportlab.lib.pagesizes import landscape, letter
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
@@ -82,8 +82,11 @@ class HistoryAppAdmin(QWidget):
         top_buttons_layout = QHBoxLayout()
 
         self.pdf_button = QPushButton()
-        self.pdf_button.setIcon(QIcon("assets/icons/bxs-file-pdf.svg"))
-        self.pdf_button.setFixedSize(50, 50)
+        icon = QIcon("assets/icons/bxs-file-pdf.svg")
+        pixmap = icon.pixmap(QSize(34, 34)) # Obtener un QPixmap escalado del QIcon
+        self.pdf_button.setIcon(QIcon(pixmap)) # Establecer el QIcon creado a partir del QPixmap escalado
+        self.pdf_button.setFixedSize(46, 46)
+        self.pdf_button.setIconSize(QSize(46, 46))
         self.pdf_button.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
@@ -229,6 +232,8 @@ class HistoryAppAdmin(QWidget):
 
     def populate_devices(self):
         dispositivos = ["Datos con gráficas", "Datos con tabla"]
+        self.arrow_buttons = {}  # Diccionario para guardar los botones de flecha
+        self.content_frames = {} # Diccionario para guardar los frames de contenido
 
         for nombre in dispositivos:
             # --- Frame exterior ---
@@ -265,41 +270,42 @@ class HistoryAppAdmin(QWidget):
                     background-color: transparent;
                     border: none;
                 }
-                QPushButton:hover {
+                QPushButton:hover:enabled {
                     background-color: #444;
                     border-radius: 15px;
                 }
+                QPushButton:disabled {
+                    opacity: 0.7;
+                }
             """)
+            self.arrow_buttons[nombre] = arrow_button # Guardar referencia al botón
 
             # Configurar el frame de contenido
             if nombre == "Datos con gráficas":
                 content_frame = QFrame()
+                content_frame.setObjectName("graphics_content")
                 content_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
                 content_frame.setFixedHeight(750)
                 content_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 content_layout = QVBoxLayout(content_frame)
                 content_layout.addWidget(QLabel("Aquí irán las gráficas"))
-
-                arrow_button.clicked.connect(lambda checked, f=content_frame, b=arrow_button:
-                                           self.toggle_content_frame(f, b))
-
+                self.content_frames[nombre] = content_frame
+                arrow_button.clicked.connect(lambda checked, f=content_frame, b=arrow_button, n=nombre:
+                                        self.toggle_content_frame(f, b, n))
                 self.devices_list_layout.addWidget(outer_frame)
                 self.devices_list_layout.addWidget(content_frame)
                 content_frame.hide()
-            else:
-                # Para "Datos con tabla", crear un frame contenedor
+            else: # nombre == "Datos con tabla"
                 table_content_frame = QFrame()
+                table_content_frame.setObjectName("table_content")
                 table_content_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
                 table_content_frame.setFixedHeight(750)
                 table_content_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 table_content_layout = QVBoxLayout(table_content_frame)
-
-                # Añadir el registro_frame dentro de este frame
                 table_content_layout.addWidget(self.registro_frame)
-
-                arrow_button.clicked.connect(lambda checked, f=table_content_frame, b=arrow_button:
-                                           self.toggle_content_frame(f, b))
-
+                self.content_frames[nombre] = table_content_frame
+                arrow_button.clicked.connect(lambda checked, f=table_content_frame, b=arrow_button, n=nombre:
+                                        self.toggle_content_frame(f, b, n))
                 self.devices_list_layout.addWidget(outer_frame)
                 self.devices_list_layout.addWidget(table_content_frame)
                 table_content_frame.hide()
@@ -317,14 +323,41 @@ class HistoryAppAdmin(QWidget):
             outer_layout.setContentsMargins(0, 0, 0, 0)
             outer_layout.addWidget(device_frame)
 
-    def toggle_content_frame(self, frame, button):
-        """Alterna la visibilidad del frame de contenido y cambia el icono del botón."""
-        if frame.isVisible():
-            frame.hide()
-            button.setIcon(QIcon("assets/icons/bxs-down-arrow.svg"))
+    def toggle_content_frame(self, current_frame, current_button, current_name):
+        """Alterna la visibilidad del frame de contenido y cambia el icono del botón,
+        deshabilitando el otro dispositivo si este se expande."""
+        if current_frame.isVisible():
+            # Minimizar el frame actual
+            current_frame.hide()
+            current_button.setIcon(QIcon("assets/icons/bxs-down-arrow.svg"))
+            
+            # Habilitar el otro botón y limpiar su tooltip
+            for name, button in self.arrow_buttons.items():
+                if name != current_name:
+                    button.setEnabled(True)
+                    button.setToolTip("")
+                    button.setIcon(QIcon("assets/icons/bxs-down-arrow.svg"))
         else:
-            frame.show()
-            button.setIcon(QIcon("assets/icons/bxs-up-arrow.svg"))
+            # Mostrar el frame actual
+            current_frame.show()
+            current_button.setIcon(QIcon("assets/icons/bxs-up-arrow.svg"))
+            
+            # Deshabilitar el otro botón y establecer su tooltip
+            for name, button in self.arrow_buttons.items():
+                if name != current_name:
+                    button.setEnabled(False)
+                    # Cambiar el icono a prohibido
+                    button.setIcon(QIcon("assets/icons/block.svg"))
+                    
+                    # Determinar el nombre a mostrar en el tooltip
+                    other_name = "Datos con tabla" if "tabla" in current_name else "Datos con gráficas"
+                    tooltip_text = f"""
+                    <span style='font-size: 12pt; color: #FFFFFF;'>
+                    Para maximizar esta sección<br>
+                    debe minimizar <b>{other_name}</b>
+                    </span>
+                    """
+                    button.setToolTip(tooltip_text)
 
     def populate_table(self):
         filtro = self.filter_combo.currentText()
