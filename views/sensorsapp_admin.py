@@ -37,34 +37,64 @@ class SensorsAppAdmin(QWidget):
         label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         inner_layout.addWidget(label, alignment=Qt.AlignLeft)
         
-        #botón agregar sensor
+                # --- Creamos el botón y lo estilizamos como antes ---
         addSensBtn = QPushButton("+ Agregar Sensor")
         addSensBtn.setObjectName("AgregarSensorBtn")
-        addSensBtn.setFixedSize(190,40)
+        addSensBtn.setFixedSize(190, 40)
         addSensBtn.setStyleSheet("""
             QPushButton#AgregarSensorBtn {
                 background-color: #1F2232;
                 color: white;
-                border-radius: 15px;
                 font-size: 15px;
                 font-weight: bold;
-                padding: 5px;
-
+                padding: 5px 20px;
+                border: none;
                 border-radius: 30px;
             }
-            
             QPushButton#AgregarSensorBtn:hover {
                 background-color: #1F2F32;
-                
             }
-            """)
-        #inner_layout.addWidget(addSensBtn) 
+        """)
+        addSensBtn.clicked.connect(self.feature)
+
+        # --- Ahora lo envolvemos en un frame exterior degradado ---
+        add_btn_outer = QFrame()
+        add_btn_outer.setFixedHeight(40 + 2*2)  # 2px padding arriba y abajo
+        add_btn_outer.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 #60D4B8, stop:1 #1E2233);
+                border-radius: 32px;
+                padding: 2px;
+            }
+        """)
+
+        # --- Opcional: un frame interior para fondo sólido (igual al inner_box) ---
+        add_btn_inner = QFrame()
+        add_btn_inner.setFixedHeight(40)
+        add_btn_inner.setStyleSheet("""
+            QFrame {
+                background-color: #1F2232;
+                border-radius: 30px;
+            }
+        """)
+
+        # --- Layouts para incrustar el botón ---
+        inner_btn_layout = QHBoxLayout()
+        inner_btn_layout.setContentsMargins(0,0,0,0)
+        inner_btn_layout.addWidget(addSensBtn)
+        add_btn_inner.setLayout(inner_btn_layout)
+
+        outer_btn_layout = QHBoxLayout()
+        outer_btn_layout.setContentsMargins(0,0,0,0)
+        outer_btn_layout.addWidget(add_btn_inner)
+        add_btn_outer.setLayout(outer_btn_layout)
+
+        # --- Finalmente lo añadimos al layout principal igual que antes ---
         btnAddSens_layout = QHBoxLayout()
         btnAddSens_layout.addStretch()
-        btnAddSens_layout.addWidget(addSensBtn)
-        
+        btnAddSens_layout.addWidget(add_btn_outer)
         inner_layout.addLayout(btnAddSens_layout)
-        addSensBtn.clicked.connect(self.feature)
         
         #Caja contenido
         inner_box = QFrame()
