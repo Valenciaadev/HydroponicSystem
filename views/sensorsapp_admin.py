@@ -90,8 +90,8 @@ class SensorsAppAdmin(QWidget):
         #Layout interno para inner-box
         
         inner_box_layout = QVBoxLayout()
-        inner_box_layout.setContentsMargins(5, 5, 20, 15)
-        inner_box_layout.setSpacing(15)
+        inner_box_layout.setContentsMargins(40, 0, 20, 15)
+        inner_box_layout.setSpacing(0)
         
         #Lista con los nombres de los sensores
         sensores = [
