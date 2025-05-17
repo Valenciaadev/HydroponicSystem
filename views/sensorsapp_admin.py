@@ -90,8 +90,8 @@ class SensorsAppAdmin(QWidget):
         #Layout interno para inner-box
         
         inner_box_layout = QVBoxLayout()
-        inner_box_layout.setContentsMargins(5, 20, 20, 20)
-        inner_box_layout.setSpacing(30)
+        inner_box_layout.setContentsMargins(5, 5, 20, 15)
+        inner_box_layout.setSpacing(15)
         
         #Lista con los nombres de los sensores
         sensores = [
@@ -107,21 +107,21 @@ class SensorsAppAdmin(QWidget):
                 QFrame {
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #60D4B8, stop:1 #1E2233);
-                    border-radius: 22px;
+                    border-radius: 40px;
                     padding: 2px;
                 }
             """)
-            sensor_frameOuter.setFixedHeight(75)
+            sensor_frameOuter.setFixedHeight(85)
 
             # Contenedor interno con fondo sólido
             sensor_frameInner = QFrame()
             sensor_frameInner.setStyleSheet("""
                 QFrame {
                     background-color: #1f2232;
-                    border-radius: 20px;
+                    border-radius: 40px;
                 }
             """)
-            sensor_frameInner.setFixedHeight(70)
+            sensor_frameInner.setFixedHeight(80)
 
             # Layout para el contenido interno
             sensor_layout = QHBoxLayout()
