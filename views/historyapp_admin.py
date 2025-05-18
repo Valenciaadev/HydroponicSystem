@@ -30,6 +30,7 @@ class HistoryAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=None):
         super().__init__(ventana_login)
         self.ventana_login = ventana_login
+        self.current_filter = None
         self.init_ui()
 
     def init_ui(self):
@@ -160,6 +161,7 @@ class HistoryAppAdmin(QWidget):
 
         self.pdf_button.clicked.connect(self.generate_pdf)
         self.populate_devices()
+        self.filter_combo.setCurrentText("Todo")
         self.populate_table()
 
     def create_table_frame(self):
@@ -467,6 +469,22 @@ class HistoryAppAdmin(QWidget):
             current_frame.show()
             current_button.setIcon(QIcon("assets/icons/bxs-up-arrow.svg"))
 
+    def mostrar_mensaje_error(self, mensaje):
+        # Limpiar gráficas
+        for ax in [self.ax1, self.ax2, self.ax3]:
+            ax.clear()
+            ax.text(0.5, 0.5, mensaje, 
+                ha='center', va='center', color='white')
+            ax.set_facecolor('#1f2232')
+        
+        self.canvas1.draw()
+        self.canvas2.draw()
+        self.canvas3.draw()
+        
+        # Opcional: Mostrar mensaje en un QMessageBox
+        from PyQt5.QtWidgets import QMessageBox
+        QMessageBox.warning(self, "Datos no disponibles", mensaje)
+
     def update_graphs(self, datos):
         """Actualiza las gráficas con los datos proporcionados"""
         if not datos:
@@ -479,136 +497,151 @@ class HistoryAppAdmin(QWidget):
         self.ax2.clear()
         self.ax3.clear()
         
-        if filtro == "Todo":
-            # Obtener promedios generales
-            promedios = get_averages_all()
-            if promedios:
-                avg_ph, avg_ce, avg_t_agua, avg_nivel, avg_t_ambiente, avg_humedad = promedios
-                
-                # Gráfica 1 (PH y CE)
-                self.ax1.bar(['Promedio'], [avg_ph], color='#60D4B8', label='PH')
-                self.ax1.bar(['Promedio'], [avg_ce], bottom=[avg_ph], color='#4A90E2', label='CE')
-                self.ax1.set_title('Promedio de PH y CE', color='white')
-                self.ax1.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
-                self.ax1.set_ylabel('Valores', color='white')
-                self.ax1.legend()
-                
-                # Gráfica 2 (Temperaturas)
-                self.ax2.bar(['Promedio'], [avg_t_agua], color='#60D4B8', label='Temp Agua')
-                self.ax2.bar(['Promedio'], [avg_t_ambiente], bottom=[avg_t_agua], color='#4A90E2', label='Temp Ambiente')
-                self.ax2.set_title('Promedio de Temperaturas', color='white')
-                self.ax2.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
-                self.ax2.set_ylabel('°C', color='white')
-                self.ax2.legend()
-                
-                # Gráfica 3 (Humedad y Nivel)
-                self.ax3.bar(['Promedio'], [avg_humedad], color='#60D4B8', label='Humedad')
-                self.ax3.bar(['Promedio'], [avg_nivel], bottom=[avg_humedad], color='#4A90E2', label='Nivel Agua')
-                self.ax3.set_title('Promedio de Humedad y Nivel del agua', color='white')
-                self.ax3.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
-                self.ax3.set_ylabel('Valores', color='white')
-                self.ax3.legend()
-        
-        elif filtro == "Mes anterior":
-            semanas = get_averages_by_weeks()
-            if semanas:
-                semanas_nums = [f"Sem {i+1}" for i in range(len(semanas))]
-                ph_values = [s[0] for s in semanas]
-                ce_values = [s[1] for s in semanas]
-                t_agua_values = [s[2] for s in semanas]
-                t_ambiente_values = [s[4] for s in semanas]
-                humedad_values = [s[5] for s in semanas]
-                nivel_values = [s[3] for s in semanas]
-                
-                # Gráfica 1 (PH y CE)
-                self.ax1.plot(semanas_nums, ph_values, 'o-', color='#60D4B8', label='PH')
-                self.ax1.plot(semanas_nums, ce_values, 'o-', color='#4A90E2', label='CE')
-                self.ax1.set_title('Variación de PH y CE', color='white')
-                self.ax1.set_xlabel('Promedios en base a los registros del último mes', color='white')
-                self.ax1.set_ylabel('Valores', color='white')
-                self.ax1.legend()
-                
-                # Añadir etiquetas de valores
-                for i, (ph, ce) in enumerate(zip(ph_values, ce_values)):
-                    self.ax1.text(i, ph, f"{ph:.2f}", ha='center', va='bottom', color='white')
-                    self.ax1.text(i, ce, f"{ce:.2f}", ha='center', va='bottom', color='white')
-                
-                # Gráfica 2 (Temperaturas)
-                self.ax2.plot(semanas_nums, t_agua_values, 'o-', color='#60D4B8', label='Temp Agua')
-                self.ax2.plot(semanas_nums, t_ambiente_values, 'o-', color='#4A90E2', label='Temp Ambiente')
-                self.ax2.set_title('Variación de Temperaturas', color='white')
-                self.ax2.set_xlabel('Promedios en base a los registros del último mes', color='white')
-                self.ax2.set_ylabel('°C', color='white')
-                self.ax2.legend()
-                
-                # Añadir etiquetas de valores
-                for i, (tagua, tamb) in enumerate(zip(t_agua_values, t_ambiente_values)):
-                    self.ax2.text(i, tagua, f"{tagua:.2f}", ha='center', va='bottom', color='white')
-                    self.ax2.text(i, tamb, f"{tamb:.2f}", ha='center', va='bottom', color='white')
-                
-                # Gráfica 3 (Humedad y Nivel)
-                self.ax3.plot(semanas_nums, humedad_values, 'o-', color='#60D4B8', label='Humedad')
-                self.ax3.plot(semanas_nums, nivel_values, 'o-', color='#4A90E2', label='Nivel Agua')
-                self.ax3.set_title('Variación de Humedad y Nivel del agua', color='white')
-                self.ax3.set_xlabel('Promedios en base a los registros del último mes', color='white')
-                self.ax3.set_ylabel('Valores', color='white')
-                self.ax3.legend()
-                
-                # Añadir etiquetas de valores
-                for i, (hum, niv) in enumerate(zip(humedad_values, nivel_values)):
-                    self.ax3.text(i, hum, f"{hum:.2f}", ha='center', va='bottom', color='white')
-                    self.ax3.text(i, niv, f"{niv:.2f}", ha='center', va='bottom', color='white')
-        
-        elif filtro in ["Último trimestre", "Último semestre", "Último año"]:
-            months = 3 if filtro == "Último trimestre" else 6 if filtro == "Último semestre" else 12
-            meses = get_averages_by_months(months)
-            if meses:
-                meses_nums = [f"Mes {i+1}" for i in range(len(meses))]
-                ph_values = [s[0] for s in meses]
-                ce_values = [s[1] for s in meses]
-                t_agua_values = [s[2] for s in meses]
-                t_ambiente_values = [s[4] for s in meses]
-                humedad_values = [s[5] for s in meses]
-                nivel_values = [s[3] for s in meses]
-                
-                # Gráfica 1 (PH y CE)
-                self.ax1.plot(meses_nums, ph_values, 'o-', color='#60D4B8', label='PH')
-                self.ax1.plot(meses_nums, ce_values, 'o-', color='#4A90E2', label='CE')
-                self.ax1.set_title(f'Variación de PH y CE', color='white')
-                self.ax1.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
-                self.ax1.set_ylabel('Valores', color='white')
-                self.ax1.legend()
-                
-                # Añadir etiquetas de valores
-                for i, (ph, ce) in enumerate(zip(ph_values, ce_values)):
-                    self.ax1.text(i, ph, f"{ph:.2f}", ha='center', va='bottom', color='white')
-                    self.ax1.text(i, ce, f"{ce:.2f}", ha='center', va='bottom', color='white')
-                
-                # Gráfica 2 (Temperaturas)
-                self.ax2.plot(meses_nums, t_agua_values, 'o-', color='#60D4B8', label='Temp Agua')
-                self.ax2.plot(meses_nums, t_ambiente_values, 'o-', color='#4A90E2', label='Temp Ambiente')
-                self.ax2.set_title(f'Variación de Temperaturas', color='white')
-                self.ax2.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
-                self.ax2.set_ylabel('°C', color='white')
-                self.ax2.legend()
-                
-                # Añadir etiquetas de valores
-                for i, (tagua, tamb) in enumerate(zip(t_agua_values, t_ambiente_values)):
-                    self.ax2.text(i, tagua, f"{tagua:.2f}", ha='center', va='bottom', color='white')
-                    self.ax2.text(i, tamb, f"{tamb:.2f}", ha='center', va='bottom', color='white')
-                
-                # Gráfica 3 (Humedad y Nivel)
-                self.ax3.plot(meses_nums, humedad_values, 'o-', color='#60D4B8', label='Humedad')
-                self.ax3.plot(meses_nums, nivel_values, 'o-', color='#4A90E2', label='Nivel Agua')
-                self.ax3.set_title(f'Variación de Humedad y Nivel del agua', color='white')
-                self.ax3.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
-                self.ax3.set_ylabel('Valores', color='white')
-                self.ax3.legend()
-                
-                # Añadir etiquetas de valores
-                for i, (hum, niv) in enumerate(zip(humedad_values, nivel_values)):
-                    self.ax3.text(i, hum, f"{hum:.2f}", ha='center', va='bottom', color='white')
-                    self.ax3.text(i, niv, f"{niv:.2f}", ha='center', va='bottom', color='white')
+        try:
+            if filtro == "Todo":
+                # Obtener promedios generales
+                promedios = get_averages_all()
+                if promedios and all(p is not None for p in promedios):
+                    avg_ph, avg_ce, avg_t_agua, avg_nivel, avg_t_ambiente, avg_humedad = promedios
+                    
+                    # Gráfica 1 (PH y CE)
+                    self.ax1.bar(['Promedio'], [avg_ph], color='#60D4B8', label='PH')
+                    self.ax1.bar(['Promedio'], [avg_ce], bottom=[avg_ph], color='#4A90E2', label='CE')
+                    self.ax1.set_title('Promedio de PH y CE', color='white')
+                    self.ax1.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
+                    self.ax1.set_ylabel('Valores', color='white')
+                    self.ax1.legend()
+                    
+                    # Gráfica 2 (Temperaturas)
+                    self.ax2.bar(['Promedio'], [avg_t_agua], color='#60D4B8', label='Temp Agua')
+                    self.ax2.bar(['Promedio'], [avg_t_ambiente], bottom=[avg_t_agua], color='#4A90E2', label='Temp Ambiente')
+                    self.ax2.set_title('Promedio de Temperaturas', color='white')
+                    self.ax2.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
+                    self.ax2.set_ylabel('°C', color='white')
+                    self.ax2.legend()
+                    
+                    # Gráfica 3 (Humedad y Nivel)
+                    self.ax3.bar(['Promedio'], [avg_humedad], color='#60D4B8', label='Humedad')
+                    self.ax3.bar(['Promedio'], [avg_nivel], bottom=[avg_humedad], color='#4A90E2', label='Nivel Agua')
+                    self.ax3.set_title('Promedio de Humedad y Nivel del agua', color='white')
+                    self.ax3.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
+                    self.ax3.set_ylabel('Valores', color='white')
+                    self.ax3.legend()
+            
+            elif filtro == "Mes anterior":
+                semanas = get_averages_by_weeks()
+                if semanas and len(semanas) > 0 and all(all(v is not None for v in s) for s in semanas):
+                    semanas_nums = [f"Sem {i+1}" for i in range(len(semanas))]
+                    ph_values = [s[0] for s in semanas]
+                    ce_values = [s[1] for s in semanas]
+                    t_agua_values = [s[2] for s in semanas]
+                    t_ambiente_values = [s[4] for s in semanas]
+                    humedad_values = [s[5] for s in semanas]
+                    nivel_values = [s[3] for s in semanas]
+                    
+                    # Gráfica 1 (PH y CE)
+                    self.ax1.plot(semanas_nums, ph_values, 'o-', color='#60D4B8', label='PH')
+                    self.ax1.plot(semanas_nums, ce_values, 'o-', color='#4A90E2', label='CE')
+                    self.ax1.set_title('Variación de PH y CE', color='white')
+                    self.ax1.set_xlabel('Promedios en base a los registros del último mes', color='white')
+                    self.ax1.set_ylabel('Valores', color='white')
+                    self.ax1.legend()
+                    
+                    # Añadir etiquetas de valores
+                    for i, (ph, ce) in enumerate(zip(ph_values, ce_values)):
+                        if ph is not None and ce is not None:
+                            self.ax1.text(i, ph, f"{ph:.2f}", ha='center', va='bottom', color='white')
+                            self.ax1.text(i, ce, f"{ce:.2f}", ha='center', va='bottom', color='white')
+                    
+                    # Gráfica 2 (Temperaturas)
+                    self.ax2.plot(semanas_nums, t_agua_values, 'o-', color='#60D4B8', label='Temp Agua')
+                    self.ax2.plot(semanas_nums, t_ambiente_values, 'o-', color='#4A90E2', label='Temp Ambiente')
+                    self.ax2.set_title('Variación de Temperaturas', color='white')
+                    self.ax2.set_xlabel('Promedios en base a los registros del último mes', color='white')
+                    self.ax2.set_ylabel('°C', color='white')
+                    self.ax2.legend()
+                    
+                    # Añadir etiquetas de valores
+                    for i, (tagua, tamb) in enumerate(zip(t_agua_values, t_ambiente_values)):
+                        if tagua is not None and tamb is not None:
+                            self.ax2.text(i, tagua, f"{tagua:.2f}", ha='center', va='bottom', color='white')
+                            self.ax2.text(i, tamb, f"{tamb:.2f}", ha='center', va='bottom', color='white')
+                    
+                    # Gráfica 3 (Humedad y Nivel)
+                    self.ax3.plot(semanas_nums, humedad_values, 'o-', color='#60D4B8', label='Humedad')
+                    self.ax3.plot(semanas_nums, nivel_values, 'o-', color='#4A90E2', label='Nivel Agua')
+                    self.ax3.set_title('Variación de Humedad y Nivel del agua', color='white')
+                    self.ax3.set_xlabel('Promedios en base a los registros del último mes', color='white')
+                    self.ax3.set_ylabel('Valores', color='white')
+                    self.ax3.legend()
+                    
+                    # Añadir etiquetas de valores
+                    for i, (hum, niv) in enumerate(zip(humedad_values, nivel_values)):
+                        if hum is not None and niv is not None:
+                            self.ax3.text(i, hum, f"{hum:.2f}", ha='center', va='bottom', color='white')
+                            self.ax3.text(i, niv, f"{niv:.2f}", ha='center', va='bottom', color='white')
+            
+            elif filtro in ["Último trimestre", "Último semestre", "Último año"]:
+                months = 3 if filtro == "Último trimestre" else 6 if filtro == "Último semestre" else 12
+                meses = get_averages_by_months(months)
+                if meses and len(meses) > 0 and all(all(v is not None for v in m) for m in meses):
+                    meses_nums = [f"Mes {i+1}" for i in range(len(meses))]
+                    ph_values = [s[0] for s in meses]
+                    ce_values = [s[1] for s in meses]
+                    t_agua_values = [s[2] for s in meses]
+                    t_ambiente_values = [s[4] for s in meses]
+                    humedad_values = [s[5] for s in meses]
+                    nivel_values = [s[3] for s in meses]
+                    
+                    # Gráfica 1 (PH y CE)
+                    self.ax1.plot(meses_nums, ph_values, 'o-', color='#60D4B8', label='PH')
+                    self.ax1.plot(meses_nums, ce_values, 'o-', color='#4A90E2', label='CE')
+                    self.ax1.set_title(f'Variación de PH y CE', color='white')
+                    self.ax1.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
+                    self.ax1.set_ylabel('Valores', color='white')
+                    self.ax1.legend()
+                    
+                    # Añadir etiquetas de valores
+                    for i, (ph, ce) in enumerate(zip(ph_values, ce_values)):
+                        if ph is not None and ce is not None:
+                            self.ax1.text(i, ph, f"{ph:.2f}", ha='center', va='bottom', color='white')
+                            self.ax1.text(i, ce, f"{ce:.2f}", ha='center', va='bottom', color='white')
+                    
+                    # Gráfica 2 (Temperaturas)
+                    self.ax2.plot(meses_nums, t_agua_values, 'o-', color='#60D4B8', label='Temp Agua')
+                    self.ax2.plot(meses_nums, t_ambiente_values, 'o-', color='#4A90E2', label='Temp Ambiente')
+                    self.ax2.set_title(f'Variación de Temperaturas', color='white')
+                    self.ax2.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
+                    self.ax2.set_ylabel('°C', color='white')
+                    self.ax2.legend()
+                    
+                    # Añadir etiquetas de valores
+                    for i, (tagua, tamb) in enumerate(zip(t_agua_values, t_ambiente_values)):
+                        if tagua is not None and tamb is not None:
+                            self.ax2.text(i, tagua, f"{tagua:.2f}", ha='center', va='bottom', color='white')
+                            self.ax2.text(i, tamb, f"{tamb:.2f}", ha='center', va='bottom', color='white')
+                    
+                    # Gráfica 3 (Humedad y Nivel)
+                    self.ax3.plot(meses_nums, humedad_values, 'o-', color='#60D4B8', label='Humedad')
+                    self.ax3.plot(meses_nums, nivel_values, 'o-', color='#4A90E2', label='Nivel Agua')
+                    self.ax3.set_title(f'Variación de Humedad y Nivel del agua', color='white')
+                    self.ax3.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
+                    self.ax3.set_ylabel('Valores', color='white')
+                    self.ax3.legend()
+                    
+                    # Añadir etiquetas de valores
+                    for i, (hum, niv) in enumerate(zip(humedad_values, nivel_values)):
+                        if hum is not None and niv is not None:
+                            self.ax3.text(i, hum, f"{hum:.2f}", ha='center', va='bottom', color='white')
+                            self.ax3.text(i, niv, f"{niv:.2f}", ha='center', va='bottom', color='white')
+                    
+        except Exception as e:
+            print(f"Error al actualizar gráficas: {e}")
+            # Mostrar gráficas vacías o mensaje de error
+            for ax in [self.ax1, self.ax2, self.ax3]:
+                ax.text(0.5, 0.5, 'Datos no disponibles', 
+                    ha='center', va='center', color='white')
+                ax.set_facecolor('#1f2232')
         
         # Configuración común para todas las gráficas
         for ax in [self.ax1, self.ax2, self.ax3]:
@@ -616,7 +649,6 @@ class HistoryAppAdmin(QWidget):
             ax.set_facecolor('#1f2232')
             ax.tick_params(axis='x', colors='white')
             ax.tick_params(axis='y', colors='white')
-            # Escalado automático del eje y
             ax.relim()
             ax.autoscale_view()
         
@@ -627,24 +659,39 @@ class HistoryAppAdmin(QWidget):
 
     def populate_table(self):
         filtro = self.filter_combo.currentText()
-
-        match filtro:
-            case "Todo":
-                self.datos_completos = getAll()
-            case "Mes anterior":
-                self.datos_completos = getbyMonth()
-            case "Último trimestre":
-                self.datos_completos = getbyQuarter()
-            case "Último semestre":
-                self.datos_completos = getbySemester()
-            case "Último año":
-                self.datos_completos = getbyYear()
-            case _:
-                self.datos_completos = []
+        
+        # Solo actualizar si el filtro ha cambiado
+        if hasattr(self, 'current_filter') and self.current_filter == filtro:
+            return
+            
+        self.current_filter = filtro  # Guardar el filtro actual
+        
+        try:
+            match filtro:
+                case "Todo":
+                    self.datos_completos = getAll() or []
+                case "Mes anterior":
+                    self.datos_completos = getbyMonth() or []
+                case "Último trimestre":
+                    self.datos_completos = getbyQuarter() or []
+                case "Último semestre":
+                    self.datos_completos = getbySemester() or []
+                case "Último año":
+                    self.datos_completos = getbyYear() or []
+                case _:
+                    self.datos_completos = []
+        except Exception as e:
+            print(f"Error al obtener datos: {e}")
+            self.datos_completos = []
 
         self.pagina_actual = 0
         self.mostrar_pagina()
-        self.update_graphs(self.datos_completos)  # Actualizar gráficas con los nuevos datos
+        
+        # Solo actualizar gráficas si hay datos
+        if self.datos_completos:
+            self.update_graphs(self.datos_completos)
+        else:
+            self.mostrar_mensaje_error(f"No hay datos disponibles para el filtro: {filtro}")
 
     def mostrar_pagina(self):
         inicio = self.pagina_actual * self.registros_por_pagina

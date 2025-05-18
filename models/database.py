@@ -1,5 +1,6 @@
 import mysql.connector
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 
 def connect_db():
@@ -60,26 +61,25 @@ def get_averages_by_weeks(weeks=4):
         results = []
         for i in range(weeks):
             week_start = start_date + timedelta(days=7*i)
-            week_end = start_date + timedelta(days=7*(i+1))
+            week_end = week_start + timedelta(days=7)
             
             query = """
             SELECT 
-                AVG(ph) as avg_ph,
-                AVG(ce) as avg_ce,
-                AVG(t_agua) as avg_t_agua,
-                AVG(ultrasonico) as avg_nivel,
-                AVG(t_ambiente) as avg_t_ambiente,
-                AVG(humedad) as avg_humedad,
-                %s as week_num
+                COALESCE(AVG(ph), 0) as avg_ph,
+                COALESCE(AVG(ce), 0) as avg_ce,
+                COALESCE(AVG(t_agua), 0) as avg_t_agua,
+                COALESCE(AVG(ultrasonico), 0) as avg_nivel,
+                COALESCE(AVG(t_ambiente), 0) as avg_t_ambiente,
+                COALESCE(AVG(humedad), 0) as avg_humedad
             FROM registro_mediciones
             WHERE fecha BETWEEN %s AND %s
             """
-            cursor.execute(query, (i+1, week_start, week_end))
+            cursor.execute(query, (week_start, week_end))
             week_data = cursor.fetchone()
             if week_data:
-                results.append(week_data)
+                results.append(week_data[:6])  # Solo los primeros 6 valores (sin week_num)
         
-        return results
+        return results if results else [(0,0,0,0,0,0) for _ in range(weeks)]
     except Exception as e:
         print(f"Error al obtener promedios por semanas: {e}")
         return []
@@ -99,27 +99,26 @@ def get_averages_by_months(months):
         results = []
         
         for i in range(months):
-            month_end = end_date - timedelta(days=28*i)
-            month_start = month_end - timedelta(days=28)
+            month_end = end_date - relativedelta(months=i)
+            month_start = month_end - relativedelta(months=1)
             
             query = """
             SELECT 
-                AVG(ph) as avg_ph,
-                AVG(ce) as avg_ce,
-                AVG(t_agua) as avg_t_agua,
-                AVG(ultrasonico) as avg_nivel,
-                AVG(t_ambiente) as avg_t_ambiente,
-                AVG(humedad) as avg_humedad,
-                %s as month_num
+                COALESCE(AVG(ph), 0) as avg_ph,
+                COALESCE(AVG(ce), 0) as avg_ce,
+                COALESCE(AVG(t_agua), 0) as avg_t_agua,
+                COALESCE(AVG(ultrasonico), 0) as avg_nivel,
+                COALESCE(AVG(t_ambiente), 0) as avg_t_ambiente,
+                COALESCE(AVG(humedad), 0) as avg_humedad
             FROM registro_mediciones
             WHERE fecha BETWEEN %s AND %s
             """
-            cursor.execute(query, (i+1, month_start, month_end))
+            cursor.execute(query, (month_start, month_end))
             month_data = cursor.fetchone()
             if month_data:
                 results.append(month_data)
         
-        return results
+        return results if results else [(0,0,0,0,0,0) for _ in range(months)]
     except Exception as e:
         print(f"Error al obtener promedios por meses: {e}")
         return []
