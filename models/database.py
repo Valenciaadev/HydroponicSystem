@@ -1,4 +1,7 @@
 import mysql.connector
+from datetime import datetime, timedelta
+
+
 def connect_db():
     try:
         conn = mysql.connector.connect(
@@ -14,6 +17,115 @@ def connect_db():
     except mysql.connector.Error as err:
         print(f"ERROR en `connect_db()`: {err}")
         return None
+
+
+def get_averages_all():
+    """Obtiene los promedios de todos los registros"""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        query = """
+        SELECT 
+            AVG(ph) as avg_ph,
+            AVG(ce) as avg_ce,
+            AVG(t_agua) as avg_t_agua,
+            AVG(ultrasonico) as avg_nivel,
+            AVG(t_ambiente) as avg_t_ambiente,
+            AVG(humedad) as avg_humedad
+        FROM registro_mediciones
+        """
+        cursor.execute(query)
+        return cursor.fetchone()
+    except Exception as e:
+        print(f"Error al obtener promedios generales: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_averages_by_weeks(weeks=4):
+    """Obtiene los promedios por semanas del último mes"""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=28)  # 4 semanas
+        
+        results = []
+        for i in range(weeks):
+            week_start = start_date + timedelta(days=7*i)
+            week_end = start_date + timedelta(days=7*(i+1))
+            
+            query = """
+            SELECT 
+                AVG(ph) as avg_ph,
+                AVG(ce) as avg_ce,
+                AVG(t_agua) as avg_t_agua,
+                AVG(ultrasonico) as avg_nivel,
+                AVG(t_ambiente) as avg_t_ambiente,
+                AVG(humedad) as avg_humedad,
+                %s as week_num
+            FROM registro_mediciones
+            WHERE fecha BETWEEN %s AND %s
+            """
+            cursor.execute(query, (i+1, week_start, week_end))
+            week_data = cursor.fetchone()
+            if week_data:
+                results.append(week_data)
+        
+        return results
+    except Exception as e:
+        print(f"Error al obtener promedios por semanas: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_averages_by_months(months):
+    """Obtiene los promedios por meses"""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        end_date = datetime.now()
+        results = []
+        
+        for i in range(months):
+            month_end = end_date - timedelta(days=28*i)
+            month_start = month_end - timedelta(days=28)
+            
+            query = """
+            SELECT 
+                AVG(ph) as avg_ph,
+                AVG(ce) as avg_ce,
+                AVG(t_agua) as avg_t_agua,
+                AVG(ultrasonico) as avg_nivel,
+                AVG(t_ambiente) as avg_t_ambiente,
+                AVG(humedad) as avg_humedad,
+                %s as month_num
+            FROM registro_mediciones
+            WHERE fecha BETWEEN %s AND %s
+            """
+            cursor.execute(query, (i+1, month_start, month_end))
+            month_data = cursor.fetchone()
+            if month_data:
+                results.append(month_data)
+        
+        return results
+    except Exception as e:
+        print(f"Error al obtener promedios por meses: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
 def get_admin_password():
     conn = connect_db()

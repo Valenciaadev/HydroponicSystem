@@ -8,6 +8,9 @@ from models.database import (
     getbyQuarter,
     getbySemester,
     getbyYear,
+    get_averages_by_months,
+    get_averages_by_weeks,
+    get_averages_all,
 )
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -132,7 +135,7 @@ class HistoryAppAdmin(QWidget):
         """)
 
         self.filter_combo.addItems([
-            "Todo", "Mes anterior", "Último trimestre", "Último semestre", "Último año"
+            "Todo", "Último mes", "Último trimestre", "Último semestre", "Último año"
         ])
 
         top_buttons_layout.addWidget(self.pdf_button)
@@ -469,46 +472,153 @@ class HistoryAppAdmin(QWidget):
         if not datos:
             return
         
-        # Extraer datos para las gráficas
-        ph = [d[0] for d in datos]
-        ce = [d[1] for d in datos]
-        temp_agua = [d[2] for d in datos]
-        nivel_agua = [d[3] for d in datos]
-        temp_ambiente = [d[4] for d in datos]
-        humedad = [d[5] for d in datos]
-        fechas = [d[6] for d in datos]
+        filtro = self.filter_combo.currentText()
         
         # Limpiar gráficas anteriores
         self.ax1.clear()
         self.ax2.clear()
         self.ax3.clear()
         
-        # Configurar gráfica 1 (PH y CE)
-        self.ax1.plot(ph, label='PH', color='#60D4B8')
-        self.ax1.plot(ce, label='CE', color='#4A90E2')
-        self.ax1.set_title('Variación de PH y CE', color='white')
-        self.ax1.set_xlabel('Muestras')
-        self.ax1.set_ylabel('Valores')
-        self.ax1.legend()
-        self.ax1.grid(True, color='#444')
+        if filtro == "Todo":
+            # Obtener promedios generales
+            promedios = get_averages_all()
+            if promedios:
+                avg_ph, avg_ce, avg_t_agua, avg_nivel, avg_t_ambiente, avg_humedad = promedios
+                
+                # Gráfica 1 (PH y CE)
+                self.ax1.bar(['Promedio'], [avg_ph], color='#60D4B8', label='PH')
+                self.ax1.bar(['Promedio'], [avg_ce], bottom=[avg_ph], color='#4A90E2', label='CE')
+                self.ax1.set_title('Promedio de PH y CE', color='white')
+                self.ax1.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
+                self.ax1.set_ylabel('Valores', color='white')
+                self.ax1.legend()
+                
+                # Gráfica 2 (Temperaturas)
+                self.ax2.bar(['Promedio'], [avg_t_agua], color='#60D4B8', label='Temp Agua')
+                self.ax2.bar(['Promedio'], [avg_t_ambiente], bottom=[avg_t_agua], color='#4A90E2', label='Temp Ambiente')
+                self.ax2.set_title('Promedio de Temperaturas', color='white')
+                self.ax2.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
+                self.ax2.set_ylabel('°C', color='white')
+                self.ax2.legend()
+                
+                # Gráfica 3 (Humedad y Nivel)
+                self.ax3.bar(['Promedio'], [avg_humedad], color='#60D4B8', label='Humedad')
+                self.ax3.bar(['Promedio'], [avg_nivel], bottom=[avg_humedad], color='#4A90E2', label='Nivel Agua')
+                self.ax3.set_title('Promedio de Humedad y Nivel del agua', color='white')
+                self.ax3.set_xlabel('Promedios en base a todos los registros de cada sensor', color='white')
+                self.ax3.set_ylabel('Valores', color='white')
+                self.ax3.legend()
         
-        # Configurar gráfica 2 (Temperaturas)
-        self.ax2.plot(temp_agua, label='Temperatura agua', color='#60D4B8')
-        self.ax2.plot(temp_ambiente, label='Temperatura ambiente', color='#4A90E2')
-        self.ax2.set_title('Temperaturas (Agua y Ambiente)', color='white')
-        self.ax2.set_xlabel('Muestras')
-        self.ax2.set_ylabel('°C')
-        self.ax2.legend()
-        self.ax2.grid(True, color='#444')
+        elif filtro == "Mes anterior":
+            semanas = get_averages_by_weeks()
+            if semanas:
+                semanas_nums = [f"Sem {i+1}" for i in range(len(semanas))]
+                ph_values = [s[0] for s in semanas]
+                ce_values = [s[1] for s in semanas]
+                t_agua_values = [s[2] for s in semanas]
+                t_ambiente_values = [s[4] for s in semanas]
+                humedad_values = [s[5] for s in semanas]
+                nivel_values = [s[3] for s in semanas]
+                
+                # Gráfica 1 (PH y CE)
+                self.ax1.plot(semanas_nums, ph_values, 'o-', color='#60D4B8', label='PH')
+                self.ax1.plot(semanas_nums, ce_values, 'o-', color='#4A90E2', label='CE')
+                self.ax1.set_title('Variación de PH y CE', color='white')
+                self.ax1.set_xlabel('Promedios en base a los registros del último mes', color='white')
+                self.ax1.set_ylabel('Valores', color='white')
+                self.ax1.legend()
+                
+                # Añadir etiquetas de valores
+                for i, (ph, ce) in enumerate(zip(ph_values, ce_values)):
+                    self.ax1.text(i, ph, f"{ph:.2f}", ha='center', va='bottom', color='white')
+                    self.ax1.text(i, ce, f"{ce:.2f}", ha='center', va='bottom', color='white')
+                
+                # Gráfica 2 (Temperaturas)
+                self.ax2.plot(semanas_nums, t_agua_values, 'o-', color='#60D4B8', label='Temp Agua')
+                self.ax2.plot(semanas_nums, t_ambiente_values, 'o-', color='#4A90E2', label='Temp Ambiente')
+                self.ax2.set_title('Variación de Temperaturas', color='white')
+                self.ax2.set_xlabel('Promedios en base a los registros del último mes', color='white')
+                self.ax2.set_ylabel('°C', color='white')
+                self.ax2.legend()
+                
+                # Añadir etiquetas de valores
+                for i, (tagua, tamb) in enumerate(zip(t_agua_values, t_ambiente_values)):
+                    self.ax2.text(i, tagua, f"{tagua:.2f}", ha='center', va='bottom', color='white')
+                    self.ax2.text(i, tamb, f"{tamb:.2f}", ha='center', va='bottom', color='white')
+                
+                # Gráfica 3 (Humedad y Nivel)
+                self.ax3.plot(semanas_nums, humedad_values, 'o-', color='#60D4B8', label='Humedad')
+                self.ax3.plot(semanas_nums, nivel_values, 'o-', color='#4A90E2', label='Nivel Agua')
+                self.ax3.set_title('Variación de Humedad y Nivel del agua', color='white')
+                self.ax3.set_xlabel('Promedios en base a los registros del último mes', color='white')
+                self.ax3.set_ylabel('Valores', color='white')
+                self.ax3.legend()
+                
+                # Añadir etiquetas de valores
+                for i, (hum, niv) in enumerate(zip(humedad_values, nivel_values)):
+                    self.ax3.text(i, hum, f"{hum:.2f}", ha='center', va='bottom', color='white')
+                    self.ax3.text(i, niv, f"{niv:.2f}", ha='center', va='bottom', color='white')
         
-        # Configurar gráfica 3 (Humedad y Nivel de agua)
-        self.ax3.plot(humedad, label='Humedad', color='#60D4B8')
-        self.ax3.plot(nivel_agua, label='Nivel agua', color='#4A90E2')
-        self.ax3.set_title('Humedad y Nivel de agua', color='white')
-        self.ax3.set_xlabel('Muestras')
-        self.ax3.set_ylabel('Valores')
-        self.ax3.legend()
-        self.ax3.grid(True, color='#444')
+        elif filtro in ["Último trimestre", "Último semestre", "Último año"]:
+            months = 3 if filtro == "Último trimestre" else 6 if filtro == "Último semestre" else 12
+            meses = get_averages_by_months(months)
+            if meses:
+                meses_nums = [f"Mes {i+1}" for i in range(len(meses))]
+                ph_values = [s[0] for s in meses]
+                ce_values = [s[1] for s in meses]
+                t_agua_values = [s[2] for s in meses]
+                t_ambiente_values = [s[4] for s in meses]
+                humedad_values = [s[5] for s in meses]
+                nivel_values = [s[3] for s in meses]
+                
+                # Gráfica 1 (PH y CE)
+                self.ax1.plot(meses_nums, ph_values, 'o-', color='#60D4B8', label='PH')
+                self.ax1.plot(meses_nums, ce_values, 'o-', color='#4A90E2', label='CE')
+                self.ax1.set_title(f'Variación de PH y CE', color='white')
+                self.ax1.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
+                self.ax1.set_ylabel('Valores', color='white')
+                self.ax1.legend()
+                
+                # Añadir etiquetas de valores
+                for i, (ph, ce) in enumerate(zip(ph_values, ce_values)):
+                    self.ax1.text(i, ph, f"{ph:.2f}", ha='center', va='bottom', color='white')
+                    self.ax1.text(i, ce, f"{ce:.2f}", ha='center', va='bottom', color='white')
+                
+                # Gráfica 2 (Temperaturas)
+                self.ax2.plot(meses_nums, t_agua_values, 'o-', color='#60D4B8', label='Temp Agua')
+                self.ax2.plot(meses_nums, t_ambiente_values, 'o-', color='#4A90E2', label='Temp Ambiente')
+                self.ax2.set_title(f'Variación de Temperaturas', color='white')
+                self.ax2.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
+                self.ax2.set_ylabel('°C', color='white')
+                self.ax2.legend()
+                
+                # Añadir etiquetas de valores
+                for i, (tagua, tamb) in enumerate(zip(t_agua_values, t_ambiente_values)):
+                    self.ax2.text(i, tagua, f"{tagua:.2f}", ha='center', va='bottom', color='white')
+                    self.ax2.text(i, tamb, f"{tamb:.2f}", ha='center', va='bottom', color='white')
+                
+                # Gráfica 3 (Humedad y Nivel)
+                self.ax3.plot(meses_nums, humedad_values, 'o-', color='#60D4B8', label='Humedad')
+                self.ax3.plot(meses_nums, nivel_values, 'o-', color='#4A90E2', label='Nivel Agua')
+                self.ax3.set_title(f'Variación de Humedad y Nivel del agua', color='white')
+                self.ax3.set_xlabel(f'Promedios en base a los registros del {filtro.lower()}', color='white')
+                self.ax3.set_ylabel('Valores', color='white')
+                self.ax3.legend()
+                
+                # Añadir etiquetas de valores
+                for i, (hum, niv) in enumerate(zip(humedad_values, nivel_values)):
+                    self.ax3.text(i, hum, f"{hum:.2f}", ha='center', va='bottom', color='white')
+                    self.ax3.text(i, niv, f"{niv:.2f}", ha='center', va='bottom', color='white')
+        
+        # Configuración común para todas las gráficas
+        for ax in [self.ax1, self.ax2, self.ax3]:
+            ax.grid(True, color='#444')
+            ax.set_facecolor('#1f2232')
+            ax.tick_params(axis='x', colors='white')
+            ax.tick_params(axis='y', colors='white')
+            # Escalado automático del eje y
+            ax.relim()
+            ax.autoscale_view()
         
         # Redibujar las gráficas
         self.canvas1.draw()
@@ -580,9 +690,9 @@ class HistoryAppAdmin(QWidget):
         graph3_path = f"{temp_dir}/graph3.png"
         
         # Guardar las gráficas con fondo transparente
-        self.fig1.savefig(graph1_path, transparent=True, bbox_inches='tight', dpi=150)
-        self.fig2.savefig(graph2_path, transparent=True, bbox_inches='tight', dpi=150)
-        self.fig3.savefig(graph3_path, transparent=True, bbox_inches='tight', dpi=150)
+        self.fig1.savefig(graph1_path, facecolor='#1f2232', bbox_inches='tight', dpi=150)
+        self.fig2.savefig(graph2_path, facecolor='#1f2232', bbox_inches='tight', dpi=150)
+        self.fig3.savefig(graph3_path, facecolor='#1f2232', bbox_inches='tight', dpi=150)
 
         # Crear el PDF
         c = canvas.Canvas(file_path, pagesize=landscape(letter))
@@ -600,10 +710,10 @@ class HistoryAppAdmin(QWidget):
                 preserveAspectRatio=True, mask='auto')
         
         # Texto HydroBox y filtro
-        c.setFont("Helvetica-Bold", 28)
+        c.setFont("Helvetica-Bold", 36)
         c.setFillColor(colors.black)
         c.drawString(160, height - 100, "HydroBox")
-        c.setFont("Helvetica", 16)
+        c.setFont("Helvetica", 12)
         c.drawString(160, height - 130, f"Filtro aplicado: {filtro}")
         
         # Ajustar posición de las gráficas más abajo (inicio en height - 300)
