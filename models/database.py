@@ -47,6 +47,27 @@ def get_averages_all():
         cursor.close()
         conn.close()
 
+def get_date_ranges(weeks=False, months=False):
+    """Genera etiquetas de rango de fechas"""
+    ranges = []
+    today = datetime.now()
+    
+    if weeks:
+        for i in range(4):
+            end_date = today - timedelta(weeks=i)
+            start_date = end_date - timedelta(weeks=1)
+            ranges.append(f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d')}")
+        return list(reversed(ranges))
+    
+    elif months:
+        for i in range(months):
+            end_date = today - relativedelta(months=i)
+            start_date = end_date - relativedelta(months=1)
+            ranges.append(f"{start_date.strftime('%b')} - {end_date.strftime('%b')}")
+        return list(reversed(ranges))
+    
+    return []
+
 def get_averages_by_weeks(weeks=4):
     """Obtiene los promedios por semanas del último mes"""
     conn = connect_db()
