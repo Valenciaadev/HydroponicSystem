@@ -38,18 +38,18 @@ usuario_admin = Usuario(
     apellido_paterno="Valencia",
     apellido_materno="Antonio",
     email="mvalencia18@ucol.mx",
-    clabe=789101,
+    clabe=654321,
     password=hash_password("qwerty"),
     telefono="3147654321",
     tipo_usuario="administrador"
 )
 
-id_usuario_admin = usuario_admin.guardar_en_db()
+id_usuario_admin = usuario_admin.guardar_en_db() """
 
-if id_usuario_admin:
+""" if id_usuario_admin:
     administrador = Administrador(id_usuario=id_usuario_admin)
-    administrador.guardar_en_db()
-"""
+    administrador.guardar_en_db() """
+
 
 class TitleBar(QWidget):
     def __init__(self, parent):

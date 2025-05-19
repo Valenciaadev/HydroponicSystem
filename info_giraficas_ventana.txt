@@ -1,0 +1,108 @@
+# Primero, añade esta importación al inicio del archivo
+from PyQt5.QtWidgets import QMessageBox
+
+# Luego modifica la sección del botón de información en populate_devices()
+if nombre == "Datos con gráficas":
+    content_frame = QFrame()
+    content_frame.setObjectName("graphics_content")
+    content_frame.setStyleSheet("background-color: #1f2232; border-radius: 15px;")
+    content_frame.setFixedHeight(750)
+    content_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    content_layout = QVBoxLayout(content_frame)
+    
+    # --- Crear header con título y botón de info ---
+    header_widget = QWidget()
+    header_layout = QHBoxLayout(header_widget)
+    header_layout.setContentsMargins(0, 0, 0, 0)
+    
+    # Botón de información
+    info_button = QPushButton()
+    Icon_i = QIcon("assets/icons/info-circle.svg")
+    pixmap = Icon_i.pixmap(QSize(28, 28))
+    info_button.setIcon(QIcon(pixmap))
+    info_button.setFixedSize(46,46)
+    info_button.setIconSize(QSize(46, 46))
+    info_button.setStyleSheet("""
+        QPushButton {
+            background-color: transparent;
+            border: none;
+            margin-right: 15px;
+            margin-top: 15px;
+        }
+        QPushButton:hover {
+            background-color: #444;
+            border-radius: 15px;
+        }
+    """)
+    
+    # Conectar el clic del botón a una nueva función
+    info_button.clicked.connect(self.mostrar_info_graficas)
+    
+    header_layout.addStretch()
+    header_layout.addWidget(info_button)
+    
+    # ... (resto del código de las gráficas permanece igual)
+
+
+
+
+
+
+
+
+
+
+
+
+    def mostrar_info_graficas(self):
+    """Muestra un cuadro de diálogo con información sobre las gráficas"""
+    # Crear el cuadro de diálogo
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setWindowTitle("Información sobre las gráficas")
+    
+    # Configurar el texto con formato HTML
+    msg.setText("""
+    <style>
+    body {
+        color: white;
+        font-size: 12pt;
+    }
+    b {
+        color: #60D4B8;
+    }
+    </style>
+    <b>Información sobre las gráficas:</b><br><br>
+    Los valores mostrados en las gráficas están promediados<br>
+    según el filtro de tiempo seleccionado:<br><br>
+    • <b>Todo:</b> Promedio general<br>
+    • <b>Mes anterior:</b> Promedio del último mes<br>
+    • <b>Último trimestre:</b> Promedio de los últimos 3 meses<br>
+    • <b>Último semestre:</b> Promedio de los últimos 6 meses<br>
+    • <b>Último año:</b> Promedio de los últimos 12 meses<br>
+    """)
+    
+    # Configurar estilo del cuadro de diálogo
+    msg.setStyleSheet("""
+        QMessageBox {
+            background-color: #1f2232;
+        }
+        QLabel {
+            color: white;
+        }
+        QPushButton {
+            background-color: #4A90E2;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        QPushButton:hover {
+            background-color: #357ABD;
+        }
+    """)
+    
+    # Añadir botón de OK
+    msg.setStandardButtons(QMessageBox.Ok)
+    
+    # Mostrar el diálogo
+    msg.exec_()
