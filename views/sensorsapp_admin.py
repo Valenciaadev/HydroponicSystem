@@ -52,6 +52,9 @@ class SensorsAppAdmin(QWidget):
 
         # --- Botón añadir dispositivo con borde degradado ajustado ---
         self.add_sensor_button = QPushButton("Agregar sensor")
+        self.add_sensor_button.setIcon(QIcon("assets/icons/btn_add_white.svg"))
+        self.add_sensor_button.setIconSize(QSize(24, 24))
+
         self.add_sensor_button.setStyleSheet("""
             QPushButton {
                 background-color: #1F2232;

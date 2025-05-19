@@ -34,18 +34,6 @@ class SummaryAppAdmin(QWidget):
         # Layout inferior con tres bloques
         graphs_layout = QHBoxLayout()
         graphs_layout.setSpacing(30)
-
-        # Izquierda: Medidores circulares
-        # gauges_layout = QVBoxLayout()
-        # gauge_frame = QFrame()
-        # gauge_frame.setFixedWidth(260)
-        # gauge_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
-        # gauge_frame_layout = QVBoxLayout()
-        # gauge_frame_layout.addWidget(self.create_circular_gauge("Temperatura del aire"))
-        # gauge_frame_layout.addWidget(self.create_circular_gauge("Humedad del aire"))
-        # gauge_frame.setLayout(gauge_frame_layout)
-        # gauges_layout.addWidget(gauge_frame)
-        # bottom_layout.addLayout(gauges_layout)
         
         # Gráfica izquierda con pyqtgraph
         left_graph = QFrame()
@@ -130,57 +118,267 @@ class SummaryAppAdmin(QWidget):
         card.setLayout(vbox)
         return card
 
-    # def create_circular_gauge(self, title="Gauge"):
-    #     class CircularGauge(QWidget):
-    #         def __init__(self, title="Gauge"):
-    #             super().__init__()
-    #             self.value = 24.1
-    #             self.title = title
-    #             self.setFixedSize(150, 150)
-    #             self.timer = QTimer(self)
-    #             self.timer.timeout.connect(self.update_value)
-    #             self.timer.start(2000)
+        # Izquierda: Medidores circulares
+        gauges_layout = QVBoxLayout()
+        gauge_frame = QFrame()
+        gauge_frame.setFixedWidth(260)
+        gauge_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
+        gauge_frame_layout = QVBoxLayout()
+        gauge_frame_layout.addWidget(self.create_circular_gauge("Temperatura del aire"))
+        gauge_frame_layout.addWidget(self.create_circular_gauge("Humedad del aire"))
+        gauge_frame.setLayout(gauge_frame_layout)
+        gauges_layout.addWidget(gauge_frame)
+        bottom_layout.addLayout(gauges_layout)
 
-    #         def update_value(self):
-    #             self.value = round(random.uniform(15.0, 35.0), 1)
-    #             self.update()
+    def create_circular_gauge(self, title="Gauge"):
+        class CircularGauge(QWidget):
+            def __init__(self, title="Gauge"):
+                super().__init__()
+                self.value = 24.1
+                self.title = title
+                self.setFixedSize(150, 150)
+                self.timer = QTimer(self)
+                self.timer.timeout.connect(self.update_value)
+                self.timer.start(2000)
 
-    #         def paintEvent(self, event):
-    #             painter = QPainter(self)
-    #             painter.setRenderHint(QPainter.Antialiasing)
-    #             rect = self.rect()
-    #             center = rect.center()
-    #             radius = min(rect.width(), rect.height()) / 2 - 10
+            def update_value(self):
+                self.value = round(random.uniform(15.0, 35.0), 1)
+                self.update()
 
-    #             painter.setBrush(QColor("#101b1c"))
-    #             painter.setPen(Qt.NoPen)
-    #             painter.drawRect(rect)
+            def paintEvent(self, event):
+                painter = QPainter(self)
+                painter.setRenderHint(QPainter.Antialiasing)
+                rect = self.rect()
+                center = rect.center()
+                radius = min(rect.width(), rect.height()) / 2 - 10
 
-    #             painter.setPen(Qt.white)
-    #             font = QFont("Candara", 8)
-    #             painter.setFont(font)
-    #             painter.drawText(0, 20, rect.width(), 20, Qt.AlignCenter, self.title)
+                painter.setBrush(QColor("#101b1c"))
+                painter.setPen(Qt.NoPen)
+                painter.drawRect(rect)
 
-    #             gradient = QConicalGradient(center, -90)
-    #             gradient.setColorAt(0.0, Qt.green)
-    #             gradient.setColorAt(0.5, Qt.cyan)
-    #             gradient.setColorAt(1.0, Qt.green)
-    #             painter.setPen(QPen(QBrush(gradient), 12))
-    #             arc_rect = QRect(
-    #                 int(center.x() - radius), int(center.y() - radius),
-    #                 int(2 * radius), int(2 * radius)
-    #             )
-    #             painter.drawArc(arc_rect, 45 * 16, 270 * 16)
+                painter.setPen(Qt.white)
+                font = QFont("Candara", 8)
+                painter.setFont(font)
+                painter.drawText(0, 20, rect.width(), 20, Qt.AlignCenter, self.title)
 
-    #             angle = 45 + (self.value - 15) / 20 * 270
-    #             needle_length = radius - 10
-    #             needle_x = center.x() + needle_length * math.cos(math.radians(angle - 90))
-    #             needle_y = center.y() + needle_length * math.sin(math.radians(angle - 90))
-    #             painter.setPen(QPen(Qt.white, 2))
-    #             painter.drawLine(center, QPointF(needle_x, needle_y))
+                gradient = QConicalGradient(center, -90)
+                gradient.setColorAt(0.0, Qt.green)
+                gradient.setColorAt(0.5, Qt.cyan)
+                gradient.setColorAt(1.0, Qt.green)
+                painter.setPen(QPen(QBrush(gradient), 12))
+                arc_rect = QRect(
+                    int(center.x() - radius), int(center.y() - radius),
+                    int(2 * radius), int(2 * radius)
+                )
+                painter.drawArc(arc_rect, 45 * 16, 270 * 16)
 
-    #             font.setPointSize(10)
-    #             painter.setFont(font)
-    #             painter.drawText(0, int(center.y() - radius + 50), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
+                angle = 45 + (self.value - 15) / 20 * 270
+                needle_length = radius - 10
+                needle_x = center.x() + needle_length * math.cos(math.radians(angle - 90))
+                needle_y = center.y() + needle_length * math.sin(math.radians(angle - 90))
+                painter.setPen(QPen(Qt.white, 2))
+                painter.drawLine(center, QPointF(needle_x, needle_y))
 
-    #     return CircularGauge(title)
+                font.setPointSize(10)
+                painter.setFont(font)
+                painter.drawText(0, int(center.y() - radius + 50), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
+
+        return CircularGauge(title)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QFrame, QPushButton
+from PyQt5.QtCore import Qt, QTimer, QPointF, QRect
+from PyQt5.QtGui import QFont, QPainter, QColor, QPen, QConicalGradient, QBrush, QPixmap
+import random
+import math
+
+
+class SummaryAppAdmin(QWidget):
+    def __init__(self, ventana_login, embed=False):
+        super().__init__()
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        # Layout superior de tarjetas
+        top_cards_layout = QHBoxLayout()
+        top_cards_layout.setSpacing(20)
+
+        cards_info = [
+            ("Temperatura del aire", "24°", "26/2 21:23:04"),
+            ("Humedad del aire", "61.2", "26/2 21:23:04"),
+            ("Temperatura del agua", "26°", "26/2 21:23:04"),
+            ("Nivel pH del agua", "5 pH", "26/2 21:23:04"),
+            ("Nivel del agua", "0 bool", "26/2 21:23:04"),
+        ]
+
+        for title, value, timestamp in cards_info:
+            card = self.create_card(title, value, timestamp)
+            top_cards_layout.addWidget(card)
+
+        layout.addLayout(top_cards_layout)
+
+        # Layout inferior con tres bloques
+        bottom_layout = QHBoxLayout()
+        bottom_layout.setSpacing(30)
+        bottom_layout.setAlignment(Qt.AlignCenter)
+
+        # Izquierda: Medidores circulares
+        gauges_layout = QVBoxLayout()
+        gauge_frame = QFrame()
+        gauge_frame.setFixedWidth(260)
+        gauge_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
+        gauge_frame_layout = QVBoxLayout()
+        gauge_frame_layout.addWidget(self.create_circular_gauge("Temperatura del aire"))
+        gauge_frame_layout.addWidget(self.create_circular_gauge("Humedad del aire"))
+        gauge_frame.setLayout(gauge_frame_layout)
+        gauges_layout.addWidget(gauge_frame)
+        bottom_layout.addLayout(gauges_layout)
+        
+        # Centro: Gráfico simulado
+        graph_frame = QFrame()
+        graph_frame.setFixedSize(260, 280)
+        graph_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
+        graph_layout = QVBoxLayout()
+        graph_layout.setAlignment(Qt.AlignCenter)
+        graph_label = QLabel("Gráfico simulado")
+        graph_image = QLabel()
+        graph_image.setPixmap(QPixmap("graph_placeholder.png").scaled(240, 180, Qt.KeepAspectRatio))
+        graph_layout.addWidget(graph_label)
+        graph_layout.addWidget(graph_image)
+        graph_frame.setLayout(graph_layout)
+        bottom_layout.addWidget(graph_frame)
+
+        # Derecha: Cámara simulada
+        camera_frame = QFrame()
+        camera_frame.setFixedSize(260, 280)
+        camera_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
+        camera_layout = QVBoxLayout()
+        camera_layout.setAlignment(Qt.AlignCenter)
+        camera_label = QLabel("Timelapse 2025-03-06 1:18:58")
+        camera_image = QLabel()
+        camera_image.setPixmap(QPixmap("camera_placeholder.png").scaled(240, 180, Qt.KeepAspectRatio))
+        camera_layout.addWidget(camera_label)
+        camera_layout.addWidget(camera_image)
+        camera_frame.setLayout(camera_layout)
+        bottom_layout.addWidget(camera_frame)
+
+        layout.addLayout(bottom_layout)
+
+    def create_card(self, title, value, timestamp):
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #1e2b3c;
+                border-radius: 25px;
+                padding: 10px;
+                color: white;
+            }
+            QLabel {
+                qproperty-alignment: AlignCenter;
+            }
+        """)
+        card.setFixedSize(260, 185)
+
+        vbox = QVBoxLayout()
+        vbox.setAlignment(Qt.AlignCenter)
+
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Arial", 11, QFont.Bold))
+
+        value_label = QLabel(value)
+        value_label.setFont(QFont("Arial", 18, QFont.Bold))
+        value_label.setMinimumHeight(40)
+
+        time_label = QLabel(timestamp)
+        time_label.setFont(QFont("Arial", 9))
+
+        vbox.addWidget(title_label)
+        vbox.addWidget(value_label)
+        vbox.addWidget(time_label)
+
+        card.setLayout(vbox)
+        return card
+
+    def create_circular_gauge(self, title="Gauge"):
+        class CircularGauge(QWidget):
+            def __init__(self, title="Gauge"):
+                super().__init__()
+                self.value = 24.1
+                self.title = title
+                self.setFixedSize(150, 150)
+                self.timer = QTimer(self)
+                self.timer.timeout.connect(self.update_value)
+                self.timer.start(2000)
+
+            def update_value(self):
+                self.value = round(random.uniform(15.0, 35.0), 1)
+                self.update()
+
+            def paintEvent(self, event):
+                painter = QPainter(self)
+                painter.setRenderHint(QPainter.Antialiasing)
+                rect = self.rect()
+                center = rect.center()
+                radius = min(rect.width(), rect.height()) / 2 - 10
+
+                painter.setBrush(QColor("#101b1c"))
+                painter.setPen(Qt.NoPen)
+                painter.drawRect(rect)
+
+                painter.setPen(Qt.white)
+                font = QFont("Candara", 8)
+                painter.setFont(font)
+                painter.drawText(0, 20, rect.width(), 20, Qt.AlignCenter, self.title)
+
+                gradient = QConicalGradient(center, -90)
+                gradient.setColorAt(0.0, Qt.green)
+                gradient.setColorAt(0.5, Qt.cyan)
+                gradient.setColorAt(1.0, Qt.green)
+                painter.setPen(QPen(QBrush(gradient), 12))
+                arc_rect = QRect(
+                    int(center.x() - radius), int(center.y() - radius),
+                    int(2 * radius), int(2 * radius)
+                )
+                painter.drawArc(arc_rect, 45 * 16, 270 * 16)
+
+                angle = 45 + (self.value - 15) / 20 * 270
+                needle_length = radius - 10
+                needle_x = center.x() + needle_length * math.cos(math.radians(angle - 90))
+                needle_y = center.y() + needle_length * math.sin(math.radians(angle - 90))
+                painter.setPen(QPen(Qt.white, 2))
+                painter.drawLine(center, QPointF(needle_x, needle_y))
+
+                font.setPointSize(10)
+                painter.setFont(font)
+                painter.drawText(0, int(center.y() - radius + 50), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
+
+        return CircularGauge(title)

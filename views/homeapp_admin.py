@@ -124,5 +124,5 @@ class HomeappAdmin(QWidget):
         self.setLayout(layout_principal)
 
     def log_out(self):
-        self.ventana_login.show()
+        #self.ventana_login.show()
         self.close()

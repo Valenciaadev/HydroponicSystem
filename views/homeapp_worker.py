@@ -4,7 +4,6 @@ from PyQt5.QtCore import Qt, QSize
 from views.summaryapp_worker import SummaryAppWorker
 from views.actuatorsapp_worker import ActuatorsAppWorker
 from views.sensorsapp_worker import SensorsAppWorker
-from views.devicesapp_worker import DevicesAppWorker
 from views.historyapp_worker import HistoryAppWorker
 
 class HomeappWorker(QWidget):
@@ -24,14 +23,12 @@ class HomeappWorker(QWidget):
         self.inicio_widget = SummaryAppWorker(self.ventana_login, embed=True)
         self.actuadores_widget = ActuatorsAppWorker(self.ventana_login, embed=True)
         self.sensores_widget = SensorsAppWorker(self.ventana_login, embed=True)
-        self.dispositivos_widget = DevicesAppWorker(self.ventana_login, embed=True)
         self.historial_widget = HistoryAppWorker(self.ventana_login, embed=True)
 
         # Agregar vistas al stacked layout
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
         self.stacked_layout.addWidget(self.sensores_widget)
-        self.stacked_layout.addWidget(self.dispositivos_widget)
         self.stacked_layout.addWidget(self.historial_widget)
         
         self.stacked_layout.setCurrentIndex(0)
@@ -76,12 +73,6 @@ class HomeappWorker(QWidget):
         btn_sensors.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(2))
         btn_sensors.setIcon(QIcon("assets/icons/sensors-white.svg"))
         btn_sensors.setIconSize(QSize(24, 24))
-
-        btn_devices = QPushButton(" Dispositivos")
-        btn_devices.setStyleSheet(btn_style)
-        btn_devices.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(3))
-        btn_devices.setIcon(QIcon("assets/icons/devices-white.svg"))
-        btn_devices.setIconSize(QSize(24, 24))
         
         btn_history = QPushButton(" Historial")
         btn_history.setStyleSheet(btn_style)
@@ -110,7 +101,6 @@ class HomeappWorker(QWidget):
         sidebar.addWidget(btn_home)
         sidebar.addWidget(btn_actuators)
         sidebar.addWidget(btn_sensors)
-        sidebar.addWidget(btn_devices)
         sidebar.addWidget(btn_history)
         sidebar.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
         sidebar.addWidget(btn_exit)
