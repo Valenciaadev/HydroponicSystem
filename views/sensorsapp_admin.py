@@ -157,7 +157,7 @@ class SensorsAppAdmin(QWidget):
 
             # Layout para el contenido interno
             sensor_layout = QHBoxLayout()
-            sensor_layout.setContentsMargins(0, 5, 15, 5)
+            sensor_layout.setContentsMargins(10, 5, 15, 5)
             sensor_layout.setSpacing(10)
 
             # LED, nombre y botón
