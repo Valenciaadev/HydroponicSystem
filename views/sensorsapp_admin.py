@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QDialog, QLineEdit
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QCursor
 
 class SensorsAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
@@ -55,6 +55,7 @@ class SensorsAppAdmin(QWidget):
                 background-color: #1F2F32;
             }
         """)
+        addSensBtn.setCursor(QCursor(Qt.PointingHandCursor))
         addSensBtn.clicked.connect(self.feature)
 
         # --- Ahora lo envolvemos en un frame exterior degradado ---
@@ -188,6 +189,7 @@ class SensorsAppAdmin(QWidget):
                 }
             """)
 
+            chars_btn.setCursor(QCursor(Qt.PointingHandCursor))
             chars_btn.clicked.connect(self.feature)
 
             # Añadir al layout interno
@@ -316,6 +318,8 @@ class SensorsAppAdmin(QWidget):
         guardar_btn.setFixedWidth(100)
         cancelar_btn.setFixedWidth(100)
         
+        guardar_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        cancelar_btn.setCursor(QCursor(Qt.PointingHandCursor))        
         
         #se añaden widgets al layout del contenedor
         box_layout.addWidget(nombreSensorField)
