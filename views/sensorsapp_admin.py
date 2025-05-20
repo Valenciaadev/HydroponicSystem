@@ -99,11 +99,11 @@ class SensorsAppAdmin(QWidget):
         #Caja contenido
         inner_box = QFrame()
         inner_box.setObjectName("InnerBox")
-        inner_box.setFixedSize(1400, 750)
+        inner_box.setFixedSize(1590, 750)
         inner_box.setStyleSheet("""
             QFrame#InnerBox {
         background-color: #28243C;
-        border-radius: 15px;
+        
             }
         """)
         
@@ -142,6 +142,7 @@ class SensorsAppAdmin(QWidget):
                 }
             """)
             sensor_frameOuter.setFixedHeight(75)
+            sensor_frameOuter.setFixedWidth(1400)
 
             # Contenedor interno con fondo sólido
             sensor_frameInner = QFrame()
@@ -152,10 +153,11 @@ class SensorsAppAdmin(QWidget):
                 }
             """)
             sensor_frameInner.setFixedHeight(70)
+            sensor_frameInner.setFixedWidth(1395)
 
             # Layout para el contenido interno
             sensor_layout = QHBoxLayout()
-            sensor_layout.setContentsMargins(0, 5, 10, 5)
+            sensor_layout.setContentsMargins(0, 5, 15, 5)
             sensor_layout.setSpacing(10)
 
             # LED, nombre y botón
@@ -172,7 +174,7 @@ class SensorsAppAdmin(QWidget):
             sensor_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
 
             chars_btn = QPushButton("características")
-            chars_btn.setFixedSize(150, 30)
+            chars_btn.setFixedSize(170, 30)
             chars_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #7FD1B9;
@@ -216,7 +218,7 @@ class SensorsAppAdmin(QWidget):
         dialog.setGeometry(100, 100, 500, 700)
         
         #cambiar el color de la ventana
-        dialog.setStyleSheet("background-color: #040e0c ; color:white;")
+        dialog.setStyleSheet("background-color: #28243C ; color:white;")
         
         layout = QVBoxLayout()
         
@@ -234,7 +236,6 @@ class SensorsAppAdmin(QWidget):
         addSensorBox.setObjectName("AddSensorContainer")
         addSensorBox.setStyleSheet("""
             QFrame#AddSensorContainer {
-                border: 2px solid #00AAA5;
                 border-radius: 8px;
                 }""")
         
