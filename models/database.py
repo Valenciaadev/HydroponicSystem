@@ -11,7 +11,7 @@ def connect_db():
         conn = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="manuel123",
+            password="",
             database="hydrophonic_sys",
             port=3306,
         )
@@ -32,13 +32,14 @@ def get_averages_all():
     try:
         cursor = conn.cursor()
         query = """
+        
         SELECT 
-            AVG(ph) as avg_ph,
-            AVG(ce) as avg_ce,
-            AVG(t_agua) as avg_t_agua,
-            AVG(ultrasonico) as avg_nivel,
-            AVG(t_ambiente) as avg_t_ambiente,
-            AVG(humedad) as avg_humedad
+            AVG(ph_value) as avg_ph,
+            AVG(ce_value) as avg_ce,
+            AVG(tagua_value) as avg_t_agua,
+            AVG(us_value) as avg_nivel,
+            AVG(tam_value) as avg_t_ambiente,
+            AVG(hum_value) as avg_humedad
         FROM registro_mediciones
         """
         cursor.execute(query)
@@ -86,15 +87,15 @@ def get_averages_by_weeks(weeks=4):
         for i in range(weeks):
             week_start = start_date + timedelta(days=7*i)
             week_end = week_start + timedelta(days=7)
-            
+                        
             query = """
             SELECT 
-                COALESCE(AVG(ph), 0) as avg_ph,
-                COALESCE(AVG(ce), 0) as avg_ce,
-                COALESCE(AVG(t_agua), 0) as avg_t_agua,
-                COALESCE(AVG(ultrasonico), 0) as avg_nivel,
-                COALESCE(AVG(t_ambiente), 0) as avg_t_ambiente,
-                COALESCE(AVG(humedad), 0) as avg_humedad
+                COALESCE(AVG(ph_value), 0) as avg_ph,
+                COALESCE(AVG(ce_value), 0) as avg_ce,
+                COALESCE(AVG(tagua_value), 0) as avg_t_agua,
+                COALESCE(AVG(us_value), 0) as avg_nivel,
+                COALESCE(AVG(tam_value), 0) as avg_t_ambiente,
+                COALESCE(AVG(hum_value), 0) as avg_humedad
             FROM registro_mediciones
             WHERE fecha BETWEEN %s AND %s
             """
@@ -125,15 +126,15 @@ def get_averages_by_months(months):
         for i in range(months):
             month_end = end_date - relativedelta(months=i)
             month_start = month_end - relativedelta(months=1)
-            
+
             query = """
             SELECT 
-                COALESCE(AVG(ph), 0) as avg_ph,
-                COALESCE(AVG(ce), 0) as avg_ce,
-                COALESCE(AVG(t_agua), 0) as avg_t_agua,
-                COALESCE(AVG(ultrasonico), 0) as avg_nivel,
-                COALESCE(AVG(t_ambiente), 0) as avg_t_ambiente,
-                COALESCE(AVG(humedad), 0) as avg_humedad
+                COALESCE(AVG(ph_value), 0) as avg_ph,
+                COALESCE(AVG(ce_value), 0) as avg_ce,
+                COALESCE(AVG(tagua_value), 0) as avg_t_agua,
+                COALESCE(AVG(us_value), 0) as avg_nivel,
+                COALESCE(AVG(tam_value), 0) as avg_t_ambiente,
+                COALESCE(AVG(hum_value), 0) as avg_humedad
             FROM registro_mediciones
             WHERE fecha BETWEEN %s AND %s
             """
@@ -335,10 +336,10 @@ def getAll():
     conn = connect_db()
     if conn is None:
         return []
-
+    
     try:
         cursor = conn.cursor()
-        query = "SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha FROM registro_mediciones"
+        query = "SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha FROM registro_mediciones"
         cursor.execute(query)
         return cursor.fetchall()
     except Exception as e:
@@ -357,7 +358,7 @@ def getbyMonth():
     try:
         cursor = conn.cursor()
         query = """
-            SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha
+            SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
         """
@@ -379,7 +380,7 @@ def getbyQuarter():
     try:
         cursor = conn.cursor()
         query = """
-            SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha
+            SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
         """
@@ -401,7 +402,7 @@ def getbySemester():
     try:
         cursor = conn.cursor()
         query = """
-            SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha
+            SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
         """
@@ -423,7 +424,7 @@ def getbyYear():
     try:
         cursor = conn.cursor()
         query = """
-            SELECT ph, ce, t_agua, ultrasonico, t_ambiente, humedad, fecha
+            SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
         """
