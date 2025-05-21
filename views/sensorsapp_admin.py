@@ -4,13 +4,18 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt, QSize
 from views.seleccion_usuario import TitleBar
-from views.create_sensor_modal import CreateSensorWidget
 from views.about_sensor_modal import AboutSensorWidget
+from models.database import connect_db
 
 class SensorsAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__(ventana_login)
         self.ventana_login = ventana_login
+        self.conn = connect_db()
+        if self.conn:
+            self.cursor = self.conn.cursor(dictionary=True)
+        else:
+            print("No se pudo establecer la conexión a la base de datos.")
         self.init_ui()
 
     def init_ui(self):
@@ -50,55 +55,28 @@ class SensorsAppAdmin(QWidget):
         title_sensores = QLabel("Sensores")
         title_sensores.setObjectName("Title")
 
-        # --- Botón añadir dispositivo con borde degradado ajustado ---
-        self.add_sensor_button = QPushButton("Agregar sensor")
-        self.add_sensor_button.setIcon(QIcon("assets/icons/btn_add_white.svg"))
-        self.add_sensor_button.setIconSize(QSize(24, 24))
-
-        self.add_sensor_button.setStyleSheet("""
-            QPushButton {
-                background-color: #1F2232;
-                color: white;
-                font-weight: bold;
-                font-size: 16px;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 30px;
-            }
-            QPushButton:hover {
-                background-color: #1F2F32;
-            }
-        """)
-
-        self.add_sensor_button.clicked.connect(self.create_sensor)
-
-        add_sensor_outer_frame = QFrame()
-        add_sensor_outer_frame.setStyleSheet("""
-            QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #60D4B8, stop:1 #1E2233);
-                border-radius: 30px;
-                padding: 4px;
-            }
-        """)
-
-        add_sensor_inner_layout = QVBoxLayout(add_sensor_outer_frame)
-        add_sensor_inner_layout.setContentsMargins(0, 0, 0, 0)
-        add_sensor_inner_layout.addWidget(self.add_sensor_button)
-
-        # Ajusta el tamaño automáticamente
-        add_sensor_outer_frame.setSizePolicy(self.add_sensor_button.sizePolicy())
-
         # --- Layout horizontal para título y botón ---
         top_layout = QHBoxLayout()
         top_layout.addWidget(title_sensores, alignment=Qt.AlignVCenter)
         top_layout.addStretch()
-        top_layout.addWidget(add_sensor_outer_frame)
         
         # --- Contenedor para los dispositivos ---
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("border: none;")
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+            }
+            QScrollBar:vertical {
+                width: 12px;
+                background: #252535;
+            }
+            QScrollBar::handle:vertical {
+                background: #4a4a5a;
+                min-height: 20px;
+                border-radius: 6px;
+            }
+        """)
         scroll_content = QWidget()
         scroll_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
@@ -128,12 +106,79 @@ class SensorsAppAdmin(QWidget):
 
         # --- Llenar dispositivos de ejemplo ---
         self.populate_sensors()
+        
+    def add_sensor_card(self, sensor_id, nombre):
+        # --- Frame exterior ---
+        outer_frame = QFrame()
+        outer_frame.setFixedHeight(75)
+        outer_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #60D4B8, stop:1 #1E2233);
+                border-radius: 35px;
+                padding: 2px;
+            }
+        """)
+
+        # --- Frame interior ---
+        sensor_frame = QFrame()
+        sensor_frame.setStyleSheet("""
+            background-color: #1f2232;
+            border-radius: 35px;
+        """)
+        sensor_frame.setFixedHeight(70)
+        sensor_layout = QHBoxLayout(sensor_frame)
+        sensor_layout.setContentsMargins(20, 10, 20, 10)
+
+        name_label = QLabel(nombre)
+        name_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
+
+        # Botones
+        features_button = QPushButton("Características")
+        features_button.setStyleSheet("""
+            QPushButton {
+                background-color: #7FD1B9;
+                color: black;
+                font-weight: bold;
+                border-radius: 14px;
+                padding: 6px 14px;
+            }
+            QPushButton:hover {
+                background-color: #429E88;
+            }
+        """)
+        features_button.clicked.connect(lambda _, sid=sensor_id: self.about_sensors(sid))
+
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(10)
+        buttons_layout.addWidget(features_button)
+
+        sensor_layout.addWidget(name_label)
+        sensor_layout.addStretch()
+        sensor_layout.addLayout(buttons_layout)
+
+        # Asignar el interior al exterior
+        outer_layout = QVBoxLayout(outer_frame)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.addWidget(sensor_frame)
+
+        # Agregar al layout principal
+        self.sensors_list_layout.addWidget(outer_frame)
 
     def populate_sensors(self):
-        sensores = ["Sensor A", "Sensor B", "Sensor C"]
+        conn = connect_db()
+        if not conn:
+            print("No se pudo conectar a la base de datos para cargar sensores.")
+            return
 
-        for nombre in sensores:
-            # --- Frame exterior ---
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_sensor, nombre FROM sensores")
+        sensores = cursor.fetchall()
+
+        for sensor in sensores:
+            sensor_id = sensor['id_sensor']
+            nombre = sensor['nombre']
+
             outer_frame = QFrame()
             outer_frame.setFixedHeight(75)
             outer_frame.setStyleSheet("""
@@ -145,7 +190,6 @@ class SensorsAppAdmin(QWidget):
                 }
             """)
 
-            # --- Frame interior ---
             sensor_frame = QFrame()
             sensor_frame.setStyleSheet("""
                 background-color: #1f2232;
@@ -158,7 +202,6 @@ class SensorsAppAdmin(QWidget):
             name_label = QLabel(nombre)
             name_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
 
-            # Botones
             features_button = QPushButton("Características")
             features_button.setStyleSheet("""
                 QPushButton {
@@ -172,43 +215,32 @@ class SensorsAppAdmin(QWidget):
                     background-color: #429E88;
                 }
             """)
-            features_button.clicked.connect(self.about_sensors)
-
-            # shutdown_button = QPushButton("Apagar")
-            # shutdown_button.setStyleSheet("""
-            #     QPushButton {
-            #         background-color: #FF6B6B;
-            #         color: white;
-            #         font-weight: bold;
-            #         border-radius: 14px;
-            #         padding: 6px 14px;
-            #     }
-            #     QPushButton:hover {
-            #         background-color: #e85c5c;
-            #     }
-            # """)
+            # Paso el id usando lambda para el callback
+            features_button.clicked.connect(lambda _, sid=sensor_id: self.about_sensors(sid))
 
             buttons_layout = QHBoxLayout()
             buttons_layout.setSpacing(10)
             buttons_layout.addWidget(features_button)
-            # buttons_layout.addWidget(shutdown_button)
 
             sensor_layout.addWidget(name_label)
             sensor_layout.addStretch()
             sensor_layout.addLayout(buttons_layout)
 
-            # Asignar el interior al exterior
             outer_layout = QVBoxLayout(outer_frame)
             outer_layout.setContentsMargins(0, 0, 0, 0)
             outer_layout.addWidget(sensor_frame)
 
-            # Agregar al layout principal
             self.sensors_list_layout.addWidget(outer_frame)
-    
-    def create_sensor(self):
-        dialog = CreateSensorWidget(self) 
-        dialog.exec_()
 
-    def about_sensors(self):
-        dialog = AboutSensorWidget(self)
+        cursor.close()
+        conn.close()
+
+    def about_sensors(self, sensor_id):
+        dialog = AboutSensorWidget(self.ventana_login, sensor_id)
         dialog.exec_()
+        
+    def clear_layout(self, layout):
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()

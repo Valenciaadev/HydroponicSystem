@@ -83,8 +83,8 @@ class HomeappAdmin(QWidget):
 
         btn_users = QPushButton(" Gestionar usuarios")
         btn_users.setStyleSheet(btn_style)
-        btn_users.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(5))
-        btn_users.setIcon(QIcon("assets/icons/history-white.svg"))
+        btn_users.clicked.connect(lambda: self.stacked_layout.setCurrentIndex(4))
+        btn_users.setIcon(QIcon("assets/icons/users-solid.svg"))
         btn_users.setIconSize(QSize(24, 24))
 
         btn_exit = QPushButton(" Cerrar sesión")

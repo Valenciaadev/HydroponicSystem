@@ -1,4 +1,4 @@
-netstat -ano | findstr :3306 
+netstat -ano | findstr :3306
                         3306 : PUERTO USADO PARA MYSQL
 
 tasklist | findstr 7804

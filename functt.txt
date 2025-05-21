@@ -1,384 +1,418 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QFrame, QPushButton
-from PyQt5.QtCore import Qt, QTimer, QPointF, QRect
-from PyQt5.QtGui import QFont, QPainter, QColor, QPen, QConicalGradient, QBrush, QPixmap
-import pyqtgraph as pg
-import numpy as np
-import random
-import math
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+import sys
 
-
-class SummaryAppAdmin(QWidget):
+class ActuatorsAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
-        super().__init__()
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-
-        # Layout superior de tarjetas
-        top_cards_layout = QHBoxLayout()
-        top_cards_layout.setSpacing(20)
-
-        cards_info = [
-            ("Temperatura del aire", "24°", "26/2 21:23:04"),
-            ("Humedad del aire", "61.2", "26/2 21:23:04"),
-            ("Temperatura del agua", "26°", "26/2 21:23:04"),
-            ("Nivel pH del agua", "5 pH", "26/2 21:23:04"),
-            ("Nivel del agua", "0 bool", "26/2 21:23:04"),
-        ]
-
-        for title, value, timestamp in cards_info:
-            card = self.create_card(title, value, timestamp)
-            top_cards_layout.addWidget(card)
-
-        layout.addLayout(top_cards_layout)
-
-        # Layout inferior con tres bloques
-        graphs_layout = QHBoxLayout()
-        graphs_layout.setSpacing(30)
+        super().__init__(ventana_login)
+        self.ventana_login = ventana_login
         
-        # Gráfica izquierda con pyqtgraph
-        left_graph = QFrame()
-        left_graph.setFixedSize(610, 100)
-        left_graph.setStyleSheet("background-color: #102020; border-radius: 15px;")
-        left_graph_layout = QVBoxLayout()
-        left_graph_layout.setContentsMargins(0, 0, 0, 0)
+        self.init_ui()
 
-        left_plot = pg.PlotWidget()
-        left_plot.setBackground("#102020")
-        left_plot.setYRange(0, 10)
-        left_plot.showGrid(x=True, y=True)
-        left_plot.getPlotItem().hideAxis('bottom')
-        left_plot.getPlotItem().hideAxis('left')
-
-        # Datos simulados
-        x = np.arange(100)
-        y = np.random.normal(5, 1, 100)
-        left_plot.plot(x, y, pen=pg.mkPen(color='cyan', width=2))
-
-        left_graph_layout.addWidget(left_plot)
-        left_graph.setLayout(left_graph_layout)
-
-        # Gráfica derecha con pyqtgraph
-        right_graph = QFrame()
-        right_graph.setFixedSize(610, 100)
-        right_graph.setStyleSheet("background-color: #102020; border-radius: 15px;")
-        right_graph_layout = QVBoxLayout()
-        right_graph_layout.setContentsMargins(0, 0, 0, 0)
-
-        right_plot = pg.PlotWidget()
-        right_plot.setBackground("#102020")
-        right_plot.setYRange(0, 100)
-        right_plot.showGrid(x=True, y=True)
-        right_plot.getPlotItem().hideAxis('bottom')
-        right_plot.getPlotItem().hideAxis('left')
-
-        y2 = np.random.uniform(20, 80, 100)
-        right_plot.plot(x, y2, pen=pg.mkPen(color='magenta', width=2))
-
-        right_graph_layout.addWidget(right_plot)
-        right_graph.setLayout(right_graph_layout)
-
-        graphs_layout.addWidget(left_graph)
-        graphs_layout.addWidget(right_graph)
-
-        layout.addLayout(graphs_layout)
-        
-
-    def create_card(self, title, value, timestamp):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #1e2b3c;
-                border-radius: 25px;
-                padding: 10px;
+    def init_ui(self):
+        self.setStyleSheet("""
+            QLabel#Title {
+                font-size: 28px;
+                font-weight: bold;
+                color: white;
+                margin-left: 15px;
+            }
+            QLabel#Subtitle {
+                font-size: 16px;
+                font-weight: bold;
                 color: white;
             }
-            QLabel {
-                qproperty-alignment: AlignCenter;
+            QPushButton {
+                padding: 8px 16px;
+                border-radius: 20px;
+                background-color: #7FD1B9;
+                color: black;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #6fc9a9;
             }
         """)
-        card.setFixedSize(260, 185)
 
-        vbox = QVBoxLayout()
-        vbox.setAlignment(Qt.AlignCenter)
+        main_layout = QVBoxLayout(self)
 
-        title_label = QLabel(title)
-        title_label.setFont(QFont("Arial", 11, QFont.Bold))
+        # --- Frame principal ---
+        actuators_frame = QFrame()
+        actuators_frame.setStyleSheet("background-color: #28243C; border-radius: 15px;")
+        actuators_layout = QVBoxLayout(actuators_frame)
+        actuators_layout.setContentsMargins(20, 40, 20, 20)
 
-        value_label = QLabel(value)
-        value_label.setFont(QFont("Arial", 18, QFont.Bold))
-        value_label.setMinimumHeight(40)
+        # --- Título ---
+        title_actuadores = QLabel("Control de Actuadores")
+        title_actuadores.setObjectName("Title")
 
-        time_label = QLabel(timestamp)
-        time_label.setFont(QFont("Arial", 9))
+        # --- Botón añadir actuador con borde degradado ---
+        self.add_actuator_button = QPushButton(" Agregar actuador")
+        self.add_actuator_button.setIcon(QIcon("assets/icons/btn-add-white.svg"))
+        self.add_actuator_button.setIconSize(QSize(24, 24))
+        self.add_actuator_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1F2232;
+                color: white;
+                font-weight: bold;
+                font-size: 16px;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 30px;
+            }
+            QPushButton:hover {
+                background-color: #1F2F32;
+            }
+        """)
+        self.add_actuator_button.clicked.connect(self.open_agregar_actuador)
 
-        vbox.addWidget(title_label)
-        vbox.addWidget(value_label)
-        vbox.addWidget(time_label)
+        add_actuator_outer_frame = QFrame()
+        add_actuator_outer_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #60D4B8, stop:1 #1E2233);
+                border-radius: 30px;
+                padding: 4px;
+            }
+        """)
 
-        card.setLayout(vbox)
-        return card
+        add_actuator_inner_layout = QVBoxLayout(add_actuator_outer_frame)
+        add_actuator_inner_layout.setContentsMargins(0, 0, 0, 0)
+        add_actuator_inner_layout.addWidget(self.add_actuator_button)
 
-        # Izquierda: Medidores circulares
-        gauges_layout = QVBoxLayout()
-        gauge_frame = QFrame()
-        gauge_frame.setFixedWidth(260)
-        gauge_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
-        gauge_frame_layout = QVBoxLayout()
-        gauge_frame_layout.addWidget(self.create_circular_gauge("Temperatura del aire"))
-        gauge_frame_layout.addWidget(self.create_circular_gauge("Humedad del aire"))
-        gauge_frame.setLayout(gauge_frame_layout)
-        gauges_layout.addWidget(gauge_frame)
-        bottom_layout.addLayout(gauges_layout)
+        # Ajusta el tamaño automáticamente
+        add_actuator_outer_frame.setSizePolicy(self.add_actuator_button.sizePolicy())
 
-    def create_circular_gauge(self, title="Gauge"):
-        class CircularGauge(QWidget):
-            def __init__(self, title="Gauge"):
-                super().__init__()
-                self.value = 24.1
-                self.title = title
-                self.setFixedSize(150, 150)
-                self.timer = QTimer(self)
-                self.timer.timeout.connect(self.update_value)
-                self.timer.start(2000)
+        # --- Layout horizontal para título y botón ---
+        top_layout = QHBoxLayout()
+        top_layout.addWidget(title_actuadores, alignment=Qt.AlignVCenter)
+        top_layout.addStretch()
+        top_layout.addWidget(add_actuator_outer_frame)
+        
+        # --- Contenedor para los actuadores ---
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+            }
+            QScrollBar:vertical {
+                width: 12px;
+                background: #252535;
+            }
+            QScrollBar::handle:vertical {
+                background: #4a4a5a;
+                min-height: 20px;
+                border-radius: 6px;
+            }
+        """)
+        scroll_content = QWidget()
+        scroll_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
-            def update_value(self):
-                self.value = round(random.uniform(15.0, 35.0), 1)
-                self.update()
+        # --- Agregar widgets al layout ---
+        actuators_layout.addLayout(top_layout)
 
-            def paintEvent(self, event):
-                painter = QPainter(self)
-                painter.setRenderHint(QPainter.Antialiasing)
-                rect = self.rect()
-                center = rect.center()
-                radius = min(rect.width(), rect.height()) / 2 - 10
+        # Espacio entre el título/botón y el listado de actuadores
+        space_between = QWidget()
+        space_between.setFixedHeight(30)
+        actuators_layout.addWidget(space_between)
 
-                painter.setBrush(QColor("#101b1c"))
-                painter.setPen(Qt.NoPen)
-                painter.drawRect(rect)
+        actuators_layout.addWidget(scroll_area)
 
-                painter.setPen(Qt.white)
-                font = QFont("Candara", 8)
-                painter.setFont(font)
-                painter.drawText(0, 20, rect.width(), 20, Qt.AlignCenter, self.title)
+        self.actuators_list_layout = QVBoxLayout(scroll_content)
+        scroll_content.setContentsMargins(0, 0, 0, 0)
+        scroll_area.setContentsMargins(0, 0, 0, 0)
+        self.actuators_list_layout.setContentsMargins(10, 10, 10, 10)
+        self.actuators_list_layout.setSpacing(30)
 
-                gradient = QConicalGradient(center, -90)
-                gradient.setColorAt(0.0, Qt.green)
-                gradient.setColorAt(0.5, Qt.cyan)
-                gradient.setColorAt(1.0, Qt.green)
-                painter.setPen(QPen(QBrush(gradient), 12))
-                arc_rect = QRect(
-                    int(center.x() - radius), int(center.y() - radius),
-                    int(2 * radius), int(2 * radius)
-                )
-                painter.drawArc(arc_rect, 45 * 16, 270 * 16)
+        scroll_area.setWidget(scroll_content)
 
-                angle = 45 + (self.value - 15) / 20 * 270
-                needle_length = radius - 10
-                needle_x = center.x() + needle_length * math.cos(math.radians(angle - 90))
-                needle_y = center.y() + needle_length * math.sin(math.radians(angle - 90))
-                painter.setPen(QPen(Qt.white, 2))
-                painter.drawLine(center, QPointF(needle_x, needle_y))
+        main_layout.addWidget(actuators_frame)
 
-                font.setPointSize(10)
-                painter.setFont(font)
-                painter.drawText(0, int(center.y() - radius + 50), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
+        # --- Llenar actuadores de ejemplo ---
+        self.populate_actuators()
 
-        return CircularGauge(title)
+    def open_agregar_actuador(self):
+        self.agregar_actuador_window = modal_agregar_actuador()
+        self.agregar_actuador_window.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QFrame, QPushButton
-from PyQt5.QtCore import Qt, QTimer, QPointF, QRect
-from PyQt5.QtGui import QFont, QPainter, QColor, QPen, QConicalGradient, QBrush, QPixmap
-import random
-import math
-
-
-class SummaryAppAdmin(QWidget):
-    def __init__(self, ventana_login, embed=False):
-        super().__init__()
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-
-        # Layout superior de tarjetas
-        top_cards_layout = QHBoxLayout()
-        top_cards_layout.setSpacing(20)
-
-        cards_info = [
-            ("Temperatura del aire", "24°", "26/2 21:23:04"),
-            ("Humedad del aire", "61.2", "26/2 21:23:04"),
-            ("Temperatura del agua", "26°", "26/2 21:23:04"),
-            ("Nivel pH del agua", "5 pH", "26/2 21:23:04"),
-            ("Nivel del agua", "0 bool", "26/2 21:23:04"),
+    def populate_actuators(self):
+        actuadores = [
+            {"nombre": "Bomba Sumergible", "estado": True},
+            {"nombre": "Bomba Peristáltica", "estado": False},
+            {"nombre": "Válvula Solenoide", "estado": True},
+            {"nombre": "Motor DC", "estado": False},
+            {"nombre": "Calentador", "estado": True}
         ]
 
-        for title, value, timestamp in cards_info:
-            card = self.create_card(title, value, timestamp)
-            top_cards_layout.addWidget(card)
+        for actuador in actuadores:
+            # --- Frame exterior ---
+            outer_frame = QFrame()
+            outer_frame.setFixedHeight(75)
+            outer_frame.setStyleSheet("""
+                QFrame {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #60D4B8, stop:1 #1E2233);
+                    border-radius: 35px;
+                    padding: 2px;
+                }
+            """)
 
-        layout.addLayout(top_cards_layout)
+            # --- Frame interior ---
+            actuator_frame = QFrame()
+            actuator_frame.setStyleSheet("""
+                background-color: #1f2232;
+                border-radius: 35px;
+            """)
+            actuator_frame.setFixedHeight(70)
+            actuator_layout = QHBoxLayout(actuator_frame)
+            actuator_layout.setContentsMargins(20, 10, 20, 10)
 
-        # Layout inferior con tres bloques
-        bottom_layout = QHBoxLayout()
-        bottom_layout.setSpacing(30)
-        bottom_layout.setAlignment(Qt.AlignCenter)
+            # Indicador de estado
+            status_indicator = QLabel()
+            status_indicator.setFixedSize(18, 18)
+            status_color = "#4CAF50" if actuador["estado"] else "#f44336"
+            status_indicator.setStyleSheet(f"""
+                background-color: {status_color};
+                border-radius: 9px;
+                border: 2px solid #ffffff;
+            """)
+            actuator_layout.addWidget(status_indicator)
 
-        # Izquierda: Medidores circulares
-        gauges_layout = QVBoxLayout()
-        gauge_frame = QFrame()
-        gauge_frame.setFixedWidth(260)
-        gauge_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
-        gauge_frame_layout = QVBoxLayout()
-        gauge_frame_layout.addWidget(self.create_circular_gauge("Temperatura del aire"))
-        gauge_frame_layout.addWidget(self.create_circular_gauge("Humedad del aire"))
-        gauge_frame.setLayout(gauge_frame_layout)
-        gauges_layout.addWidget(gauge_frame)
-        bottom_layout.addLayout(gauges_layout)
-        
-        # Centro: Gráfico simulado
-        graph_frame = QFrame()
-        graph_frame.setFixedSize(260, 280)
-        graph_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
-        graph_layout = QVBoxLayout()
-        graph_layout.setAlignment(Qt.AlignCenter)
-        graph_label = QLabel("Gráfico simulado")
-        graph_image = QLabel()
-        graph_image.setPixmap(QPixmap("graph_placeholder.png").scaled(240, 180, Qt.KeepAspectRatio))
-        graph_layout.addWidget(graph_label)
-        graph_layout.addWidget(graph_image)
-        graph_frame.setLayout(graph_layout)
-        bottom_layout.addWidget(graph_frame)
+            # Nombre del actuador
+            name_label = QLabel(actuador["nombre"])
+            name_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
+            actuator_layout.addWidget(name_label)
 
-        # Derecha: Cámara simulada
-        camera_frame = QFrame()
-        camera_frame.setFixedSize(260, 280)
-        camera_frame.setStyleSheet("background-color: #102020; border-radius: 20px;")
-        camera_layout = QVBoxLayout()
-        camera_layout.setAlignment(Qt.AlignCenter)
-        camera_label = QLabel("Timelapse 2025-03-06 1:18:58")
-        camera_image = QLabel()
-        camera_image.setPixmap(QPixmap("camera_placeholder.png").scaled(240, 180, Qt.KeepAspectRatio))
-        camera_layout.addWidget(camera_label)
-        camera_layout.addWidget(camera_image)
-        camera_frame.setLayout(camera_layout)
-        bottom_layout.addWidget(camera_frame)
+            actuator_layout.addStretch()
 
-        layout.addLayout(bottom_layout)
+            # Botones
+            edit_button = QPushButton("Editar")
+            edit_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2196F3;
+                    color: white;
+                    font-weight: bold;
+                    border-radius: 14px;
+                    padding: 6px 14px;
+                }
+                QPushButton:hover {
+                    background-color: #1976D2;
+                }
+            """)
 
-    def create_card(self, title, value, timestamp):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #1e2b3c;
-                border-radius: 25px;
-                padding: 10px;
+            delete_button = QPushButton("Eliminar")
+            delete_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #FF6B6B;
+                    color: white;
+                    font-weight: bold;
+                    border-radius: 14px;
+                    padding: 6px 14px;
+                }
+                QPushButton:hover {
+                    background-color: #e85c5c;
+                }
+            """)
+
+            buttons_layout = QHBoxLayout()
+            buttons_layout.setSpacing(10)
+            buttons_layout.addWidget(edit_button)
+            buttons_layout.addWidget(delete_button)
+
+            actuator_layout.addLayout(buttons_layout)
+
+            # Asignar el interior al exterior
+            outer_layout = QVBoxLayout(outer_frame)
+            outer_layout.setContentsMargins(0, 0, 0, 0)
+            outer_layout.addWidget(actuator_frame)
+
+            # Agregar al layout principal
+            self.actuators_list_layout.addWidget(outer_frame)
+
+        # self.add_actuator_button.mousePressEvent = self.open_agregar_actuador
+        # self.add_actuator_button.setAttribute(QtCore.Qt.WA_Hover, True)
+        # self.add_actuator_button.setMouseTracking(True)
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.offset = event.pos()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.offset is not None and event.buttons() == QtCore.Qt.LeftButton:
+            self.move(self.pos() + event.pos() - self.offset)
+        else:
+            super().mouseMoveEvent(event)
+
+    # def open_agregar_actuador(self, event):
+    #     if event.button() == QtCore.Qt.LeftButton:
+    #         self.actuador_window = modal_agregar_actuador()
+    #         self.actuador_window.show()
+
+    
+class modal_agregar_actuador(QWidget):
+    def __init__(self):
+        super(modal_agregar_actuador, self).__init__()
+        self.setWindowTitle("Editar trabajador")
+        self.resize(450, 700)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #1E1B2E;
                 color: white;
-            }
-            QLabel {
-                qproperty-alignment: AlignCenter;
+                border-radius: 30px;
             }
         """)
-        card.setFixedSize(260, 185)
+        
+        self.init_ui()
 
-        vbox = QVBoxLayout()
-        vbox.setAlignment(Qt.AlignCenter)
+    def init_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(30, 30, 30, 30)
+        main_layout.setSpacing(25)
 
-        title_label = QLabel(title)
-        title_label.setFont(QFont("Arial", 11, QFont.Bold))
+        # --- Título ---
+        title = QLabel("AGREGAR ACTUADOR")
+        title.setStyleSheet("""
+            QLabel {
+                font-size: 24px;
+                font-weight: bold;
+                color: #7FD1B9;
+                qproperty-alignment: AlignCenter;
+                margin-bottom: 20px;
+            }
+        """)
+        main_layout.addWidget(title)
 
-        value_label = QLabel(value)
-        value_label.setFont(QFont("Arial", 18, QFont.Bold))
-        value_label.setMinimumHeight(40)
+        # --- Formulario ---
+        form_layout = QFormLayout()
+        form_layout.setVerticalSpacing(20)
+        form_layout.setHorizontalSpacing(15)
 
-        time_label = QLabel(timestamp)
-        time_label.setFont(QFont("Arial", 9))
+        # Campos del formulario
+        campos = [
+            ("Nombre del actuador", self.create_gradient_input("Nombre del actuador")),
+            ("Tipo de actuador", self.create_gradient_input("Tipo de actuador")),
+            ("Bus", self.create_gradient_input("Bus")),
+            ("Address", self.create_gradient_input("Address")),
+            ("Modo de activación", self.create_gradient_input("Modo de activacion")),
+            ("Estado inicial", self.create_gradient_input("Estado inicial"))
+        ]
 
-        vbox.addWidget(title_label)
-        vbox.addWidget(value_label)
-        vbox.addWidget(time_label)
+        for label_text, input_widget in campos:
+            label = QLabel(label_text)
+            label.setStyleSheet("font-size: 14px; font-weight: bold;")
+            form_layout.addRow(label, input_widget)
 
-        card.setLayout(vbox)
-        return card
+        
 
-    def create_circular_gauge(self, title="Gauge"):
-        class CircularGauge(QWidget):
-            def __init__(self, title="Gauge"):
-                super().__init__()
-                self.value = 24.1
-                self.title = title
-                self.setFixedSize(150, 150)
-                self.timer = QTimer(self)
-                self.timer.timeout.connect(self.update_value)
-                self.timer.start(2000)
+        main_layout.addLayout(form_layout)
+        main_layout.addStretch()
 
-            def update_value(self):
-                self.value = round(random.uniform(15.0, 35.0), 1)
-                self.update()
+        # --- Botones ---
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(20)
 
-            def paintEvent(self, event):
-                painter = QPainter(self)
-                painter.setRenderHint(QPainter.Antialiasing)
-                rect = self.rect()
-                center = rect.center()
-                radius = min(rect.width(), rect.height()) / 2 - 10
+        btn_aceptar = QPushButton("Aceptar")
+        btn_cancelar = QPushButton("Cancelar")
 
-                painter.setBrush(QColor("#101b1c"))
-                painter.setPen(Qt.NoPen)
-                painter.drawRect(rect)
+        for btn in [btn_aceptar, btn_cancelar]:
+            btn.setFixedHeight(40)
+            btn.setCursor(Qt.PointingHandCursor)
 
-                painter.setPen(Qt.white)
-                font = QFont("Candara", 8)
-                painter.setFont(font)
-                painter.drawText(0, 20, rect.width(), 20, Qt.AlignCenter, self.title)
+        btn_aceptar.setStyleSheet("""
+            QPushButton {
+                background-color: #7FD1B9;
+                color: black;
+                font-weight: bold;
+                border-radius: 20px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #6bc0a8;
+            }
+        """)
 
-                gradient = QConicalGradient(center, -90)
-                gradient.setColorAt(0.0, Qt.green)
-                gradient.setColorAt(0.5, Qt.cyan)
-                gradient.setColorAt(1.0, Qt.green)
-                painter.setPen(QPen(QBrush(gradient), 12))
-                arc_rect = QRect(
-                    int(center.x() - radius), int(center.y() - radius),
-                    int(2 * radius), int(2 * radius)
-                )
-                painter.drawArc(arc_rect, 45 * 16, 270 * 16)
+        btn_cancelar.setStyleSheet("""
+            QPushButton {
+                background-color: #FF6B6B;
+                color: white;
+                font-weight: bold;
+                border-radius: 20px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #e05c5c;
+            }
+        """)
 
-                angle = 45 + (self.value - 15) / 20 * 270
-                needle_length = radius - 10
-                needle_x = center.x() + needle_length * math.cos(math.radians(angle - 90))
-                needle_y = center.y() + needle_length * math.sin(math.radians(angle - 90))
-                painter.setPen(QPen(Qt.white, 2))
-                painter.drawLine(center, QPointF(needle_x, needle_y))
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_cancelar)
+        btn_layout.addWidget(btn_aceptar)
 
-                font.setPointSize(10)
-                painter.setFont(font)
-                painter.drawText(0, int(center.y() - radius + 50), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
+        main_layout.addLayout(btn_layout)
 
-        return CircularGauge(title)
+        # Conexiones
+        btn_aceptar.clicked.connect(self.aceptar)
+        btn_cancelar.clicked.connect(self.close)
+
+    def create_gradient_input(self, placeholder_text=""):
+        """Crea un input con el marco degradado como los actuadores"""
+        outer_frame = QFrame()
+        outer_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #60D4B8, stop:1 #1E2233);
+                border-radius: 20px;
+                padding: 2px;
+            }
+        """)
+        outer_frame.setFixedHeight(45)
+
+        inner_frame = QFrame()
+        inner_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1f2232;
+                border-radius: 18px;
+            }
+        """)
+
+        layout = QHBoxLayout(inner_frame)
+        layout.setContentsMargins(10, 0, 10, 0)
+
+        input_field = QLineEdit()
+        input_field.setPlaceholderText(placeholder_text)
+        input_field.setStyleSheet("""
+            QLineEdit {
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 14px;
+                padding: 5px;
+            }
+            QLineEdit::placeholder {
+                color: #f1f1f1;  /* Color del texto */
+                font-style: italic;  /* Cursiva */
+            }
+        """)
+        layout.addWidget(input_field)
+
+        outer_layout = QVBoxLayout(outer_frame)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.addWidget(inner_frame)
+
+        # Guardamos referencia al input
+        outer_frame.input_field = input_field
+
+        return outer_frame
+
+    def aceptar(self):
+        # Aquí procesaríamos los datos
+        print("Formulario aceptado")
+        self.accept()
