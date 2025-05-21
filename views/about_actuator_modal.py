@@ -1,9 +1,6 @@
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel,
-    QDialog, QHBoxLayout, QSizePolicy, QSpacerItem
-)
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from models.database import connect_db
 
 

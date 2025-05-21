@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame
-from PyQt5.QtCore import Qt, QTimer, QPointF, QRect
-from PyQt5.QtGui import QFont, QPainter, QColor, QPen, QConicalGradient, QBrush
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from models.database import create_line_graph
 from models.database import create_bar_graph
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -12,6 +12,20 @@ class SummaryAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__()
 
+        QToolTip.setFont(QFont("Arial", 12))
+        QApplication.instance().setStyleSheet("""
+            QToolTip {
+                font-size: 12pt;
+                color: white;
+                background-color: #1E1B2E;
+                border: 1px solid white;
+                padding: 4px;
+                border-radius: 6px;
+                min-width: 300px;
+                text-justify: auto;
+            }
+        """)
+        
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -20,14 +34,40 @@ class SummaryAppAdmin(QWidget):
         top_cards_layout.setSpacing(20)
         
         cards_info = [
-            ("Temperatura del aire", "24°", "26/2 21:23:04"),
-            ("Humedad del aire", "61.2", "26/2 21:23:04"),
-            ("Temperatura del agua", "26°", "26/2 21:23:04"),
-            ("Nivel pH del agua", "5 pH", "26/2 21:23:04"),
-            ("Nivel del agua", "0 bool", "26/2 21:23:04"),
+            (
+                "Temperatura del aire", "24°", "26/2 21:23:04",
+                "<b>Temperatura del Aire</b><br>"
+                "Ideal entre <b>18°C y 24°C</b> para el crecimiento óptimo de lechugas.<br>"
+                "Evita temperaturas mayores a 27°C para prevenir estrés térmico."
+            ),
+            (
+                "Humedad del aire", "61.2", "26/2 21:23:04",
+                "<b>Humedad Relativa del Aire</b><br>"
+                "Rango ideal: <b>50% a 70%</b>.<br>"
+                "Niveles adecuados reducen la transpiración excesiva y promueven la fotosíntesis."
+            ),
+            (
+                "Temperatura del agua", "26°", "26/2 21:23:04",
+                "<b>Temperatura del Agua</b><br>"
+                "Ideal entre <b>18°C y 22°C</b>.<br>"
+                "Temperaturas superiores a 24°C pueden reducir el oxígeno disuelto, afectando las raíces."
+            ),
+            (
+                "Nivel pH del agua", "5 pH", "26/2 21:23:04",
+                "<b>Nivel de pH del Agua</b><br>"
+                "Rango óptimo: <b>5.5 a 6.5</b> para lechugas.<br>"
+                "Valores fuera de este rango dificultan la absorción de nutrientes."
+            ),
+            (
+                "Nivel del agua", "0 bool", "26/2 21:23:04",
+                "<b>Nivel del Agua</b><br>"
+                "Debe cubrir completamente las raíces sin llegar al tallo.<br>"
+                "Se recomienda mantener un nivel constante para evitar estrés hídrico."
+            ),
         ]
-        for title, value, timestamp in cards_info:
-            card = self.create_card(title, value, timestamp)
+
+        for title, value, timestamp, tooltip in cards_info:
+            card = self.create_card(title, value, timestamp, tooltip)
             top_cards_layout.addWidget(card)
         layout.addLayout(top_cards_layout)
 
@@ -81,7 +121,7 @@ class SummaryAppAdmin(QWidget):
 
         layout.addLayout(bottom_layout)
 
-    def create_card(self, title, value, timestamp):
+    def create_card(self, title, value, timestamp, tooltip_text):
         card = QFrame()
         card.setStyleSheet("""
             QFrame {
@@ -94,26 +134,71 @@ class SummaryAppAdmin(QWidget):
                 qproperty-alignment: AlignCenter;
             }
         """)
-        card.setFixedSize(260, 185)
+        card.setFixedSize(275, 185)
 
-        vbox = QVBoxLayout()
-        vbox.setAlignment(Qt.AlignCenter)
+        # Info button
+        info_button = QPushButton()
+        icon_i = QIcon("assets/icons/info-circle.svg")
+        pixmap = icon_i.pixmap(QSize(20, 20))
+        info_button.setIcon(QIcon(pixmap))
+        info_button.setFixedSize(24, 24)
+        info_button.setIconSize(QSize(20, 20))
+        info_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                margin-left: 6px;
+            }
+            QPushButton:hover {
+                background-color: #444;
+                border-radius: 12px;
+            }
+        """)
 
+        # Tooltip personalizado al hacer hover
+        class InfoButtonEnterEvent:
+            def __init__(self, button):
+                self.button = button
+
+            def enterEvent(self, event):
+                QToolTip.showText(
+                    self.button.mapToGlobal(QPoint(0, 20)),
+                    tooltip_text,
+                    self.button,
+                    QRect(),
+                    0
+                )
+                super(type(self.button), self.button).enterEvent(event)
+
+        info_button.enterEvent = InfoButtonEnterEvent(info_button).enterEvent
+
+        # Título + ícono
         title_label = QLabel(title)
         title_label.setFont(QFont("Arial", 11, QFont.Bold))
 
+        title_info_layout = QHBoxLayout()
+        title_info_layout.setAlignment(Qt.AlignHCenter)
+        title_info_layout.setSpacing(4)
+        title_info_layout.addWidget(title_label)
+        title_info_layout.addWidget(info_button)
+
+        # Centro del contenido
         value_label = QLabel(value)
         value_label.setFont(QFont("Arial", 18, QFont.Bold))
         value_label.setMinimumHeight(40)
+        value_label.setAlignment(Qt.AlignCenter)
 
         time_label = QLabel(timestamp)
         time_label.setFont(QFont("Arial", 9))
+        time_label.setAlignment(Qt.AlignCenter)
 
-        vbox.addWidget(title_label)
-        vbox.addWidget(value_label)
-        vbox.addWidget(time_label)
-
-        card.setLayout(vbox)
+        # Layout principal
+        main_layout = QVBoxLayout()
+        main_layout.setAlignment(Qt.AlignCenter)
+        main_layout.addLayout(title_info_layout)
+        main_layout.addWidget(value_label)
+        main_layout.addWidget(time_label)
+        card.setLayout(main_layout)
         return card
 
     def create_gauge_column(self, titles):

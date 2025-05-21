@@ -1,8 +1,6 @@
-from PyQt5.QtWidgets import (
-    QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-    QFrame, QScrollArea, QSizePolicy, QDialog, QLineEdit, QFormLayout )
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from views.seleccion_usuario import TitleBar
 from views.about_sensor_modal import AboutSensorWidget
 from models.database import connect_db

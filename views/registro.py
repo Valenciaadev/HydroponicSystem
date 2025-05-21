@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel, QMessageBox, QCheckBox, QDialog, QTextBrowser
-from PyQt5.QtGui import QFont, QCursor
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from controllers.auth_controller import register_user, is_valid_email
 
 class RegistroWidget(QWidget):

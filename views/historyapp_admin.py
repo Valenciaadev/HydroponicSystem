@@ -1,7 +1,4 @@
-from PyQt5.QtWidgets import (
-    QAbstractItemView, QWidget, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QHBoxLayout, QFrame, QHeaderView, QFileDialog, QSizePolicy
-)
+from PyQt5.QtWidgets import *
 from models.database import (
     getAll,
     getbyMonth,
@@ -18,11 +15,11 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib import rcParams
 import numpy as np
-from PyQt5.QtCore import QPoint, QRect
+from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QToolTip
 from reportlab.lib.pagesizes import landscape, letter
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas
