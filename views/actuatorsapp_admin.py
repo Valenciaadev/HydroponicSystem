@@ -105,7 +105,7 @@ class ActuatorsAppAdmin(QWidget):
         # --- Llenar dispositivos de ejemplo ---
         self.populate_actuators()
         
-    def add_actuator_card(self, actuator_id, nombre):
+    def add_actuator_card(self, actuator_id, nombre, tipo):
         # --- Frame exterior ---
         outer_frame = QFrame()
         outer_frame.setFixedHeight(75)
@@ -135,21 +135,105 @@ class ActuatorsAppAdmin(QWidget):
         features_button = QPushButton("Características")
         features_button.setStyleSheet("""
             QPushButton {
-                background-color: #7FD1B9;
-                color: black;
+                background-color: #0D2B23;
+                color: white;
                 font-weight: bold;
                 border-radius: 14px;
                 padding: 6px 14px;
+                border: 1px solid #10B981;
             }
             QPushButton:hover {
-                background-color: #429E88;
+                background-color: #218463;
             }
         """)
         features_button.clicked.connect(lambda _, sid=actuator_id: self.about_actuators(sid))
 
-        buttons_layout = QHBoxLayout()
-        buttons_layout.setSpacing(10)
-        buttons_layout.addWidget(features_button)
+        if tipo == "Bomba peristáltica":
+            gestionar_button = QPushButton("Gestionar dosis")
+            gestionar_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2B2300;
+                    color: white;
+                    font-weight: bold;
+                    border-radius: 14px;
+                    padding: 6px 14px;
+                    border: 1px solid #F59E0B;
+                }
+                QPushButton:hover {
+                    background-color: #B88417;
+                }
+            """)
+            
+            # Aquí podrías conectar a una función que abra un modal para gestionar dosis
+            gestionar_button.clicked.connect(lambda _, sid=actuator_id: print(f"Gestionar dosis para {nombre}"))
+
+            buttons_layout = QHBoxLayout()
+            buttons_layout.setSpacing(10)
+            buttons_layout.addWidget(gestionar_button)
+            buttons_layout.addWidget(features_button)
+        
+        else:
+            toggle_button = QPushButton("Encender")
+            toggle_button.setCheckable(True)  # Para que mantenga estado presionado
+            toggle_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #1E1B2E;
+                    color: white;
+                    font-weight: bold;
+                    border-radius: 14px;
+                    padding: 6px 14px;
+                    width: 98px;
+                    border: 1px solid #2563EB;
+                }
+                QPushButton:hover {
+                    background-color: #1A3699;
+                }
+            """)
+            
+            def toggle_state():
+                if toggle_button.isChecked():
+                    toggle_button.setText("Apagar")
+                    toggle_button.setStyleSheet("""
+                        QPushButton {
+                            background-color: #3A1212;
+                            color: white;
+                            font-weight: bold;
+                            border-radius: 14px;
+                            padding: 6px 14px;
+                            width: 98px;
+                            border: 1px solid #DC2626;
+                        }
+                        QPushButton:hover {
+                            background-color: #8B1E1E;
+                        }
+                    """)
+                    self.update_estado(actuator_id, 1)
+                    print(f"{nombre} encendido")
+                else:
+                    toggle_button.setText("Encender")
+                    toggle_button.setStyleSheet("""
+                        QPushButton {
+                            background-color: #1E1B2E;
+                            color: white;
+                            font-weight: bold;
+                            border-radius: 14px;
+                            padding: 6px 14px;
+                            width: 98px;
+                            border: 1px solid #2563EB;
+                        }
+                        QPushButton:hover {
+                            background-color: #1A3699;
+                        }
+                    """)
+                    self.update_estado(actuator_id, 0)
+                    print(f"{nombre} apagado")
+
+            toggle_button.clicked.connect(toggle_state)
+            
+            buttons_layout = QHBoxLayout()
+            buttons_layout.setSpacing(10)
+            buttons_layout.addWidget(toggle_button)
+            buttons_layout.addWidget(features_button)
 
         actuator_layout.addWidget(name_label)
         actuator_layout.addStretch()
@@ -164,78 +248,34 @@ class ActuatorsAppAdmin(QWidget):
         self.actuators_list_layout.addWidget(outer_frame)
 
     def populate_actuators(self):
-        conn = connect_db()
-        if not conn:
+        if not self.conn or not self.cursor:
             print("No se pudo conectar a la base de datos para cargar actuadores.")
             return
 
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id_actuador, nombre FROM actuadores")
-        actuadores = cursor.fetchall()
+        self.cursor.execute("SELECT id_actuador, nombre, tipo FROM actuadores")
+        actuadores = self.cursor.fetchall()
 
         for actuador in actuadores:
-            actuador_id = actuador['id_actuador']
-            nombre = actuador['nombre']
-
-            outer_frame = QFrame()
-            outer_frame.setFixedHeight(75)
-            outer_frame.setStyleSheet("""
-                QFrame {
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                        stop:0 #60D4B8, stop:1 #1E2233);
-                    border-radius: 35px;
-                    padding: 2px;
-                }
-            """)
-
-            actuador_frame = QFrame()
-            actuador_frame.setStyleSheet("""
-                background-color: #1f2232;
-                border-radius: 35px;
-            """)
-            actuador_frame.setFixedHeight(70)
-            actuador_layout = QHBoxLayout(actuador_frame)
-            actuador_layout.setContentsMargins(20, 10, 20, 10)
-
-            name_label = QLabel(nombre)
-            name_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
-
-            features_button = QPushButton("Características")
-            features_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #7FD1B9;
-                    color: black;
-                    font-weight: bold;
-                    border-radius: 14px;
-                    padding: 6px 14px;
-                }
-                QPushButton:hover {
-                    background-color: #429E88;
-                }
-            """)
-            # Paso el id usando lambda para el callback
-            features_button.clicked.connect(lambda _, sid=actuador_id: self.about_actuators(sid))
-
-            buttons_layout = QHBoxLayout()
-            buttons_layout.setSpacing(10)
-            buttons_layout.addWidget(features_button)
-
-            actuador_layout.addWidget(name_label)
-            actuador_layout.addStretch()
-            actuador_layout.addLayout(buttons_layout)
-
-            outer_layout = QVBoxLayout(outer_frame)
-            outer_layout.setContentsMargins(0, 0, 0, 0)
-            outer_layout.addWidget(actuador_frame)
-
-            self.actuators_list_layout.addWidget(outer_frame)
-
-        cursor.close()
-        conn.close()
+            self.add_actuator_card(
+                actuador['id_actuador'], 
+                actuador['nombre'], 
+                actuador['tipo']
+            )
 
     def about_actuators(self, actuador_id):
         dialog = AboutActuatorWidget(self.ventana_login, actuador_id)
         dialog.exec_()
+        
+    def update_estado(self, actuator_id, nuevo_estado):
+        try:
+            self.cursor.execute(
+                "UPDATE actuadores SET estado_actual = %s WHERE id_actuador = %s",
+                (nuevo_estado, actuator_id)
+            )
+            self.conn.commit()
+            print(f"Estado del actuador {actuator_id} actualizado a {nuevo_estado}")
+        except Exception as e:
+            print("Error al actualizar el estado del actuador:", e)
         
     def clear_layout(self, layout):
         while layout.count():

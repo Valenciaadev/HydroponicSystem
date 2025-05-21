@@ -135,14 +135,15 @@ class SensorsAppAdmin(QWidget):
         features_button = QPushButton("Características")
         features_button.setStyleSheet("""
             QPushButton {
-                background-color: #7FD1B9;
-                color: black;
+                background-color: #0D2B23;
+                color: white;
                 font-weight: bold;
                 border-radius: 14px;
                 padding: 6px 14px;
+                border: 1px solid #10B981;
             }
             QPushButton:hover {
-                background-color: #429E88;
+                background-color: #218463;
             }
         """)
         features_button.clicked.connect(lambda _, sid=sensor_id: self.about_sensors(sid))
@@ -203,14 +204,15 @@ class SensorsAppAdmin(QWidget):
             features_button = QPushButton("Características")
             features_button.setStyleSheet("""
                 QPushButton {
-                    background-color: #7FD1B9;
-                    color: black;
+                    background-color: #0D2B23;
+                    color: white;
                     font-weight: bold;
                     border-radius: 14px;
                     padding: 6px 14px;
+                    border: 1px solid #10B981;
                 }
                 QPushButton:hover {
-                    background-color: #429E88;
+                    background-color: #218463;
                 }
             """)
             # Paso el id usando lambda para el callback

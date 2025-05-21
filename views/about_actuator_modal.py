@@ -14,7 +14,7 @@ class TitleBar(QWidget):
         layout = QHBoxLayout()
         layout.setContentsMargins(5, 0, 5, 0)
 
-        self.title = QLabel("Sistema Hidrop\u00f3nico")
+        self.title = QLabel("Sistema Hidropónico")
         self.title.setStyleSheet("font-size: 14px;")
         layout.addWidget(self.title)
 
@@ -58,7 +58,7 @@ class AboutActuatorWidget(QDialog):
         self.actuator_id = actuator_id
         self.ventana_login = ventana_login
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.setFixedSize(400, 550)
+        self.setFixedSize(400, 700)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 5, 0, 10)
@@ -76,22 +76,23 @@ class AboutActuatorWidget(QDialog):
         form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         form_layout.setVerticalSpacing(15)
 
-        self.name_input = self.create_disabled_input("Nombre del actuador")
+        # Modificado: Ahora usamos create_labeled_input en lugar de create_disabled_input
+        self.name_input = self.create_labeled_input("Nombre del actuador")
         form_layout.addRow("", self.name_input)
 
-        self.tipo_input = self.create_disabled_input("Tipo")
+        self.tipo_input = self.create_labeled_input("Tipo")
         form_layout.addRow("", self.tipo_input)
 
-        self.bus_input = self.create_disabled_input("Bus")
+        self.bus_input = self.create_labeled_input("Bus")
         form_layout.addRow("", self.bus_input)
 
-        self.address_input = self.create_disabled_input("Address")
+        self.address_input = self.create_labeled_input("Address")
         form_layout.addRow("", self.address_input)
 
-        self.modo_input = self.create_disabled_input("Modo de activación")
+        self.modo_input = self.create_labeled_input("Modo de activación")
         form_layout.addRow("", self.modo_input)
 
-        self.estado_input = self.create_disabled_input("Estado inicial")
+        self.estado_input = self.create_labeled_input("Estado")
         form_layout.addRow("", self.estado_input)
 
         form_widget = QWidget()
@@ -131,9 +132,29 @@ class AboutActuatorWidget(QDialog):
         if self.actuator_id is not None:
             self.load_actuator_data()
 
-    def create_disabled_input(self, placeholder):
+    def create_labeled_input(self, label_text):
+        """Crea un contenedor con label + input manteniendo el diseño original"""
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(2)
+
+        # Label descriptivo
+        label = QLabel(label_text)
+        label.setFont(QFont("Candara", 12))
+        label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 15px;
+                font-weight: bold;
+                margin-left: 12px;
+                margin-bottom: 2px;
+            }
+        """)
+        container_layout.addWidget(label)
+
+        # Input field (IDÉNTICO a tu versión original)
         input_field = QLineEdit()
-        input_field.setPlaceholderText(placeholder)
         input_field.setFont(QFont("Candara", 10))
         input_field.setReadOnly(True)
         input_field.setStyleSheet("""
@@ -145,31 +166,33 @@ class AboutActuatorWidget(QDialog):
                 border: 2px solid #30EACE;
                 border-radius: 20px;
             }
-            QLineEdit::placeholder {
-                color: #AAAAAA;
-            }
         """)
         input_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        return input_field
+        container_layout.addWidget(input_field)
+
+        # Guardamos referencia al input
+        container.input_field = input_field
+
+        return container
 
     def load_actuator_data(self):
         conn = connect_db()
         if conn:
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT nombre, tipo, bus, address, modo_activacion, estado_inicial
+                SELECT nombre, tipo, bus, address, modo_activacion, estado_actual
                 FROM actuadores
                 WHERE id_actuador = %s
             """
             cursor.execute(query, (self.actuator_id,))
             row = cursor.fetchone()
             if row:
-                self.name_input.setText(row['nombre'] or "")
-                self.tipo_input.setText(row['tipo'] or "")
-                self.bus_input.setText(str(row['bus'] or ""))
-                self.address_input.setText(str(row['address'] or ""))
-                self.modo_input.setText(row['modo_activacion'] or "")
-                self.estado_input.setText("Encendido" if row['estado_inicial'] else "Apagado")
+                self.name_input.input_field.setText(row['nombre'] or "")
+                self.tipo_input.input_field.setText(row['tipo'] or "")
+                self.bus_input.input_field.setText(str(row['bus'] or ""))
+                self.address_input.input_field.setText(str(row['address'] or ""))
+                self.modo_input.input_field.setText(row['modo_activacion'] or "")
+                self.estado_input.input_field.setText("Encendido" if row['estado_actual'] else "Apagado")
             cursor.close()
             conn.close()
         else:
