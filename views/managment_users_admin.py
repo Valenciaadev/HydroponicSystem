@@ -423,7 +423,7 @@ class ModalEliminar(QWidget):
         layout = QVBoxLayout()
         layout.setContentsMargins(20,20,20,20)
 
-        lbl_titulo = QLabel(f"¿Deseas eliminar al usuario {self.usuario["nombre"]}?")
+        lbl_titulo = QLabel(f"¿Deseas eliminar al usuario {self.usuario['nombre']}?")
         lbl_titulo.setAlignment(Qt.AlignCenter)
         lbl_titulo.setStyleSheet("font-size: 16px; color; white;")
         layout.addWidget(lbl_titulo)
@@ -503,7 +503,7 @@ class modal_confirmar_eliminacion(QWidget):
         layout = QVBoxLayout()
         layout.setContentsMargins(20,20,20,20)
 
-        lbl_titulo = QLabel(f"¿Está seguro de eliminar a {usuario["nombre"]}")
+        lbl_titulo = QLabel(f"¿Está seguro de eliminar a {usuario['nombre']}")
         lbl_titulo.setAlignment(Qt.AlignCenter)
         lbl_titulo.setStyleSheet("font-size: 16px; color: #fff;")
         layout.addWidget(lbl_titulo)
