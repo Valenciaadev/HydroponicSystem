@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from views.seleccion_usuario import TitleBar
 from views.summaryapp_admin import SummaryAppAdmin
 from views.actuatorsapp_admin import ActuatorsAppAdmin
 from views.sensorsapp_admin import SensorsAppAdmin
@@ -123,6 +124,86 @@ class HomeappAdmin(QWidget):
 
         self.setLayout(layout_principal)
 
-    def log_out(self):
+    # def log_out(self):
         #self.ventana_login.show()
+        # self.close()
+
+    def log_out(self):
+        dialog = QDialog(self)
+        dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        dialog.setFixedSize(450, 150)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1E1B2E;
+                border: 2px solid black;
+                border-radius: 10px;
+                font: bold;
+            }
+        """)
+        
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 5, 10, 15)
+        
+        title_bar = TitleBar(dialog)
+        main_layout.addWidget(title_bar)
+        
+        content_layout = QVBoxLayout()
+        
+        label = QLabel("¿Está seguro que desea cerrar sesión?")
+        label.setFont(QFont("Candara", 12))
+        label.setStyleSheet("color: white; font:bold;")
+        label.setAlignment(Qt.AlignCenter)
+        content_layout.addWidget(label)
+        
+        button_layout = QHBoxLayout()
+        
+        confirm_button = QPushButton(" Aceptar")
+        confirm_button.setIcon(QIcon("assets/icons/btn-accept-white.svg"))
+        confirm_button.setIconSize(QSize(24, 24))
+        confirm_button.setStyleSheet("""
+            QPushButton {
+                background-color: blue;
+                color: white;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                font: bold;
+            }
+            QPushButton:hover {
+                background-color: #005A9E;
+            }
+        """)        
+        confirm_button.clicked.connect(lambda: self.confirm_logout(dialog))
+        button_layout.addWidget(confirm_button)
+        
+        cancel_button = QPushButton(" Regresar")
+        cancel_button.setIcon(QIcon("assets/icons/btn-return-white.svg"))
+        cancel_button.setIconSize(QSize(24, 24))
+        cancel_button.setStyleSheet("background-color: gray; color: white; padding: 5px; border-radius: 5px;")
+        cancel_button.setStyleSheet("""
+        QPushButton {
+            background-color: gray;
+            color: white;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 14px;
+            font: bold;
+        }
+        QPushButton:hover {
+            background-color: #505050;
+        }
+        """)
+        
+        cancel_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_button)
+        
+        content_layout.addLayout(button_layout)
+        main_layout.addLayout(content_layout)
+        
+        dialog.setLayout(main_layout)
+        dialog.exec_()
+        
+    def confirm_logout(self, dialog):
+        dialog.accept()
+        # self.ventana_login.show()
         self.close()
