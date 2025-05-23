@@ -78,7 +78,7 @@ class ManagmentAppAdmin(QWidget):
         # form_layout.setHorizontalSpacing(15)
         # form_layout.setContentsMargins(0,0,0,0)
 
-        self.input_field = self.create_gradient_input("ingresa texto")
+        self.input_field = self.create_gradient_input("Ingresa texto")
 
         label = QLabel("Buscador de usuarios")
         label.setStyleSheet("font-size: 15px; min-width: 150px; background: transparent;")
@@ -325,7 +325,7 @@ class ManagmentAppAdmin(QWidget):
         frame_layout_content.setContentsMargins(20,10,20,10)
 
         lbl_nombre = QLabel(
-            f"{usuario['nombre']}"
+            f"{usuario['nombre']} {usuario['apellido_paterno']} {usuario['apellido_materno']}"
         )
         lbl_nombre.setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent;")
         frame_layout_content.addWidget(lbl_nombre)
@@ -714,7 +714,7 @@ class ModalEditar(QWidget):
         self.frame_apellido_paterno = self.create_gradient_input(self.usuario["apellido_paterno"])
         self.frame_apellido_materno = self.create_gradient_input(self.usuario["apellido_materno"])
         self.frame_email = self.create_gradient_input(self.usuario["email"])
-        self.frame_password = self.create_gradient_input("Ingresa nueva contraseña")
+        self.frame_password = self.create_placeholder_input("Ingresa nueva contraseña")
 
         campos = [
             ("Nombre", self.frame_nombre),
@@ -779,6 +779,90 @@ class ModalEditar(QWidget):
         # Conexiones
         btn_guardar.clicked.connect(self.validar_campos)
         btn_cancelar.clicked.connect(self.close)
+        
+    def create_placeholder_input(self, placeholder_text):
+        """Crea un input con marco degradado y toggle para mostrar contraseña"""
+        # Frame exterior con el gradiente
+        outer_frame = QFrame()
+        outer_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #60D4B8, stop:1 #1E2233);
+                border-radius: 20px;
+                padding: 2px;
+            }
+        """)
+        outer_frame.setFixedHeight(45)
+
+        # Frame interior
+        inner_frame = QFrame()
+        inner_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2c3e50;
+                border-radius: 18px;
+            }
+        """)
+
+        layout = QHBoxLayout(inner_frame)
+        layout.setContentsMargins(10, 0, 10, 0)
+
+        # Campo de entrada
+        input_field = QLineEdit()
+        input_field.setPlaceholderText(placeholder_text)
+        input_field.setEchoMode(QLineEdit.Password)  # Inicia ocultando la contraseña
+        input_field.setStyleSheet("""
+            QLineEdit {
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 14px;
+                padding: 5px;
+            }
+            QLineEdit::placeholder {
+                color: #f1f1f1;
+                font-style: italic;
+            }
+        """)
+        layout.addWidget(input_field)
+
+        # Botón para mostrar/ocultar contraseña
+        toggle_button = QPushButton()
+        toggle_button.setCursor(Qt.PointingHandCursor)
+        toggle_button.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                padding: 0px;
+            }
+        """)
+        
+        # Iconos para los estados
+        self.show_icon = QIcon("assets/icons/eye-hide.svg")  # Asegúrate de tener estos iconos
+        self.hide_icon = QIcon("assets/icons/eye-show.svg")
+        toggle_button.setIcon(self.hide_icon)
+        toggle_button.setIconSize(QSize(20, 20))
+        
+        # Función para alternar visibilidad
+        def toggle_password():
+            if input_field.echoMode() == QLineEdit.Password:
+                input_field.setEchoMode(QLineEdit.Normal)
+                toggle_button.setIcon(self.show_icon)
+            else:
+                input_field.setEchoMode(QLineEdit.Password)
+                toggle_button.setIcon(self.hide_icon)
+        
+        toggle_button.clicked.connect(toggle_password)
+        layout.addWidget(toggle_button)
+
+        outer_layout = QVBoxLayout(outer_frame)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.addWidget(inner_frame)
+
+        # Guardamos referencia al input
+        outer_frame.input_field = input_field
+
+        return outer_frame
+
 
     def create_gradient_input(self, placeholder_text=""):
         """Crea un input con el marco degradado como los actuadores"""

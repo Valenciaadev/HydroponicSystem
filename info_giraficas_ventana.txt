@@ -106,3 +106,12 @@ if nombre == "Datos con gráficas":
     
     # Mostrar el diálogo
     msg.exec_()
+
+
+
+QComboBox {
+    padding: 5px;
+    border-radius: 10px;
+    background-color: #2E2E3A;
+    color: white;
+}

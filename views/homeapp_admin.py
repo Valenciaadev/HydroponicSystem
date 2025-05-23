@@ -6,6 +6,7 @@ from views.actuatorsapp_admin import ActuatorsAppAdmin
 from views.sensorsapp_admin import SensorsAppAdmin
 from views.historyapp_admin import HistoryAppAdmin
 from views.managment_users_admin import ManagmentAppAdmin
+from views.gestionhortalizas_admin import GestionHortalizasAppAdmin
 
 class HomeappAdmin(QWidget):
     def __init__(self, ventana_login):
@@ -20,11 +21,11 @@ class HomeappAdmin(QWidget):
 
         # Contenedor para logo + sidebar
         left_container = QVBoxLayout()
-        left_container.setContentsMargins(10, 50, 0, 20)  # Aumenté el margen superior a 50
+        left_container.setContentsMargins(10, 50, 0, 20)
         left_container.setSpacing(0)
 
         # Añade espacio antes del logo
-        left_container.addSpacerItem(QSpacerItem(20, 50, QSizePolicy.Minimum, QSizePolicy.Fixed))  # 50px de espacio
+        left_container.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
         # Logo grande en la parte superior izquierda
         logo_label = QLabel()
@@ -55,18 +56,26 @@ class HomeappAdmin(QWidget):
                 text-align: left;
             }
             QPushButton:hover {
-                background-color: #2980b9;
+                background-color: #1E1B2E;
             }
             QPushButton:pressed {
                 background-color: #2471a3;
             }
             QPushButton:checked {
-                background-color: #3498db;
-                border-left: 5px solid #e74c3c;
+                background-color: #546A7B;
+                border-left: 5px solid #D4F5F5;
             }
         """
 
-        # Botones del sidebar
+        # Etiquetas de sección
+        label_vistas = QLabel("Vistas")
+        label_vistas.setStyleSheet("color: #7FD1B9; font-weight: bold; padding-left: 4px; font-size: 16px;")
+        label_vistas.setAlignment(Qt.AlignLeft)
+
+        label_configuracion = QLabel("Configuración")
+        label_configuracion.setStyleSheet("color: #7FD1B9; font-weight: bold; padding-left: 4px; font-size: 16px;")
+        label_configuracion.setAlignment(Qt.AlignLeft)
+
         self.btn_home = QPushButton(" Inicio")
         self.btn_home.setCheckable(True)
         self.btn_home.setChecked(True)
@@ -103,9 +112,17 @@ class HomeappAdmin(QWidget):
         self.btn_users.setIcon(QIcon("assets/icons/users-solid.svg"))
         self.btn_users.setIconSize(QSize(24, 24))
 
+        self.btn_hortalizas = QPushButton(" Hortalizas")
+        self.btn_hortalizas.setCheckable(True)
+        self.btn_hortalizas.setStyleSheet(btn_style)
+        self.btn_hortalizas.clicked.connect(lambda: self.change_view(5))
+        self.btn_hortalizas.setIcon(QIcon("assets/icons/sapling.svg"))
+        self.btn_hortalizas.setIconSize(QSize(24, 24))
         # Espacio antes del botón de cerrar sesión
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         
+        # Botones del sidebar (nuevo botón de hortalizas primero)
+
         btn_exit = QPushButton(" Cerrar sesión")
         btn_exit.setStyleSheet(btn_style)
         btn_exit.setIcon(QIcon("assets/icons/log_out-white.svg"))
@@ -121,18 +138,26 @@ class HomeappAdmin(QWidget):
             border-radius: 15px;
         """)
 
+        # Orden de los botones en el sidebar
+        sidebar.addWidget(label_vistas)
         sidebar.addWidget(self.btn_home)
         sidebar.addWidget(self.btn_actuators)
         sidebar.addWidget(self.btn_sensors)
         sidebar.addWidget(self.btn_history)
         sidebar.addWidget(self.btn_users)
-        sidebar.addItem(spacer)  # Espacio flexible antes del botón de cerrar
+
+        # Separador flexible
+        sidebar.addItem(spacer)
+
+        # Sección de configuración
+        sidebar.addWidget(label_configuracion)
+        sidebar.addWidget(self.btn_hortalizas)
         sidebar.addWidget(btn_exit)
 
-        
-        sidebar_container.addSpacing(80) # Subimos o bajamnos la sidebar 
+
+        sidebar_container.addSpacing(50)
         sidebar_container.addWidget(sidebar_widget)
-        sidebar_container.addStretch(0)  # Reducido el espacio abajo
+        sidebar_container.addStretch(0)
         
         left_container.addLayout(sidebar_container)
         layout_principal.addLayout(left_container)
@@ -140,20 +165,22 @@ class HomeappAdmin(QWidget):
         # Stacked layout para cambiar entre vistas
         self.stacked_layout = QStackedLayout()
         
-        # Crear las vistas de cada sección
+        # Crear las vistas de cada sección (nueva vista de hortalizas primero)
         self.inicio_widget = SummaryAppAdmin(self.ventana_login, embed=True)
         self.actuadores_widget = ActuatorsAppAdmin(self.ventana_login, embed=True)
         self.sensores_widget = SensorsAppAdmin(self.ventana_login, embed=True)
         self.historial_widget = HistoryAppAdmin(self.ventana_login, embed=True)
         self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
+        self.hortalizas_widget = GestionHortalizasAppAdmin(self.ventana_login, embed=True)
         
-        # Agregar vistas al stacked layout
+        # Agregar vistas al stacked layout (nueva vista en posición 0)
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
         self.stacked_layout.addWidget(self.sensores_widget)
         self.stacked_layout.addWidget(self.historial_widget)
         self.stacked_layout.addWidget(self.gestion_usuarios_widget)
-        self.stacked_layout.setCurrentIndex(0)
+        self.stacked_layout.addWidget(self.hortalizas_widget)
+        self.stacked_layout.setCurrentIndex(0)  # Inicia en Inicio (índice 1)
 
         # Contenido principal
         content_widget = QWidget()
@@ -167,6 +194,7 @@ class HomeappAdmin(QWidget):
         self.stacked_layout.setCurrentIndex(index)
         
         # Desmarcar todos los botones primero
+        self.btn_hortalizas.setChecked(False)
         self.btn_home.setChecked(False)
         self.btn_actuators.setChecked(False)
         self.btn_sensors.setChecked(False)
@@ -184,6 +212,8 @@ class HomeappAdmin(QWidget):
             self.btn_history.setChecked(True)
         elif index == 4:
             self.btn_users.setChecked(True)
+        elif index == 5:
+            self.btn_hortalizas.setChecked(True)
 
     def confirm_logout(self):
         """Muestra un diálogo de confirmación personalizado para cerrar sesión"""

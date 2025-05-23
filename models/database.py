@@ -214,8 +214,8 @@ def create_line_graph():
 
     # Crear la figura de matplotlib
     fig, ax = plt.subplots(figsize=(7, 4))
-    fig.patch.set_facecolor('#1e2b3c')
-    ax.set_facecolor('#1e2b3c')
+    fig.patch.set_facecolor('#1f2232')
+    ax.set_facecolor('#1f2232')
     
     ax.plot(fechas, ph, label="pH", color='#00FFFF', linewidth=2)
     ax.plot(fechas, ce, label="CE", color='#FF00FF', linewidth=2)
@@ -296,10 +296,10 @@ def create_bar_graph():
 
     # Crear la figura
     fig = plt.figure(figsize=(9, 4))
-    fig.patch.set_facecolor('#1e2b3c')
+    fig.patch.set_facecolor('#1f2232')
 
     ax = fig.subplots()
-    ax.set_facecolor('#1e2b3c')
+    ax.set_facecolor('#1f2232')
     
     # Paleta de colores vibrantes para cada barra
     colores = ['#00FFFF', '#FF00FF', '#FFFF00', '#00FF00']
