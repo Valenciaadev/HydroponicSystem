@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from models.database import connect_db
-
+from controllers.auth_controller import show_message
 
 class TitleBar(QWidget):
     def __init__(self, parent):
@@ -101,6 +101,7 @@ class ActuatorManagmentWidget(QDialog):
             mode_layout.addWidget(btn)
 
         self.auto_button.setChecked(True)
+        self.manual_button.setChecked(False)
         self.auto_button.clicked.connect(self.set_automated_mode)
         self.manual_button.clicked.connect(self.set_manual_mode)
 
@@ -145,6 +146,8 @@ class ActuatorManagmentWidget(QDialog):
 
         self.update_buttons()
         layout.addLayout(self.button_layout)
+        
+        self.set_automated_mode()
 
         self.setLayout(layout)
 
@@ -218,10 +221,17 @@ class ActuatorManagmentWidget(QDialog):
         icon_button = QPushButton()
         icon_button.setIcon(QIcon("assets/icons/input-calendar-white.svg"))
         icon_button.setIconSize(QSize(20, 20))
+        
         icon_button.setCursor(Qt.PointingHandCursor)
         icon_button.setStyleSheet("QPushButton { background: transparent; border: none; padding-right: 10px; }")
         icon_button.setFixedSize(30, 30)
-        icon_button.clicked.connect(lambda: self.show_calendar_dialog(date_edit))
+
+        def handle_calendar_icon_click():
+            if self.manual_button.isChecked():
+                self.show_calendar_dialog(date_edit)
+
+        icon_button.clicked.connect(handle_calendar_icon_click)
+        container.icon_button = icon_button
         inner_layout.addWidget(icon_button)
 
         layout.addWidget(frame)
@@ -270,10 +280,17 @@ class ActuatorManagmentWidget(QDialog):
         icon_button = QPushButton()
         icon_button.setIcon(QIcon("assets/icons/input-clock-white.svg"))
         icon_button.setIconSize(QSize(20, 20))
+        
         icon_button.setCursor(Qt.PointingHandCursor)
         icon_button.setStyleSheet("QPushButton { background: transparent; border: none; padding-right: 10px; }")
         icon_button.setFixedSize(30, 30)
-        icon_button.clicked.connect(lambda: self.show_time_dialog(time_edit))
+
+        def handle_time_icon_click():
+            if self.manual_button.isChecked():
+                self.show_time_dialog(time_edit)
+
+        icon_button.clicked.connect(handle_time_icon_click)
+        container.icon_button = icon_button
         inner_layout.addWidget(icon_button)
 
         layout.addWidget(frame)
@@ -307,10 +324,23 @@ class ActuatorManagmentWidget(QDialog):
             }
         """)
 
-        calendar.clicked.connect(lambda date: (target_edit.setDate(date), dialog.accept()))
+        calendar.clicked.connect(lambda date: self.validate_and_set_date(date, target_edit, dialog))
+        
         layout = QVBoxLayout(dialog)
         layout.addWidget(calendar)
         dialog.exec_()
+    
+    def validate_and_set_date(self, selected_date, target_edit, dialog):
+        current_date = QDate.currentDate()
+        max_allowed_date = current_date.addMonths(6)
+
+        if selected_date < current_date:
+            show_message("Fecha fuera de rango", "No es posible programar una fecha pasada.", type="error", parent=self)
+        elif selected_date > max_allowed_date:
+            show_message("Fecha fuera de rango", "Programa una fecha menor a seis meses.", type="warning", parent=self)
+        else:
+            target_edit.setDate(selected_date)
+            dialog.accept()
 
     def show_time_dialog(self, target_edit):
         dialog = QDialog(self)
@@ -343,6 +373,8 @@ class ActuatorManagmentWidget(QDialog):
         self.dosis_input.input_field.setReadOnly(False)
         self.fecha_input.input_field.setEnabled(True)
         self.hora_input.input_field.setEnabled(True)
+        self.fecha_input.icon_button.setCursor(Qt.PointingHandCursor)
+        self.hora_input.icon_button.setCursor(Qt.PointingHandCursor)
         self.update_buttons()
 
     def set_automated_mode(self):
@@ -351,6 +383,8 @@ class ActuatorManagmentWidget(QDialog):
         self.dosis_input.input_field.setReadOnly(True)
         self.fecha_input.input_field.setEnabled(False)
         self.hora_input.input_field.setEnabled(False)
+        self.fecha_input.icon_button.setCursor(Qt.ForbiddenCursor)
+        self.hora_input.icon_button.setCursor(Qt.ForbiddenCursor)
         self.update_buttons()
 
     def update_buttons(self):
@@ -390,4 +424,4 @@ class ActuatorManagmentWidget(QDialog):
             conn.close()
         else:
             print("No se pudo conectar a la base de datos para cargar datos del actuador.")
-            
+    
