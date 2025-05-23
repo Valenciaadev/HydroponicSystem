@@ -51,6 +51,44 @@ def get_averages_all():
         cursor.close()
         conn.close()
 
+def get_hortalizas():
+    conn = connect_db()
+    if not conn:
+        return []
+    
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id_hortaliza, nombre, seleccion FROM seleccion_hortalizas")
+    hortalizas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return hortalizas
+
+def update_hortaliza_seleccion(id_hortaliza):
+    conn = connect_db()
+    if not conn:
+        return False
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_hortaliza FROM seleccion_hortalizas WHERE seleccion = 1")
+        current = cursor.fetchone()
+        if current and current["id_hortaliza"] == id_hortaliza:
+            return True  # Ya está seleccionada, no hacer nada
+
+        cursor = conn.cursor()
+        cursor.execute("UPDATE seleccion_hortalizas SET seleccion = 0")
+        cursor.execute("UPDATE seleccion_hortalizas SET seleccion = 1 WHERE id_hortaliza = %s", (id_hortaliza,))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating hortaliza: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def get_date_ranges(weeks=False, months=False):
     """Genera etiquetas de rango de fechas"""
     ranges = []

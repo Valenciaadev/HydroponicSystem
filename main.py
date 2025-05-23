@@ -48,8 +48,8 @@ id_usuario_admin = usuario_admin.guardar_en_db()
 
 if id_usuario_admin:
     administrador = Administrador(id_usuario=id_usuario_admin)
-    administrador.guardar_en_db()
- """
+    administrador.guardar_en_db() """
+
 
 class TitleBar(QWidget):
     def __init__(self, parent):
