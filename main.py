@@ -3,9 +3,9 @@ import mysql.connector
 from models.usuario import Usuario
 from models.trabajador import Trabajador
 from models.administrador import Administrador
-from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QStackedWidget, QWidget, QHBoxLayout, QPushButton, QLabel, QInputDialog, QLineEdit, QMessageBox
-from PyQt5.QtCore import Qt, QPoint, QSize
-from PyQt5.QtGui import QPalette, QColor, QIcon
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from views.registro import RegistroWidget
 from views.inicio_sesion_worker import InicioSesionWidget
 from views.seleccion_usuario import SeleccionUsuarioWidget

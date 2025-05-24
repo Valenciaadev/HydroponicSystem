@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QDialog, QMessageBox
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 # from controllers.auth_controller import show_message
 
 class TitleBar(QWidget):
@@ -250,19 +250,24 @@ class SeleccionUsuarioWidget(QWidget):
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
-
+    
     def check_admin_password(self, password, dialog):
         """Verifica si la clave de administrador es correcta y cambia a la vista de login."""
         from controllers.auth_controller import show_message
-        ADMIN_PASSWORD = "qwerty"  # Puedes cambiarla o validar con una base de datos
-        if password == ADMIN_PASSWORD:
-            dialog.accept()
-            self.switch_to_admin()
-        else:
+        from models.database import get_admin_password
+        try:
+            ADMIN_PASSWORD = str(get_admin_password()).strip()
+            password = password.strip()
+            if password == ADMIN_PASSWORD:
+                dialog.accept()
+                self.switch_to_admin()
+            else:
+                dialog.reject()
+                show_message("Acceso denegado", "Clave incorrecta. Intenta nuevamente.", "error", self)
+        except Exception as e:
             dialog.reject()
-            show_message("Acceso denegado", "Contraseña incorrecta. Intenta nuevamente.", "error", self)
-    
-    
+            show_message("Error", f"Error al verificar la clave: {str(e)}", "error", self)
+
     def accept_worker(self, dialog):
         dialog.accept()
         self.switch_to_worker()
