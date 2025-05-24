@@ -25,9 +25,19 @@ class SummaryAppAdmin(QWidget):
                 text-justify: auto;
             }
         """)
-        
-        layout = QVBoxLayout()
-        self.setLayout(layout)
+
+        # Este es el nuevo contenedor
+        main_frame = QFrame()
+        main_frame.setStyleSheet("background-color: #27243A; border-radius: 10px;")
+        main_layout = QVBoxLayout(main_frame)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+
+        # ⬅️ Layout externo que contiene al frame
+        outer_layout = QVBoxLayout()
+        outer_layout.addWidget(main_frame)
+        self.setLayout(outer_layout)
+
+        layout = main_layout  # Seguimos usando el mismo nombre para no romper el resto del código
 
         # 1. Tarjetas superiores
         top_cards_layout = QHBoxLayout()
@@ -59,12 +69,20 @@ class SummaryAppAdmin(QWidget):
                 "Valores fuera de este rango dificultan la absorción de nutrientes."
             ),
             (
+                "Nivel ORP", "320 mV", "26/2 21:23:04",
+                "<b>Potencial Redox (ORP)</b><br>"
+                "Rango ideal para lechugas: <b>250 mV a 400 mV</b>.<br>"
+                "Un ORP dentro de este rango indica un buen equilibrio entre oxidantes y reductores, "
+                "lo cual favorece la absorción de nutrientes y evita la proliferación de microorganismos indeseados."
+            ),
+            (
                 "Nivel del agua", "0 bool", "26/2 21:23:04",
                 "<b>Nivel del Agua</b><br>"
                 "Debe cubrir completamente las raíces sin llegar al tallo.<br>"
                 "Se recomienda mantener un nivel constante para evitar estrés hídrico."
             ),
         ]
+
 
         for title, value, timestamp, tooltip in cards_info:
             card = self.create_card(title, value, timestamp, tooltip)
@@ -83,7 +101,7 @@ class SummaryAppAdmin(QWidget):
 
         graph_frame = QFrame()
         graph_frame.setStyleSheet("""
-            background-color: #1e2b3c;
+            background-color: #1f2232;
             border-radius: 20px;
             border: 2px solid #444444;
         """)
@@ -99,7 +117,7 @@ class SummaryAppAdmin(QWidget):
         # 2.3 RECUADRO PARA LA CÁMARA //////////////////////
         camera_frame = QFrame()
         camera_frame.setFixedSize(405, 405)
-        camera_frame.setStyleSheet("background-color: #1e2b3c; border: 2px solid #444444; border-radius: 20px;")
+        camera_frame.setStyleSheet("background-color: #1f2232; border: 2px solid #444444; border-radius: 20px;")
         camera_label = QLabel("Vista Cámara", camera_frame)
         camera_label.setStyleSheet("color: white;")
         camera_label.setAlignment(Qt.AlignCenter)
@@ -117,7 +135,7 @@ class SummaryAppAdmin(QWidget):
         # 3.1 FIN DE LA GRÁFICA DE LÍNEAS //////////////////////
 
         # 3.2 Gauges derechos
-        bottom_layout.addLayout(self.create_gauge_column(["pH Agua", "Nivel Agua", "Otro"]))
+        bottom_layout.addLayout(self.create_gauge_column(["PH Agua", "Nivel Agua", "ORP"]))
 
         layout.addLayout(bottom_layout)
 
@@ -125,16 +143,16 @@ class SummaryAppAdmin(QWidget):
         card = QFrame()
         card.setStyleSheet("""
             QFrame {
-                background-color: #1e2b3c;
+                background-color: #1f2232;
                 border-radius: 25px;
-                padding: 10px;
+                padding: 5px;
                 color: white;
             }
             QLabel {
                 qproperty-alignment: AlignCenter;
             }
         """)
-        card.setFixedSize(275, 185)
+        card.setFixedSize(250, 185)
 
         # Info button
         info_button = QPushButton()
@@ -174,7 +192,7 @@ class SummaryAppAdmin(QWidget):
 
         # Título + ícono
         title_label = QLabel(title)
-        title_label.setFont(QFont("Arial", 11, QFont.Bold))
+        title_label.setFont(QFont("Arial", 10, QFont.Bold))
 
         title_info_layout = QHBoxLayout()
         title_info_layout.setAlignment(Qt.AlignHCenter)
@@ -205,7 +223,7 @@ class SummaryAppAdmin(QWidget):
         gauges_layout = QVBoxLayout()
         gauge_frame = QFrame()
         gauge_frame.setFixedWidth(150)
-        gauge_frame.setStyleSheet("background-color: #1e2b3c; border-radius: 20px;")
+        gauge_frame.setStyleSheet("background-color: #1f2232; border-radius: 20px;")
         gauge_frame_layout = QVBoxLayout()
         for title in titles:
             gauge_frame_layout.addWidget(self.create_circular_gauge(title))
@@ -235,7 +253,7 @@ class SummaryAppAdmin(QWidget):
                 center = rect.center()
                 radius = min(rect.width(), rect.height()) / 2 - 10
 
-                painter.setBrush(QColor("#1e2b3c"))
+                painter.setBrush(QColor("#1f2232"))
                 painter.setPen(Qt.NoPen)
                 painter.drawRect(rect)
 

@@ -40,15 +40,17 @@ class HistoryAppAdmin(QWidget):
                 font-size: 32px;
                 font-weight: bold;
                 color: white;
-                margin-left: 30px;
+                margin-left: 10px;
                 margin-top: 20px;
                 margin-bottom: 20px;
+                font-family: 'Candara';
             }
             QLabel#Subtitle {
                 font-size: 22px;
                 font-weight: bold;
                 color: white;
                 margin-top: 10px;
+                font-family: 'Candara';
             }
             QPushButton {
                 padding: 5px 10px;
@@ -78,6 +80,7 @@ class HistoryAppAdmin(QWidget):
         # --- Cuadro Historial ---
         historial_frame = QFrame()
         historial_frame.setStyleSheet("background-color: #27243A; border-radius: 10px;")
+        historial_frame.setContentsMargins(20, 10, 20, 20)
         self.historial_layout = QVBoxLayout(historial_frame)
 
         # --- Layout para el título y los botones ---
@@ -159,7 +162,7 @@ class HistoryAppAdmin(QWidget):
 
         self.pdf_button.clicked.connect(self.generate_pdf)
         self.populate_devices()
-        self.filter_combo.setCurrentText("Todo")
+        self.filter_combo.setCurrentText("Mes anterior")
         self.populate_table()
 
     def create_table_frame(self):
@@ -188,7 +191,7 @@ class HistoryAppAdmin(QWidget):
                 border: none;
             }
         """)
-        self.table.setHorizontalHeaderLabels(["PH", "CE", "Temperatura en Agua", "Nivel del agua",
+        self.table.setHorizontalHeaderLabels(["PH", "ORP", "Temperatura en Agua", "Nivel del agua",
                                             "Temperatura en Ambiente", "Humedad", "Fecha y Hora"])
         self.table.horizontalHeader().setFixedHeight(35)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -373,7 +376,7 @@ class HistoryAppAdmin(QWidget):
                 fig1 = Figure(figsize=(10, 4), facecolor='#1f2232')
                 canvas1 = FigureCanvas(fig1)
                 ax1 = fig1.add_subplot(111)
-                ax1.set_title('Variación de PH y CE', color='white')
+                ax1.set_title('Variación de PH y ORP', color='white')
                 ax1.set_xlabel('Muestras')
                 ax1.set_ylabel('Valores')
                 ax1.grid(True, color='#444')
@@ -516,10 +519,10 @@ class HistoryAppAdmin(QWidget):
                     
                     # Gráfica 1 (PH y CE)
                     self.ax1.bar(index[0], avg_ph, bar_width, color='#60D4B8', label='PH')
-                    self.ax1.bar(index[1], avg_ce, bar_width, color='#4A90E2', label='CE')
-                    self.ax1.set_title('Promedios de PH y CE', color='white')
+                    self.ax1.bar(index[1], avg_ce, bar_width, color='#4A90E2', label='ORP')
+                    self.ax1.set_title('Promedios de PH y ORP', color='white')
                     self.ax1.set_xticks(index)
-                    self.ax1.set_xticklabels(['Sensor PH', 'Sensor CE'], color='white')
+                    self.ax1.set_xticklabels(['Sensor PH', 'Sensor ORP'], color='white')
                     self.ax1.legend()
                     
                     # Añadir etiquetas de valores
@@ -563,8 +566,8 @@ class HistoryAppAdmin(QWidget):
                     
                     # Gráfica 1 (PH y CE)
                     self.ax1.plot(semanas_nums, ph_values, 'o-', color='#60D4B8', label='PH')
-                    self.ax1.plot(semanas_nums, ce_values, 'o-', color='#4A90E2', label='CE')
-                    self.ax1.set_title('Variación semanal de PH y CE', color='white')
+                    self.ax1.plot(semanas_nums, ce_values, 'o-', color='#4A90E2', label='ORP')
+                    self.ax1.set_title('Variación semanal de PH y ORP', color='white')
                     self.ax1.legend()
                     
                     # Añadir etiquetas de valores
@@ -611,8 +614,8 @@ class HistoryAppAdmin(QWidget):
                     
                     # Gráfica 1 (PH y CE)
                     self.ax1.plot(meses_nums, ph_values, 'o-', color='#60D4B8', label='PH')
-                    self.ax1.plot(meses_nums, ce_values, 'o-', color='#4A90E2', label='CE')
-                    self.ax1.set_title(f'Variación mensual de PH y CE ({filtro.lower()})', color='white')
+                    self.ax1.plot(meses_nums, ce_values, 'o-', color='#4A90E2', label='ORP')
+                    self.ax1.set_title(f'Variación mensual de PH y ORP ({filtro.lower()})', color='white')
                     self.ax1.legend()
                     
                     # Añadir etiquetas de valores
@@ -794,7 +797,7 @@ class HistoryAppAdmin(QWidget):
         c.showPage()  # Terminar la primera página
         
         # --- SEGUNDA PÁGINA EN ADELANTE (DATOS EN TABLA) ---
-        headers = ["PH", "CE", "Temp. Agua", "Nivel Agua", "Temp. Ambiente", "Humedad", "Fecha y Hora"]
+        headers = ["PH", "ORP", "Temp. Agua", "Nivel Agua", "Temp. Ambiente", "Humedad", "Fecha y Hora"]
         data = [headers] + self.datos_completos
 
         # Configurar estilo de tabla mejorado

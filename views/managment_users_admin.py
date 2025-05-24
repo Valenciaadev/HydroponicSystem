@@ -138,7 +138,12 @@ class ManagmentAppAdmin(QWidget):
         frame_busqueda_layout.setSpacing(20)
 
         form_layout = QFormLayout()
-        self.input_field = self.create_gradient_input("ingresa texto")
+        # form_layout.setVerticalSpacing(15)
+        # form_layout.setHorizontalSpacing(15)
+        # form_layout.setContentsMargins(0,0,0,0)
+
+        self.input_field = self.create_gradient_input("Ingresa texto")
+
         label = QLabel("Buscador de usuarios")
         label.setStyleSheet("font-size: 15px; min-width: 150px; background: transparent;")
         form_layout.addRow(label, self.input_field)
@@ -337,15 +342,10 @@ class ManagmentAppAdmin(QWidget):
         # Layout del frame interior
         frame_layout = QHBoxLayout(inner_frame)
         frame_layout.setContentsMargins(20, 10, 20, 10)  # Mismos márgenes que en ActuatorsAppAdmin
-
-        # Etiqueta con el nombre del usuario
-        lbl_nombre = QLabel(f"{usuario['nombre']}")
-        lbl_nombre.setStyleSheet("""
-            color: white;
-            font-weight: bold;
-            font-size: 16px;
-            background-color: transparent;
-        """)
+        lbl_nombre = QLabel(
+            f"{usuario['nombre']} {usuario['apellido_paterno']} {usuario['apellido_materno']}"
+        )
+        lbl_nombre.setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent;")
         frame_layout.addWidget(lbl_nombre)
 
         frame_layout.addStretch()
@@ -661,7 +661,6 @@ class modal_confirmar_eliminacion(QDialog):
             if 'conn' in locals() and conn.is_connected():
                 conn.close()
 
-
 class ModalEditar(QDialog):
     datos_actualizados = pyqtSignal()
 
@@ -700,7 +699,7 @@ class ModalEditar(QDialog):
         self.email_input = self.create_labeled_input("Email", self.usuario['email'])
         form_layout.addRow("", self.email_input)
 
-        self.password_input = self.create_labeled_input("Nueva Contraseña", "", is_password=True)
+        self.password_input = self.create_password_input("Nueva Contraseña", "")
         form_layout.addRow("", self.password_input)
 
         form_widget = QWidget()
@@ -760,7 +759,7 @@ class ModalEditar(QDialog):
         self.setLayout(layout)
         self.setStyleSheet("background-color: #1E1B2E;")
 
-    def create_labeled_input(self, label_text, initial_value="", is_password=False):
+    def create_labeled_input(self, label_text, initial_value=""):
         """Crea un contenedor con label + input editable"""
         container = QWidget()
         container_layout = QVBoxLayout(container)
@@ -785,8 +784,6 @@ class ModalEditar(QDialog):
         input_field = QLineEdit()
         input_field.setFont(QFont("Candara", 10))
         input_field.setText(initial_value)
-        if is_password:
-            input_field.setEchoMode(QLineEdit.Password)
         
         input_field.setStyleSheet("""
             QLineEdit {
@@ -800,6 +797,96 @@ class ModalEditar(QDialog):
         """)
         input_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         container_layout.addWidget(input_field)
+
+        # Guardamos referencia al input
+        container.input_field = input_field
+
+        return container
+
+    def create_password_input(self, label_text, initial_value=""):
+        """Crea un contenedor con label + input de contraseña con toggle"""
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(2)
+
+        # Label descriptivo
+        label = QLabel(label_text)
+        label.setFont(QFont("Candara", 12))
+        label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 15px;
+                font-weight: bold;
+                margin-left: 12px;
+                margin-bottom: 2px;
+            }
+        """)
+        container_layout.addWidget(label)
+
+        # Frame para el input y el botón
+        input_frame = QFrame()
+        input_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1E1B2E;
+                border: 2px solid #30EACE;
+                border-radius: 20px;
+            }
+        """)
+        input_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        # Layout horizontal para el input y el botón
+        input_layout = QHBoxLayout(input_frame)
+        input_layout.setContentsMargins(10, 0, 10, 0)
+        input_layout.setSpacing(5)
+
+        # Input field de contraseña
+        input_field = QLineEdit()
+        input_field.setFont(QFont("Candara", 10))
+        input_field.setText(initial_value)
+        input_field.setEchoMode(QLineEdit.Password)
+        input_field.setStyleSheet("""
+            QLineEdit {
+                font: bold;
+                color: white;
+                background-color: transparent;
+                border: none;
+                padding: 8px 0;
+            }
+        """)
+        input_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        input_layout.addWidget(input_field)
+
+        # Botón para mostrar/ocultar contraseña
+        toggle_button = QPushButton()
+        toggle_button.setCursor(Qt.PointingHandCursor)
+        toggle_button.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                padding: 0px;
+            }
+        """)
+        
+        # Iconos para los estados
+        self.show_icon = QIcon("assets/icons/eye-show.svg")
+        self.hide_icon = QIcon("assets/icons/eye-hide.svg")
+        toggle_button.setIcon(self.hide_icon)
+        toggle_button.setIconSize(QSize(20, 20))
+        
+        # Función para alternar visibilidad
+        def toggle_password():
+            if input_field.echoMode() == QLineEdit.Password:
+                input_field.setEchoMode(QLineEdit.Normal)
+                toggle_button.setIcon(self.show_icon)
+            else:
+                input_field.setEchoMode(QLineEdit.Password)
+                toggle_button.setIcon(self.hide_icon)
+        
+        toggle_button.clicked.connect(toggle_password)
+        input_layout.addWidget(toggle_button)
+
+        container_layout.addWidget(input_frame)
 
         # Guardamos referencia al input
         container.input_field = input_field
@@ -891,21 +978,8 @@ class ModalEditar(QDialog):
                     f"<h1>{icon}</h1>"
                     f"<h2 style='color: white;'>{title}</h2>"
                     f"<p style='font-size: 14px; color: white; font: bold;'>{message}</p></div>")
-                    # f"<p style='font-size: 13px; color: white; font: bold;'>{campos_texto}</p></div>")
         label.setAlignment(Qt.AlignCenter)
         content_layout.addWidget(label)
-        
-        # Mensaje especial para contraseña si aplica
-        # if "contraseña" in campos_vacios:
-        #     password_msg = QLabel("(La contraseña no puede estar vacía)")
-        #     password_msg.setAlignment(Qt.AlignCenter)
-        #     password_msg.setStyleSheet("""
-        #         color: #F10D32;
-        #         font-size: 12px;
-        #         font: bold;
-        #         margin-top: 5px;
-        #     """)
-        #     content_layout.addWidget(password_msg)
         
         # Botón de aceptar (estilo idéntico al de auth_controller)
         accept_button = QPushButton("Aceptar")
@@ -1085,52 +1159,3 @@ class ModalEditar(QDialog):
                 cursor.close()
             if conn and conn.is_connected():
                 conn.close()
-
-    # def mostrar_modal_exito(self):
-    #     """Muestra modal indicando que los cambios se guardaron correctamente"""
-    #     modal = QDialog(self)
-    #     modal.setWindowTitle("Cambios guardados")
-    #     modal.setFixedSize(400, 200)
-    #     modal.setStyleSheet("""
-    #         QDialog {
-    #             background-color: #1E1B2E;
-    #             border-radius: 15px;
-    #         }
-    #         QLabel {
-    #             color: white;
-    #         }
-    #     """)
-
-    #     layout = QVBoxLayout()
-
-    #     mensaje = QLabel("Los cambios se guardaron correctamente")
-    #     mensaje.setStyleSheet("font-size: 14px;")
-    #     layout.addWidget(mensaje, alignment=Qt.AlignCenter)
-
-    #     success_icon = self.style().standardIcon(QStyle.SP_DialogOkButton)
-    #     icon_label = QLabel()
-    #     icon_label.setPixmap(success_icon.pixmap(64, 64))
-    #     icon_label.setAlignment(Qt.AlignCenter)
-    #     layout.addWidget(icon_label)
-
-    #     btn_aceptar = QPushButton("Aceptar")
-    #     btn_aceptar.setStyleSheet("""
-    #         QPushButton {
-    #             background-color: #7FD1B9;
-    #             color: black;
-    #             font-weight: bold;
-    #             border-radius: 20px;
-    #             min-width: 120px;
-    #             padding: 8px;
-    #         }
-    #         QPushButton:hover {
-    #             background-color: #6bc0a8;
-    #         }
-    #     """)
-    #     btn_aceptar.clicked.connect(modal.close)
-
-    #     layout.addSpacing(20)
-    #     layout.addWidget(btn_aceptar, alignment=Qt.AlignCenter)
-
-    #     modal.setLayout(layout)
-    #     modal.exec()

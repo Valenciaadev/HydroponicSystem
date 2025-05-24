@@ -51,6 +51,44 @@ def get_averages_all():
         cursor.close()
         conn.close()
 
+def get_hortalizas():
+    conn = connect_db()
+    if not conn:
+        return []
+    
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id_hortaliza, nombre, seleccion FROM seleccion_hortalizas")
+    hortalizas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return hortalizas
+
+def update_hortaliza_seleccion(id_hortaliza):
+    conn = connect_db()
+    if not conn:
+        return False
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_hortaliza FROM seleccion_hortalizas WHERE seleccion = 1")
+        current = cursor.fetchone()
+        if current and current["id_hortaliza"] == id_hortaliza:
+            return True  # Ya está seleccionada, no hacer nada
+
+        cursor = conn.cursor()
+        cursor.execute("UPDATE seleccion_hortalizas SET seleccion = 0")
+        cursor.execute("UPDATE seleccion_hortalizas SET seleccion = 1 WHERE id_hortaliza = %s", (id_hortaliza,))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating hortaliza: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def get_date_ranges(weeks=False, months=False):
     """Genera etiquetas de rango de fechas"""
     ranges = []
@@ -214,8 +252,8 @@ def create_line_graph():
 
     # Crear la figura de matplotlib
     fig, ax = plt.subplots(figsize=(7, 4))
-    fig.patch.set_facecolor('#1e2b3c')
-    ax.set_facecolor('#1e2b3c')
+    fig.patch.set_facecolor('#1f2232')
+    ax.set_facecolor('#1f2232')
     
     ax.plot(fechas, ph, label="pH", color='#00FFFF', linewidth=2)
     ax.plot(fechas, ce, label="CE", color='#FF00FF', linewidth=2)
@@ -271,7 +309,7 @@ def create_bar_graph():
             FROM registro_mediciones
             UNION ALL
             SELECT 
-                'Ultrasónico' AS categoria,
+                'Nivel del agua' AS categoria,
                 AVG(us_value) AS valor
             FROM registro_mediciones
             LIMIT 4
@@ -296,10 +334,10 @@ def create_bar_graph():
 
     # Crear la figura
     fig = plt.figure(figsize=(9, 4))
-    fig.patch.set_facecolor('#1e2b3c')
+    fig.patch.set_facecolor('#1f2232')
 
     ax = fig.subplots()
-    ax.set_facecolor('#1e2b3c')
+    ax.set_facecolor('#1f2232')
     
     # Paleta de colores vibrantes para cada barra
     colores = ['#00FFFF', '#FF00FF', '#FFFF00', '#00FF00']
