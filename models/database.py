@@ -309,7 +309,7 @@ def create_bar_graph():
             FROM registro_mediciones
             UNION ALL
             SELECT 
-                'Ultrasónico' AS categoria,
+                'Nivel del agua' AS categoria,
                 AVG(us_value) AS valor
             FROM registro_mediciones
             LIMIT 4

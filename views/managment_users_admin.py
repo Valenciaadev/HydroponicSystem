@@ -1,12 +1,59 @@
 import bcrypt
 from mysql.connector import Error
 from models.database import connect_db
+from controllers.auth_controller import show_message, is_valid_email
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
 
+class TitleBar(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.setFixedHeight(30)
+        self.setStyleSheet("background-color: #1E1B2E; color: white;")
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(5, 0, 5, 0)
+
+        self.title = QLabel("Sistema Hidropónico")
+        self.title.setStyleSheet("font-size: 14px;")
+        layout.addWidget(self.title)
+
+        self.minimize_button = QPushButton("")
+        self.minimize_button.setIcon(QIcon("assets/icons/btn-minimize-white.svg"))
+        self.minimize_button.setIconSize(QSize(24, 24))
+        self.minimize_button.setFixedSize(30, 30)
+        self.minimize_button.setStyleSheet("background-color: transparent;")
+        self.minimize_button.clicked.connect(self.parent.showMinimized)
+        self.minimize_button.setCursor(Qt.PointingHandCursor)
+        self.minimize_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
+        layout.addWidget(self.minimize_button)
+
+        self.close_button = QPushButton("")
+        self.close_button.setIcon(QIcon("assets/icons/btn-close-white.svg"))
+        self.close_button.setIconSize(QSize(24, 24))
+        self.close_button.setFixedSize(30, 30)
+        self.close_button.setStyleSheet("background-color: transparent;")
+        self.close_button.clicked.connect(self.parent.close)
+        self.close_button.setCursor(Qt.PointingHandCursor)
+        self.close_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
+        layout.addWidget(self.close_button)
+
+        self.setLayout(layout)
+        self.drag_position = None
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.drag_position = event.globalPos() - self.parent.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton and self.drag_position is not None:
+            self.parent.move(event.globalPos() - self.drag_position)
+            event.accept()
 
 class ManagmentAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
@@ -23,10 +70,8 @@ class ManagmentAppAdmin(QWidget):
                 font-size: 28px;
                 font-weight: bold;
                 color: white;
-                margin-bottom: 20px;
-                qproperty-alignment: AlignCenter;
+                margin-left: 15px;
             }
-
             QPushButton {
                 padding: 8px 16px;
                 border-radius: 20px;
@@ -40,25 +85,44 @@ class ManagmentAppAdmin(QWidget):
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
 
+        # --- Frame principal ---
         container_frame = QFrame()
         container_frame.setStyleSheet("background-color: #28243C; border-radius: 15px;")
         container_layout = QVBoxLayout(container_frame)
-        container_layout.setContentsMargins(20, 20, 20, 20)
-        container_layout.setSpacing(18)
+        container_layout.setContentsMargins(20, 40, 20, 20)
 
+        # --- Título ---
         titulo = QLabel("Gestor de usuarios")
         titulo.setObjectName("Title")
 
-        # Sección superior
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(20)
-        layout.addWidget(titulo)
+        # --- Layout horizontal para título ---
+        top_layout = QHBoxLayout()
+        top_layout.addWidget(titulo, alignment=Qt.AlignVCenter)
+        top_layout.addStretch()
 
-        # Frame de búsqueda
+        # --- Contenedor para los usuarios ---
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+            }
+            QScrollBar:vertical {
+                width: 12px;
+                background: #252535;
+            }
+            QScrollBar::handle:vertical {
+                background: #4a4a5a;
+                min-height: 20px;
+                border-radius: 6px;
+            }
+        """)
+        
+        scroll_content = QWidget()
+        scroll_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+
+        # --- Frame de búsqueda ---
         frame_busqueda = QFrame()
         frame_busqueda.setFrameShape(QFrame.StyledPanel)
         frame_busqueda.setObjectName("frame_busquedad")
@@ -82,71 +146,38 @@ class ManagmentAppAdmin(QWidget):
 
         label = QLabel("Buscador de usuarios")
         label.setStyleSheet("font-size: 15px; min-width: 150px; background: transparent;")
-
         form_layout.addRow(label, self.input_field)
-
         self.input_field.input_field.textChanged.connect(self.filtrar_usuarios)
-
         frame_busqueda_layout.addLayout(form_layout, stretch=1)
 
-        layout.addWidget(frame_busqueda)
+        # --- Layout principal ---
+        container_layout.addLayout(top_layout)
 
-        # Scroll Area
-        scrollarea = QScrollArea()
-        scrollarea.setWidgetResizable(True)
-        scrollarea.setStyleSheet("""
-            QScrollArea {
-                border-radius: 20px;
-                background-color: #1E1B2E;
-                padding: 10px;
-            }
-            QScrollArea > QWidget > QWidget {
-                background-color: transparent;
-            }
-            QScrollBar:vertical {
-                width: 12px;
-                background: #f1f1f1;
-            }
-            QScrollBar::handle:vertical {
-                background: #bdc3c7;
-                min-height: 20px;
-                border-radius: 6px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-        """)
-
-        self.frame_container = QWidget()
-        self.scroll_layout = QVBoxLayout(self.frame_container)
-        self.scroll_layout.setAlignment(Qt.AlignTop)
-        self.scroll_layout.setSpacing(15)
-        self.scroll_layout.setContentsMargins(10, 10, 10, 10)
-
-        scrollarea.setWidget(self.frame_container)
-        # top_layout.addWidget(scrollarea)
-
-        frame_scroll = QFrame()
-        frame_scroll.setStyleSheet("""
-            background-color: #7FD1B9;
-            border-radius: 20px;
-        """)
-        frame_scroll_layout = QVBoxLayout(frame_scroll)
-        frame_scroll_layout.setContentsMargins(7,7,7,7)
-        frame_scroll_layout.setSpacing(20)
-        frame_scroll_layout.addWidget(scrollarea)
-
-        layout.addWidget(frame_scroll)
-
+        # Espacio entre el título y el buscador
         space_between = QWidget()
         space_between.setFixedHeight(30)
         container_layout.addWidget(space_between)
 
-        container_layout.addLayout(layout)
+        container_layout.addWidget(frame_busqueda)
+
+        # Espacio entre el buscador y la lista
+        space_between2 = QWidget()
+        space_between2.setFixedHeight(20)
+        container_layout.addWidget(space_between2)
+
+        # Configurar el scroll area
+        self.scroll_layout = QVBoxLayout(scroll_content)
+        scroll_content.setContentsMargins(0, 0, 0, 0)
+        scroll_area.setContentsMargins(0, 0, 0, 0)
+        self.scroll_layout.setContentsMargins(10, 10, 10, 10)
+        self.scroll_layout.setSpacing(30)
+
+        scroll_area.setWidget(scroll_content)
+        container_layout.addWidget(scroll_area)
+
         main_layout.addWidget(container_frame)
 
         self.usuarios_completos = []
-
         self.cargar_datos()
 
     def create_gradient_input(self, placeholder_text=""):
@@ -198,18 +229,6 @@ class ManagmentAppAdmin(QWidget):
         outer_frame.input_field = input_field
 
         return outer_frame
-
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.offset = event.pos()
-        else:
-            super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if self.offset is not None and event.buttons() == QtCore.Qt.LeftButton:
-            self.move(self.pos() + event.pos() - self.offset)
-        else:
-            super().mouseMoveEvent(event)
 
     def cargar_datos(self):
         """Carga los datos de usuarios usando la clase CargarUsuarios"""
@@ -299,82 +318,92 @@ class ManagmentAppAdmin(QWidget):
 
     def agregar_usuario_a_lista(self, usuario):
         """Crea y agrega un widget de usuario a la lista"""
-        frame = QFrame()
-        frame.setObjectName("usuarioFrame")
-        frame.setStyleSheet("""
+        # Frame exterior con gradiente
+        outer_frame = QFrame()
+        outer_frame.setObjectName("usuarioFrame")
+        outer_frame.setStyleSheet("""
             #usuarioFrame {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                        stop:0 #60D4B8, stop:1 #1E2233);
-                    border-radius: 35px;
-                    padding: 2px;
-            }
-            QLabel {
-                color: white;
-                font-size: 14px;
+                    stop:0 #60D4B8, stop:1 #1E2233);
+                border-radius: 35px;
+                padding: 2px;
             }
         """)
-        frame.setFixedHeight(80)
+        outer_frame.setFixedHeight(75)  # Misma altura que en ActuatorsAppAdmin
 
-        frame_layout = QFrame()
-        frame_layout.setStyleSheet("""
-            background-color: #28243C;
+        # Frame interior
+        inner_frame = QFrame()
+        inner_frame.setStyleSheet("""
+            background-color: #1f2232;
             border-radius: 35px;
         """)
-        frame_layout.setFixedHeight(75)
-        frame_layout_content = QHBoxLayout(frame_layout)
-        frame_layout_content.setContentsMargins(20,10,20,10)
-
+        inner_frame.setFixedHeight(70)  # Misma altura que en ActuatorsAppAdmin
+        
+        # Layout del frame interior
+        frame_layout = QHBoxLayout(inner_frame)
+        frame_layout.setContentsMargins(20, 10, 20, 10)  # Mismos márgenes que en ActuatorsAppAdmin
         lbl_nombre = QLabel(
             f"{usuario['nombre']} {usuario['apellido_paterno']} {usuario['apellido_materno']}"
         )
         lbl_nombre.setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent;")
-        frame_layout_content.addWidget(lbl_nombre)
+        frame_layout.addWidget(lbl_nombre)
 
-        frame_layout_content.addStretch()
+        frame_layout.addStretch()
 
-        # Botones de acción
+        # Botones de acción (estilo igual que en ActuatorsAppAdmin)
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)  # Espaciado entre botones
 
+        # Botón Editar (estilo similar al de "Características")
         btn_editar = QPushButton("Editar")
         btn_editar.setObjectName("btnEditar")
         btn_editar.setStyleSheet("""
             #btnEditar {
-                background-color: #4CAF50;
+                background-color: #0D2B23;
                 color: white;
-                border-radius: 15px;
+                font-weight: bold;
+                border-radius: 14px;
+                padding: 6px 14px;
+                border: 1px solid #10B981;
+                min-width: 98px;
             }
             #btnEditar:hover {
-                background-color: #45a049;
+                background-color: #218463;
             }
         """)
-        btn_editar.setFixedWidth(180)
         btn_editar.clicked.connect(lambda: self.open_usuarios_editar(usuario))
 
+        # Botón Eliminar (estilo similar al de "Apagar")
         btn_eliminar = QPushButton("Eliminar")
         btn_eliminar.setObjectName("btnEliminar")
         btn_eliminar.setStyleSheet("""
             #btnEliminar {
-                background-color: #f44336;
+                background-color: #3A1212;
                 color: white;
-                border-radius: 15px;
+                font-weight: bold;
+                border-radius: 14px;
+                padding: 6px 14px;
+                min-width: 98px;
+                border: 1px solid #DC2626;
             }
             #btnEliminar:hover {
-                background-color: #d32f2f;
+                background-color: #8B1E1E;
             }
         """)
-        btn_eliminar.setFixedWidth(180)
         btn_eliminar.clicked.connect(lambda: self.open_usuarios_eliminados(usuario))
 
         btn_layout.addWidget(btn_editar)
         btn_layout.addWidget(btn_eliminar)
 
-        frame_layout_content.addLayout(btn_layout)
+        frame_layout.addLayout(btn_layout)
 
-        outer_layout = QVBoxLayout(frame)
-        outer_layout.setContentsMargins(0,0,0,0)
-        outer_layout.addWidget(frame_layout)
+        # Layout principal del frame exterior
+        outer_layout = QVBoxLayout(outer_frame)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.addWidget(inner_frame)
 
-        self.scroll_layout.addWidget(frame)
+        # Agregar al layout de scroll
+        self.scroll_layout.addWidget(outer_frame)
 
     def mostrar_mensaje_sin_resultado(self, texto_busqueda):
         """Muestra un mensaje cuando no hay resultados de búsqueda"""
@@ -410,75 +439,82 @@ class ManagmentAppAdmin(QWidget):
     def actualizar_datos(self):
         self.cargar_datos()
 
-class ModalEliminar(QWidget):
+class ModalEliminar(QDialog):
     usuario_eliminado = pyqtSignal()
+    
     def __init__(self, usuario):
         super().__init__()
         self.usuario = usuario
-        self.setWindowTitle("Elimiar usuario")
-        self.resize(400,300)
-        self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(20,20,20,20)
-
-        lbl_titulo = QLabel(f"¿Deseas eliminar al usuario {self.usuario['nombre']}?")
-        lbl_titulo.setAlignment(Qt.AlignCenter)
-        lbl_titulo.setStyleSheet("font-size: 16px; color; white;")
-        layout.addWidget(lbl_titulo)
-
-        layout.setSpacing(30)
-
-        layout_botones = QHBoxLayout()
-
-        btn_aceptar = QPushButton("Aceptar")
-        btn_aceptar.setStyleSheet("""
-            QPushButton {
-                background-color: rgb(138, 0, 0);
-                color: white;
-                border-radius: 10px;
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: rgb(255, 0, 0);
-            }
-        """)
-        btn_aceptar.setFixedSize(120, 40)
-        btn_aceptar.clicked.connect(self.aceptar_eliminacion)
-
-        btn_cancelar = QPushButton("Cancelar")
-        btn_cancelar.setStyleSheet("""
-            QPushButton {
-                background-color: rgb(70, 70, 70);
-                color: white;
-                border-radius: 10px;
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: rgb(100, 100, 100);
-            }
-        """)
-        btn_cancelar.setFixedSize(120, 40)
-        btn_cancelar.clicked.connect(self.close)
-
-        layout_botones.addStretch()
-        layout_botones.addWidget(btn_aceptar)
-        layout_botones.addSpacing(20)
-        layout_botones.addWidget(btn_cancelar)
-        layout_botones.addStretch()
-
-        layout.addLayout(layout_botones)
-
-        self.setLayout(layout)
-
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        self.setFixedSize(450, 150)
         self.setStyleSheet("""
-            QWidget {
-                background-color: rgb(13,9,36);
+            QDialog {
+                background-color: #1E1B2E;
+                border: 2px solid black;
+                border-radius: 10px;
+                font: bold;
             }
         """)
+        
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 5, 10, 15)
+        
+        # Barra de título personalizada
+        self.title_bar = TitleBar(self)
+        main_layout.addWidget(self.title_bar)
+        
+        content_layout = QVBoxLayout()
+        
+        label = QLabel(f"¿Deseas eliminar al usuario {self.usuario['nombre']}?")
+        label.setFont(QFont("Candara", 12))
+        label.setStyleSheet("color: white; font:bold;")
+        label.setAlignment(Qt.AlignCenter)
+        content_layout.addWidget(label)
+        
+        button_layout = QHBoxLayout()
+        
+        confirm_button = QPushButton(" Aceptar")
+        confirm_button.setIcon(QIcon("assets/icons/btn-accept-white.svg"))
+        confirm_button.setIconSize(QSize(24, 24))
+        confirm_button.setStyleSheet("""
+            QPushButton {
+                background-color: #F10D32;
+                color: white;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                font: bold;
+            }
+            QPushButton:hover {
+                background-color: #D20B2C;
+            }
+        """)        
+        confirm_button.clicked.connect(self.aceptar_eliminacion)
+        button_layout.addWidget(confirm_button)
+        
+        cancel_button = QPushButton(" Cancelar")
+        cancel_button.setIcon(QIcon("assets/icons/btn-return-white.svg"))
+        cancel_button.setIconSize(QSize(24, 24))
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: gray;
+                color: white;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                font: bold;
+            }
+            QPushButton:hover {
+                background-color: #505050;
+            }
+        """)
+        cancel_button.clicked.connect(self.close)
+        button_layout.addWidget(cancel_button)
+        
+        content_layout.addLayout(button_layout)
+        main_layout.addLayout(content_layout)
+        
+        self.setLayout(main_layout)
 
     def aceptar_eliminacion(self):
         self.confirmacion_window = modal_confirmar_eliminacion(self.usuario)
@@ -489,117 +525,82 @@ class ModalEliminar(QWidget):
         self.usuario_eliminado.emit()
         self.close()
 
-class modal_confirmar_eliminacion(QWidget):
+class modal_confirmar_eliminacion(QDialog):
     usuario_eliminado = pyqtSignal()
 
     def __init__(self, usuario):
         super().__init__()
         self.usuario = usuario
-        self.setWindowTitle("Confirmar eliminacion")
-        self.resize(400,300)
-        self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(20,20,20,20)
-
-        lbl_titulo = QLabel(f"¿Está seguro de eliminar a {usuario['nombre']}")
-        lbl_titulo.setAlignment(Qt.AlignCenter)
-        lbl_titulo.setStyleSheet("font-size: 16px; color: #fff;")
-        layout.addWidget(lbl_titulo)
-
-        layout.addSpacing(30)
-
-        layout_botones = QHBoxLayout()
-
-        btn_si = QPushButton("Sí, eliminar")
-        btn_si.setStyleSheet("""
-            QPushButton {
-                background-color: rgb(138, 0, 0);
-                color: white;
-                border-radius: 10px;
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: rgb(255, 0, 0);
-            }
-        """)
-        btn_si.setFixedSize(120, 40)
-        btn_si.clicked.connect(self.eliminar_usuario)
-
-        btn_no = QPushButton("No, cancelar")
-        btn_no.setStyleSheet("""
-            QPushButton {
-                background-color: rgb(70, 70, 70);
-                color: white;
-                border-radius: 10px;
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: rgb(100, 100, 100);
-            }
-        """)
-        btn_no.setFixedSize(120, 40)
-        btn_no.clicked.connect(self.close)
-
-        layout_botones.addStretch()
-        layout_botones.addWidget(btn_si)
-        layout_botones.setSpacing(20)
-        layout_botones.addWidget(btn_no)
-        layout_botones.addStretch()
-
-        layout.addLayout(layout_botones)
-
-        self.setLayout(layout)
-
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        self.setFixedSize(450, 150)
         self.setStyleSheet("""
-            QWidget {
-                background-color: rgb(13, 9, 36);
+            QDialog {
+                background-color: #1E1B2E;
+                border: 2px solid black;
+                border-radius: 10px;
+                font: bold;
             }
         """)
-
-    def datos_actualizados(self, modal_anterior):
-        """Muestra modal indicando que los datos se han refrescado"""
-        # Cerrar el modal anterior primero
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
-        modal_anterior.close()
-
-        modal = QDialog(self)
-        modal.setWindowTitle("Actualización")
-        modal.setFixedSize(400, 200)
-        modal.setModal(True)
-
-        layout = QVBoxLayout()
-
-        mensaje = QLabel("Los datos se han actualizado correctamente")
-        mensaje.setStyleSheet("color: white; font-size: 14px;")
-        layout.addWidget(mensaje, alignment=Qt.AlignCenter)
-
-        icono = QLabel()
-        icono.setPixmap(QIcon.fromTheme("view-refresh").pixmap(48, 48))
-        layout.addWidget(icono, alignment=Qt.AlignCenter)
-
-        btn_aceptar = QPushButton("Aceptar")
-        btn_aceptar.setStyleSheet("""
+        
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 5, 10, 15)
+        
+        # Barra de título personalizada
+        self.title_bar = TitleBar(self)
+        main_layout.addWidget(self.title_bar)
+        
+        content_layout = QVBoxLayout()
+        
+        label = QLabel(f"¿Está seguro de eliminar a {self.usuario['nombre']}?")
+        label.setFont(QFont("Candara", 12))
+        label.setStyleSheet("color: white; font:bold;")
+        label.setAlignment(Qt.AlignCenter)
+        content_layout.addWidget(label)
+        
+        button_layout = QHBoxLayout()
+        
+        confirm_button = QPushButton(" Sí, eliminar")
+        confirm_button.setIcon(QIcon("assets/icons/btn-accept-white.svg"))
+        confirm_button.setIconSize(QSize(24, 24))
+        confirm_button.setStyleSheet("""
             QPushButton {
-                background-color: rgb(0, 120, 215);
+                background-color: #F10D32;
                 color: white;
-                border-radius: 10px;
-                padding: 8px 16px;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
-                background-color: rgb(0, 150, 255);
+                background-color: #D20B2C;
+            }
+        """)        
+        confirm_button.clicked.connect(self.eliminar_usuario)
+        button_layout.addWidget(confirm_button)
+        
+        cancel_button = QPushButton(" Cancelar")
+        cancel_button.setIcon(QIcon("assets/icons/btn-return-white.svg"))
+        cancel_button.setIconSize(QSize(24, 24))
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: gray;
+                color: white;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                font: bold;
+            }
+            QPushButton:hover {
+                background-color: #505050;
             }
         """)
-        btn_aceptar.clicked.connect(modal.close)
-
-        layout.addSpacing(20)
-        layout.addWidget(btn_aceptar, alignment=Qt.AlignCenter)
-
-        modal.setLayout(layout)
-        modal.exec_()
+        cancel_button.clicked.connect(self.close)
+        button_layout.addWidget(cancel_button)
+        
+        content_layout.addLayout(button_layout)
+        main_layout.addLayout(content_layout)
+        
+        self.setLayout(main_layout)
 
     def elimiacion_usuario(self):
         modal = QDialog(self)
@@ -645,185 +646,216 @@ class modal_confirmar_eliminacion(QWidget):
                 cursor.execute(query, (self.usuario["id"],))
                 conn.commit()
 
-                # Mostrar mensaje de éxito
-                self.elimiacion_usuario()
+                # Mostrar mensaje de éxito usando show_message
+                show_message("Éxito", "Usuario eliminado correctamente", "success", self)
 
                 # Emitir señal para actualizar la lista principal
                 self.usuario_eliminado.emit()
                 self.close()
 
         except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Error",
-                f"No se pudo eliminar el usuario:\n{str(e)}"
-            )
+            show_message("Error", f"No se pudo eliminar el usuario:\n{str(e)}", "error", self)
         finally:
             if 'cursor' in locals():
                 cursor.close()
             if 'conn' in locals() and conn.is_connected():
                 conn.close()
 
-
-class ModalEditar(QWidget):
+class ModalEditar(QDialog):
     datos_actualizados = pyqtSignal()
 
     def __init__(self, usuario):
         super().__init__()
         self.usuario = usuario
-        self.setWindowTitle("Editar usuario")
-        self.resize(450, 550)
-        self.setWindowModality(Qt.ApplicationModal)
-        #self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setFixedSize(400, 600)
 
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #28243C;
-                color: white;
-                border-radius: 30px;
-            }
-        """)
-        self.setup_ui()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 5, 0, 10)
 
-    def setup_ui(self):
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(30, 25, 25, 30)
-        main_layout.setSpacing(20)
+        self.title_bar = TitleBar(self)
+        layout.addWidget(self.title_bar)
 
-        # --- Título ---
-        self.label_titulo = QLabel(f"EDITAR USUARIO #{self.usuario['nombre']}")
-        self.label_titulo.setStyleSheet("""
-            QLabel {
-                font-size: 24px;
-                font-weight: bold;
-                color: #7FD1B9;
-                qproperty-alignment: AlignCenter;
-                margin-bottom: 20px;
-            }
-        """)
-        main_layout.addWidget(self.label_titulo)
+        title_label = QLabel(f"Editar Usuario: {self.usuario['nombre']}")
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setFont(QFont("Candara", 14))
+        title_label.setStyleSheet("color: white; font-weight: bold;")
+        layout.addWidget(title_label)
 
-        # --- Formulario ---
         form_layout = QFormLayout()
-        # form_layout.setVerticalSpacing(20)
-        # form_layout.setHorizontalSpacing(15)
+        form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        form_layout.setVerticalSpacing(15)
 
-        # Campos del formulario con nombres de objeto
-        self.frame_nombre = self.create_gradient_input(self.usuario["nombre"])
-        self.frame_apellido_paterno = self.create_gradient_input(self.usuario["apellido_paterno"])
-        self.frame_apellido_materno = self.create_gradient_input(self.usuario["apellido_materno"])
-        self.frame_email = self.create_gradient_input(self.usuario["email"])
-        self.frame_password = self.create_placeholder_input("Ingresa nueva contraseña")
+        # Campos del formulario
+        self.nombre_input = self.create_labeled_input("Nombre", self.usuario['nombre'])
+        form_layout.addRow("", self.nombre_input)
 
-        campos = [
-            ("Nombre", self.frame_nombre),
-            ("Apellido Paterno", self.frame_apellido_paterno),
-            ("Apellido Materno", self.frame_apellido_materno),
-            ("Email", self.frame_email),
-            ("Nueva Contraseña", self.frame_password)
-        ]
+        self.apellido_p_input = self.create_labeled_input("Apellido Paterno", self.usuario['apellido_paterno'])
+        form_layout.addRow("", self.apellido_p_input)
 
-        for label_text, input_widget in campos:
-            label = QLabel(label_text)
-            label.setStyleSheet("font-size: 14px; font-weight: bold;")
-            form_layout.addRow(label, input_widget)
+        self.apellido_m_input = self.create_labeled_input("Apellido Materno", self.usuario['apellido_materno'])
+        form_layout.addRow("", self.apellido_m_input)
 
-        main_layout.addLayout(form_layout)
-        main_layout.addStretch()
+        self.email_input = self.create_labeled_input("Email", self.usuario['email'])
+        form_layout.addRow("", self.email_input)
 
-        # --- Botones ---
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(20)
+        self.password_input = self.create_password_input("Nueva Contraseña", "")
+        form_layout.addRow("", self.password_input)
 
-        btn_guardar = QPushButton("Guardar Cambios")
-        btn_cancelar = QPushButton("Cancelar")
+        form_widget = QWidget()
+        form_widget.setLayout(form_layout)
+        layout.addWidget(form_widget)
 
-        for btn in [btn_guardar, btn_cancelar]:
-            btn.setFixedHeight(40)
-            btn.setCursor(Qt.PointingHandCursor)
+        # Botones
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
 
-        btn_guardar.setStyleSheet("""
+        back_button = QPushButton("Cancelar")
+        back_button.setIcon(QIcon("assets/icons/btn-undo-white.svg"))
+        back_button.setStyleSheet("""
             QPushButton {
-                background-color: #7FD1B9;
-                color: black;
-                font-weight: bold;
-                border-radius: 20px;
-                min-width: 120px;
-            }
-            QPushButton:hover {
-                background-color: #6bc0a8;
-            }
-        """)
-
-        btn_cancelar.setStyleSheet("""
-            QPushButton {
-                background-color: #FF6B6B;
+                background-color: transparent;
                 color: white;
+                border: 2px solid #444;
+                border-radius: 30px;
+                padding: 6px 20px;
+                font-size: 14px;
                 font-weight: bold;
-                border-radius: 20px;
-                min-width: 120px;
             }
             QPushButton:hover {
-                background-color: #e05c5c;
+                background-color: #444;
             }
         """)
+        back_button.clicked.connect(self.close)
+        back_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        btn_layout.addStretch()
-        btn_layout.addWidget(btn_cancelar)
-        btn_layout.addWidget(btn_guardar)
-
-        main_layout.addLayout(btn_layout)
-        self.setLayout(main_layout)
-
-        # Conexiones
-        btn_guardar.clicked.connect(self.validar_campos)
-        btn_cancelar.clicked.connect(self.close)
-        
-    def create_placeholder_input(self, placeholder_text):
-        """Crea un input con marco degradado y toggle para mostrar contraseña"""
-        # Frame exterior con el gradiente
-        outer_frame = QFrame()
-        outer_frame.setStyleSheet("""
-            QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #60D4B8, stop:1 #1E2233);
-                border-radius: 20px;
-                padding: 2px;
+        save_button = QPushButton("Guardar")
+        save_button.setIcon(QIcon("assets/icons/btn-save-white.svg"))
+        save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #30EACE;
+                color: black;
+                border: 2px solid #30EACE;
+                border-radius: 30px;
+                padding: 6px 20px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #25C9B0;
             }
         """)
-        outer_frame.setFixedHeight(45)
+        save_button.clicked.connect(self.validar_campos)
+        save_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        # Frame interior
-        inner_frame = QFrame()
-        inner_frame.setStyleSheet("""
-            QFrame {
-                background-color: #2c3e50;
-                border-radius: 18px;
+        button_layout.addStretch()
+        button_layout.addWidget(back_button)
+        button_layout.addWidget(save_button)
+        button_layout.addStretch()
+
+        layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+        self.setStyleSheet("background-color: #1E1B2E;")
+
+    def create_labeled_input(self, label_text, initial_value=""):
+        """Crea un contenedor con label + input editable"""
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(2)
+
+        # Label descriptivo
+        label = QLabel(label_text)
+        label.setFont(QFont("Candara", 12))
+        label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 15px;
+                font-weight: bold;
+                margin-left: 12px;
+                margin-bottom: 2px;
             }
         """)
+        container_layout.addWidget(label)
 
-        layout = QHBoxLayout(inner_frame)
-        layout.setContentsMargins(10, 0, 10, 0)
-
-        # Campo de entrada
+        # Input field editable
         input_field = QLineEdit()
-        input_field.setPlaceholderText(placeholder_text)
-        input_field.setEchoMode(QLineEdit.Password)  # Inicia ocultando la contraseña
+        input_field.setFont(QFont("Candara", 10))
+        input_field.setText(initial_value)
+        
         input_field.setStyleSheet("""
             QLineEdit {
-                background: transparent;
-                border: none;
+                font: bold;
                 color: white;
-                font-size: 14px;
-                padding: 5px;
-            }
-            QLineEdit::placeholder {
-                color: #f1f1f1;
-                font-style: italic;
+                background-color: #1E1B2E;
+                padding: 10px;
+                border: 2px solid #30EACE;
+                border-radius: 20px;
             }
         """)
-        layout.addWidget(input_field)
+        input_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        container_layout.addWidget(input_field)
+
+        # Guardamos referencia al input
+        container.input_field = input_field
+
+        return container
+
+    def create_password_input(self, label_text, initial_value=""):
+        """Crea un contenedor con label + input de contraseña con toggle"""
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(2)
+
+        # Label descriptivo
+        label = QLabel(label_text)
+        label.setFont(QFont("Candara", 12))
+        label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 15px;
+                font-weight: bold;
+                margin-left: 12px;
+                margin-bottom: 2px;
+            }
+        """)
+        container_layout.addWidget(label)
+
+        # Frame para el input y el botón
+        input_frame = QFrame()
+        input_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1E1B2E;
+                border: 2px solid #30EACE;
+                border-radius: 20px;
+            }
+        """)
+        input_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        # Layout horizontal para el input y el botón
+        input_layout = QHBoxLayout(input_frame)
+        input_layout.setContentsMargins(10, 0, 10, 0)
+        input_layout.setSpacing(5)
+
+        # Input field de contraseña
+        input_field = QLineEdit()
+        input_field.setFont(QFont("Candara", 10))
+        input_field.setText(initial_value)
+        input_field.setEchoMode(QLineEdit.Password)
+        input_field.setStyleSheet("""
+            QLineEdit {
+                font: bold;
+                color: white;
+                background-color: transparent;
+                border: none;
+                padding: 8px 0;
+            }
+        """)
+        input_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        input_layout.addWidget(input_field)
 
         # Botón para mostrar/ocultar contraseña
         toggle_button = QPushButton()
@@ -837,8 +869,8 @@ class ModalEditar(QWidget):
         """)
         
         # Iconos para los estados
-        self.show_icon = QIcon("assets/icons/eye-hide.svg")  # Asegúrate de tener estos iconos
-        self.hide_icon = QIcon("assets/icons/eye-show.svg")
+        self.show_icon = QIcon("assets/icons/eye-show.svg")
+        self.hide_icon = QIcon("assets/icons/eye-hide.svg")
         toggle_button.setIcon(self.hide_icon)
         toggle_button.setIconSize(QSize(20, 20))
         
@@ -852,213 +884,219 @@ class ModalEditar(QWidget):
                 toggle_button.setIcon(self.hide_icon)
         
         toggle_button.clicked.connect(toggle_password)
-        layout.addWidget(toggle_button)
+        input_layout.addWidget(toggle_button)
 
-        outer_layout = QVBoxLayout(outer_frame)
-        outer_layout.setContentsMargins(0, 0, 0, 0)
-        outer_layout.addWidget(inner_frame)
+        container_layout.addWidget(input_frame)
 
         # Guardamos referencia al input
-        outer_frame.input_field = input_field
+        container.input_field = input_field
 
-        return outer_frame
-
-
-    def create_gradient_input(self, placeholder_text=""):
-        """Crea un input con el marco degradado como los actuadores"""
-        outer_frame = QFrame()
-        outer_frame.setStyleSheet("""
-            QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #60D4B8, stop:1 #1E2233);
-                border-radius: 20px;
-                padding: 2px;
-            }
-        """)
-        outer_frame.setFixedHeight(45)
-
-        inner_frame = QFrame()
-        inner_frame.setStyleSheet("""
-            QFrame {
-                background-color: #2c3e50;
-                border-radius: 18px;
-            }
-        """)
-
-        layout = QHBoxLayout(inner_frame)
-        layout.setContentsMargins(10, 0, 10, 0)
-
-        input_field = QLineEdit()
-        input_field.setText(placeholder_text)
-        #input_field.setPlaceholderText(placeholder_text)
-        input_field.setStyleSheet("""
-            QLineEdit {
-                background: transparent;
-                border: none;
-                color: white;
-                font-size: 14px;
-                padding: 5px;
-            }
-            QLineEdit::placeholder {
-                color: #f1f1f1;  /* Color del texto */
-                font-style: italic;  /* Cursiva */
-            }
-        """)
-        layout.addWidget(input_field)
-
-        outer_layout = QVBoxLayout(outer_frame)
-        outer_layout.setContentsMargins(0, 0, 0, 0)
-        outer_layout.addWidget(inner_frame)
-
-        # Guardamos referencia al input
-        outer_frame.input_field = input_field
-
-        return outer_frame
+        return container
 
     def validar_campos(self):
-        """Valida que todos los campos estén completos"""
-        # Obtener todos los campos del formulario
-        campos = [
-            ("nombre", self.frame_nombre.input_field.text()),
-            ("apellido paterno", self.frame_apellido_paterno.input_field.text()),
-            ("apellido materno", self.frame_apellido_materno.input_field.text()),
-            ("email", self.frame_email.input_field.text()),
-            ("contraseña", self.frame_password.input_field.text())
-        ]
-
-        # Solo requerir campos obligatorios (excluyendo contraseña si no es necesaria)
-        campos_requeridos = campos[:-1]  # Excluye la contraseña
-        campos_vacios = [nombre for nombre, valor in campos_requeridos if not valor.strip()]
-
+        """Valida que todos los campos estén completos y cumplan con los requisitos"""
+        # Obtener valores de los campos
+        nombre = self.nombre_input.input_field.text().strip()
+        apellido_p = self.apellido_p_input.input_field.text().strip()
+        apellido_m = self.apellido_m_input.input_field.text().strip()
+        email = self.email_input.input_field.text().strip()
+        password = self.password_input.input_field.text().strip()
+        
+        # Validar campos requeridos
+        campos_vacios = []
+        if not nombre:
+            campos_vacios.append("nombre")
+        if not apellido_p:
+            campos_vacios.append("apellido paterno")
+        if not apellido_m:
+            campos_vacios.append("apellido materno")
+        if not email:
+            campos_vacios.append("email")
+        if not password:
+            campos_vacios.append("contraseña")
+        
+        # Validar que no haya números en el nombre
+        if any(caracter.isdigit() for caracter in nombre):
+            show_message("Error", "El nombre no puede contener números", "error", self)
+            return
+        
+        # Validar que no haya números en los apellidos
+        if any(caracter.isdigit() for caracter in apellido_p):
+            show_message("Error", "El apellido paterno no puede contener números", "error", self)
+            return
+        
+        if any(caracter.isdigit() for caracter in apellido_m):
+            show_message("Error", "El apellido materno no puede contener números", "error", self)
+            return
+        
+        if not nombre.replace(" ", "").isalpha():
+            show_message("Error", "El nombre solo puede contener letras y espacios", "error", self)
+            return
+        
+        # Validar formato de correo electrónico (usando la función de auth_controller)
+        if not is_valid_email(email):
+            show_message("Error", "Por favor ingresa un correo electrónico válido", "error", self)
+            return
+        
         if campos_vacios:
             self.mostrar_modal_campos_vacios(campos_vacios)
         else:
             self.mostrar_modal_confirmacion()
 
     def mostrar_modal_campos_vacios(self, campos_vacios):
-        """Muestra modal indicando qué campos están vacíos"""
-        modal = QDialog(self)
-        modal.setWindowTitle("Campos incompletos")
-        modal.setFixedSize(400, 200)
-        modal.setStyleSheet("""
+        """Muestra modal indicando qué campos están vacíos con el diseño unificado de error"""
+        dialog = QDialog(self)
+        dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        dialog.setFixedSize(330, 220)
+        dialog.setStyleSheet("""
             QDialog {
                 background-color: #1E1B2E;
-                border-radius: 15px;
-            }
-            QLabel {
-                color: white;
+                border: 2px solid black;
+                border-radius: 10px;
             }
         """)
+        
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 5, 10, 15)
 
-        layout = QVBoxLayout()
+        # Barra de título personalizada
+        title_bar = TitleBar(dialog)
+        main_layout.addWidget(title_bar)
 
-        mensaje = QLabel("Por favor complete los siguientes campos:")
-        mensaje.setStyleSheet("font-size: 14px;")
-        layout.addWidget(mensaje)
-
-        for campo in campos_vacios:
-            lbl_campo = QLabel(f"- {campo.capitalize()}")
-            lbl_campo.setStyleSheet("color: #FF6B6B;")
-            layout.addWidget(lbl_campo)
-
-        btn_aceptar = QPushButton("Aceptar")
-        btn_aceptar.setStyleSheet("""
+        content_layout = QVBoxLayout()
+        
+        # Icono y título de error (usando el mismo estilo que auth_controller)
+        icon = "🚨"  # Emoji de alerta igual que en auth_controller
+        title = "¡Campos incompletos!"
+        message = "Ingresa una contraseña válida"
+        
+        # Lista de campos vacíos formateada
+        campos_texto = "\n".join([f"• {campo.capitalize()}" for campo in campos_vacios])
+        
+        # Mensaje completo con formato HTML como en auth_controller
+        label = QLabel(f"<div style='text-align: center;'>"
+                    f"<h1>{icon}</h1>"
+                    f"<h2 style='color: white;'>{title}</h2>"
+                    f"<p style='font-size: 14px; color: white; font: bold;'>{message}</p></div>")
+        label.setAlignment(Qt.AlignCenter)
+        content_layout.addWidget(label)
+        
+        # Botón de aceptar (estilo idéntico al de auth_controller)
+        accept_button = QPushButton("Aceptar")
+        accept_button.setStyleSheet("""
             QPushButton {
-                background-color: #7FD1B9;
-                color: black;
+                background-color: #F10D32;
+                color: white;
+                border-radius: 10px;
+                padding: 10px;
                 font-weight: bold;
-                border-radius: 20px;
                 min-width: 120px;
-                padding: 8px;
+                text-align: center;
             }
             QPushButton:hover {
-                background-color: #6bc0a8;
+                background-color: #E43F5A;
             }
         """)
-        btn_aceptar.clicked.connect(modal.close)
-
-        layout.addSpacing(20)
-        layout.addWidget(btn_aceptar, alignment=Qt.AlignCenter)
-
-        modal.setLayout(layout)
-        modal.exec()
+        accept_button.clicked.connect(dialog.accept)
+        content_layout.addWidget(accept_button, alignment=Qt.AlignCenter)
+        
+        main_layout.addLayout(content_layout)
+        dialog.setLayout(main_layout)
+        dialog.exec_()
 
     def mostrar_modal_confirmacion(self):
-        """Muestra modal de confirmación para guardar cambios"""
-        modal = QDialog(self)
-        modal.setWindowTitle("Confirmar cambios")
-        modal.setFixedSize(400, 200)
-        modal.setStyleSheet("""
+        """Muestra modal de confirmación para guardar cambios con el nuevo diseño"""
+        dialog = QDialog(self)
+        dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        dialog.setFixedSize(450, 150)
+        dialog.setStyleSheet("""
             QDialog {
                 background-color: #1E1B2E;
-                border-radius: 15px;
-            }
-            QLabel {
-                color: white;
+                border: 2px solid black;
+                border-radius: 10px;
+                font: bold;
             }
         """)
-
-        layout = QVBoxLayout()
-
-        mensaje = QLabel("¿Está seguro que desea guardar los cambios?")
-        mensaje.setStyleSheet("font-size: 14px;")
-        layout.addWidget(mensaje, alignment=Qt.AlignCenter)
-
-        layout_botones = QHBoxLayout()
-
-        btn_aceptar = QPushButton("Sí, guardar")
-        btn_aceptar.setStyleSheet("""
+        
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 5, 10, 15)
+        
+        title_bar = TitleBar(dialog)
+        main_layout.addWidget(title_bar)
+        
+        content_layout = QVBoxLayout()
+        
+        label = QLabel("¿Está seguro que desea guardar los cambios?")
+        label.setFont(QFont("Candara", 12))
+        label.setStyleSheet("color: white; font:bold;")
+        label.setAlignment(Qt.AlignCenter)
+        content_layout.addWidget(label)
+        
+        button_layout = QHBoxLayout()
+        
+        confirm_button = QPushButton(" Aceptar")
+        confirm_button.setIcon(QIcon("assets/icons/btn-accept-white.svg"))
+        confirm_button.setIconSize(QSize(24, 24))
+        confirm_button.setStyleSheet("""
             QPushButton {
-                background-color: #7FD1B9;
+                background-color: #30EACE;
                 color: black;
-                font-weight: bold;
-                border-radius: 20px;
-                min-width: 120px;
-                padding: 8px;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
-                background-color: #6bc0a8;
+                background-color: #25C9B0;
             }
-        """)
-        btn_aceptar.clicked.connect(lambda: self.guardar_cambios(modal))
-
-        btn_cancelar = QPushButton("Cancelar")
-        btn_cancelar.setStyleSheet("""
+        """)        
+        confirm_button.clicked.connect(lambda: self.guardar_cambios_confirmados(dialog))
+        button_layout.addWidget(confirm_button)
+        
+        cancel_button = QPushButton(" Cancelar")
+        cancel_button.setIcon(QIcon("assets/icons/btn-return-white.svg"))
+        cancel_button.setIconSize(QSize(24, 24))
+        cancel_button.setStyleSheet("""
             QPushButton {
-                background-color: #FF6B6B;
+                background-color: gray;
                 color: white;
-                font-weight: bold;
-                border-radius: 20px;
-                min-width: 120px;
-                padding: 8px;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                font: bold;
             }
             QPushButton:hover {
-                background-color: #e05c5c;
+                background-color: #505050;
             }
         """)
-        btn_cancelar.clicked.connect(modal.close)
+        cancel_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_button)
+        
+        content_layout.addLayout(button_layout)
+        main_layout.addLayout(content_layout)
+        
+        dialog.setLayout(main_layout)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            self.guardar_cambios()
 
-        layout_botones.addWidget(btn_aceptar)
-        layout_botones.addWidget(btn_cancelar)
+    def guardar_cambios_confirmados(self, dialog):
+        """Maneja la confirmación de guardar cambios"""
+        dialog.accept()
+        self.guardar_cambios()
 
-        layout.addSpacing(20)
-        layout.addLayout(layout_botones)
-
-        modal.setLayout(layout)
-        modal.exec()
-
-    def guardar_cambios(self, modal_confirmacion):
-        """Guarda los cambios en la base de datos"""
+    def guardar_cambios(self):
+        """Guarda los cambios en la base de datos sin mostrar mensaje de confirmación"""
         conn = None
         cursor = None
         try:
             nuevos_datos = {
                 'id': self.usuario['id'],
-                'nombre': self.frame_nombre.input_field.text().strip(),
-                'apellido_paterno': self.frame_apellido_paterno.input_field.text().strip(),
-                'apellido_materno': self.frame_apellido_materno.input_field.text().strip(),
-                'email': self.frame_email.input_field.text().strip(),
-                'password': self.frame_password.input_field.text().strip()
+                'nombre': self.nombre_input.input_field.text().strip(),
+                'apellido_paterno': self.apellido_p_input.input_field.text().strip(),
+                'apellido_materno': self.apellido_m_input.input_field.text().strip(),
+                'email': self.email_input.input_field.text().strip(),
+                'password': self.password_input.input_field.text().strip()
             }
 
             conn = connect_db()
@@ -1084,7 +1122,7 @@ class ModalEditar(QWidget):
                         nuevos_datos['apellido_paterno'],
                         nuevos_datos['apellido_materno'],
                         nuevos_datos['email'],
-                        hashed_password.decode('utf-8'),  # Guardamos el hash como string
+                        hashed_password.decode('utf-8'),
                         nuevos_datos['id']
                     )
                 else:
@@ -1107,17 +1145,13 @@ class ModalEditar(QWidget):
                 cursor.execute(query, valores)
                 conn.commit()
 
-                modal_confirmacion.close()
-                self.mostrar_modal_exito()
                 self.datos_actualizados.emit()
                 self.close()
+            else:
+                show_message("Error", "No se pudo conectar a la base de datos.", "error", self)
 
         except Error as e:
-            QMessageBox.critical(
-                self,
-                "Error",
-                f"No se pudieron guardar los cambios: {str(e)}"
-            )
+            show_message("Error", f"No se pudieron guardar los cambios:\n{str(e)}", "error", self)
             print(f"Error en guardar_cambios: {str(e)}")
 
         finally:
@@ -1125,52 +1159,3 @@ class ModalEditar(QWidget):
                 cursor.close()
             if conn and conn.is_connected():
                 conn.close()
-
-    def mostrar_modal_exito(self):
-        """Muestra modal indicando que los cambios se guardaron correctamente"""
-        modal = QDialog(self)
-        modal.setWindowTitle("Cambios guardados")
-        modal.setFixedSize(400, 200)
-        modal.setStyleSheet("""
-            QDialog {
-                background-color: #1E1B2E;
-                border-radius: 15px;
-            }
-            QLabel {
-                color: white;
-            }
-        """)
-
-        layout = QVBoxLayout()
-
-        mensaje = QLabel("Los cambios se guardaron correctamente")
-        mensaje.setStyleSheet("font-size: 14px;")
-        layout.addWidget(mensaje, alignment=Qt.AlignCenter)
-
-        success_icon = self.style().standardIcon(QStyle.SP_DialogOkButton)
-        icon_label = QLabel()
-        icon_label.setPixmap(success_icon.pixmap(64, 64))
-        icon_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(icon_label)
-
-        btn_aceptar = QPushButton("Aceptar")
-        btn_aceptar.setStyleSheet("""
-            QPushButton {
-                background-color: #7FD1B9;
-                color: black;
-                font-weight: bold;
-                border-radius: 20px;
-                min-width: 120px;
-                padding: 8px;
-            }
-            QPushButton:hover {
-                background-color: #6bc0a8;
-            }
-        """)
-        btn_aceptar.clicked.connect(modal.close)
-
-        layout.addSpacing(20)
-        layout.addWidget(btn_aceptar, alignment=Qt.AlignCenter)
-
-        modal.setLayout(layout)
-        modal.exec()

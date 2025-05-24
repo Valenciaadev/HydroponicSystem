@@ -197,3 +197,4 @@ class AboutActuatorWidget(QDialog):
             conn.close()
         else:
             print("No se pudo conectar a la base de datos para cargar datos del actuador.")
+            

@@ -69,7 +69,7 @@ class SummaryAppAdmin(QWidget):
                 "Valores fuera de este rango dificultan la absorción de nutrientes."
             ),
             (
-                "Nivel ORP del agua", "320 mV", "26/2 21:23:04",
+                "Nivel ORP", "320 mV", "26/2 21:23:04",
                 "<b>Potencial Redox (ORP)</b><br>"
                 "Rango ideal para lechugas: <b>250 mV a 400 mV</b>.<br>"
                 "Un ORP dentro de este rango indica un buen equilibrio entre oxidantes y reductores, "

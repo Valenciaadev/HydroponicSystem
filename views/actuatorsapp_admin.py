@@ -3,6 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from views.seleccion_usuario import TitleBar
 from views.about_actuator_modal import AboutActuatorWidget
+from views.actuator_managment_modal import ActuatorManagmentWidget
 from models.database import connect_db
 
 class ActuatorsAppAdmin(QWidget):
@@ -165,7 +166,7 @@ class ActuatorsAppAdmin(QWidget):
             """)
             
             # Aquí podrías conectar a una función que abra un modal para gestionar dosis
-            gestionar_button.clicked.connect(lambda _, sid=actuator_id: print(f"Gestionar dosis para {nombre}"))
+            gestionar_button.clicked.connect(lambda _, sid=actuator_id: self.actuators_managment(sid))
 
             buttons_layout = QHBoxLayout()
             buttons_layout.setSpacing(10)
@@ -264,6 +265,10 @@ class ActuatorsAppAdmin(QWidget):
 
     def about_actuators(self, actuador_id):
         dialog = AboutActuatorWidget(self.ventana_login, actuador_id)
+        dialog.exec_()
+        
+    def actuators_managment(self, actuador_id):
+        dialog = ActuatorManagmentWidget(self.ventana_login, actuador_id)
         dialog.exec_()
         
     def update_estado(self, actuator_id, nuevo_estado):
