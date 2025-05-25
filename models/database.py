@@ -22,6 +22,51 @@ def connect_db():
         print(f"ERROR en `connect_db()`: {err}")
         return None
 
+def get_sensor_ranges(hortaliza_id, sensor_id):
+    """Obtiene los rangos mínimos y máximos para un sensor específico de una hortaliza"""
+    query = """
+        SELECT valor_min_acept, valor_max_acept 
+        FROM config_sensores 
+        WHERE id_hortaliza = %s AND id_sensor = %s
+    """
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (hortaliza_id, sensor_id))
+            result = cursor.fetchone()
+            if result:
+                return {
+                    'min': result[0],  # valor_min_acept está en la posición 0
+                    'max': result[1]   # valor_max_acept está en la posición 1
+                }
+            return {'min': 0, 'max': 0}
+    finally:
+        connection.close()
+
+def get_sensors_data(hortaliza_id):
+    """Obtiene todos los sensores con sus rangos configurados para una hortaliza"""
+    query = """
+        SELECT s.id_sensor, s.nombre, cs.valor_min_acept, cs.valor_max_acept
+        FROM sensores s
+        LEFT JOIN config_sensores cs ON s.id_sensor = cs.id_sensor AND cs.id_hortaliza = %s
+        ORDER BY s.id_sensor
+    """
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (hortaliza_id,))
+            columns = [column[0] for column in cursor.description]  # Obtenemos los nombres de las columnas
+            return [
+                {
+                    'id': row[columns.index('id_sensor')],
+                    'nombre': row[columns.index('nombre')],
+                    'rango_min': row[columns.index('valor_min_acept')] or 0,
+                    'rango_max': row[columns.index('valor_max_acept')] or 0
+                }
+                for row in cursor.fetchall()
+            ]
+    finally:
+        connection.close()
 
 def get_averages_all():
     """Obtiene los promedios de todos los registros"""

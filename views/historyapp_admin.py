@@ -40,7 +40,6 @@ class HistoryAppAdmin(QWidget):
                 font-size: 32px;
                 font-weight: bold;
                 color: white;
-                margin-left: 10px;
                 margin-top: 20px;
                 margin-bottom: 20px;
                 font-family: 'Candara';
@@ -86,9 +85,28 @@ class HistoryAppAdmin(QWidget):
         # --- Layout para el título y los botones ---
         title_buttons_layout = QHBoxLayout()
 
+
+        # Buscar ícono según el nombre
+        icon_path = "assets/icons/history.svg"
+
+        # Icono PNG al lado izquierdo del nombre
+        icon_label = QLabel()
+        icon_pixmap = QPixmap(icon_path)
+
+        if icon_pixmap.isNull():
+            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+
+        # Escalar sin recortar
+        icon_label.setPixmap(icon_pixmap.scaledToHeight(28, Qt.SmoothTransformation))
+        icon_label.setContentsMargins(10, 0, 0, 0)
+        icon_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        icon_label.setAlignment(Qt.AlignCenter)
+        """icon_label.setStyleSheet("margin-right: 10px;")"""
+
         title_historial = QLabel("Historial")
         title_historial.setObjectName("Title")
-        title_buttons_layout.addWidget(title_historial)
+        title_buttons_layout.addWidget(icon_label)
+        title_buttons_layout.addWidget(title_historial, alignment=Qt.AlignVCenter)
         title_buttons_layout.addStretch(1) # Empuja los widgets siguientes a la derecha
 
         top_buttons_layout = QHBoxLayout()
@@ -248,6 +266,12 @@ class HistoryAppAdmin(QWidget):
         self.arrow_buttons = {}  # Diccionario para guardar los botones de flecha
         self.content_frames = {} # Diccionario para guardar los frames de contenido
 
+        
+        self.populate_icons = {
+            "Datos con gráficas": "assets/img/grafica.png",
+            "Datos con tabla": "assets/img/tabla.png"
+        }
+
         for nombre in dispositivos:
             # --- Frame exterior ---
             outer_frame = QFrame()
@@ -270,6 +294,22 @@ class HistoryAppAdmin(QWidget):
             device_frame.setFixedHeight(70)
             device_layout = QHBoxLayout(device_frame)
             device_layout.setContentsMargins(20, 10, 20, 10)
+            
+                    # Buscar ícono según el nombre
+            icon_path = self.populate_icons.get(nombre, "assets/img/logo.png")
+
+            # Icono PNG al lado izquierdo del nombre
+            icon_label = QLabel()
+            icon_pixmap = QPixmap(icon_path)
+
+            if icon_pixmap.isNull():
+                print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+
+            # Escalar sin recortar
+            icon_label.setPixmap(icon_pixmap.scaledToHeight(32, Qt.SmoothTransformation))
+            icon_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+            icon_label.setAlignment(Qt.AlignCenter)
+            """icon_label.setStyleSheet("margin-right: 10px;")"""
 
             name_label = QLabel(nombre)
             name_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
@@ -444,6 +484,8 @@ class HistoryAppAdmin(QWidget):
             buttons_layout.setSpacing(10)
             buttons_layout.addWidget(arrow_button)
 
+
+            device_layout.addWidget(icon_label)
             device_layout.addWidget(name_label)
             device_layout.addStretch()
             device_layout.addLayout(buttons_layout)

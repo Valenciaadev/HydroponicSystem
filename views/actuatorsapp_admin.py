@@ -23,12 +23,12 @@ class ActuatorsAppAdmin(QWidget):
                 font-size: 28px;
                 font-weight: bold;
                 color: white;
-                margin-left: 15px;
+                margin-left: 3px;
             }
             QLabel#Subtitle {
                 font-size: 16px;
                 font-weight: bold;
-                color: white;
+                color: white;s
             }
             QPushButton {
                 padding: 8px 16px;
@@ -50,12 +50,30 @@ class ActuatorsAppAdmin(QWidget):
         actuators_layout = QVBoxLayout(actuators_frame)
         actuators_layout.setContentsMargins(20, 40, 20, 20)
 
+
+        # Buscar ícono según el nombre
+        icon_path = "assets/icons/actuators-white.svg"
+
+        # Icono PNG al lado izquierdo del nombre
+        icon_label = QLabel()
+        icon_pixmap = QPixmap(icon_path)
+
+        if icon_pixmap.isNull():
+            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+
+        # Escalar sin recortar
+        icon_label.setPixmap(icon_pixmap.scaledToHeight(28, Qt.SmoothTransformation))
+        icon_label.setContentsMargins(10, 0, 0, 0)
+        icon_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        icon_label.setAlignment(Qt.AlignCenter)
+        """icon_label.setStyleSheet("margin-right: 10px;")"""
         # --- Título ---
         title_actuadores = QLabel("Actuadores")
         title_actuadores.setObjectName("Title")
 
         # --- Layout horizontal para título y botón ---
         top_layout = QHBoxLayout()
+        top_layout.addWidget(icon_label)
         top_layout.addWidget(title_actuadores, alignment=Qt.AlignVCenter)
         top_layout.addStretch()
         
@@ -107,6 +125,16 @@ class ActuatorsAppAdmin(QWidget):
         self.populate_actuators()
         
     def add_actuator_card(self, actuator_id, nombre, tipo):
+
+        self.actuadores_icons = {
+            "Bomba FloraGro": "assets/img/peris.png",
+            "Bomba FloraMicro": "assets/img/peris2.png",
+            "Bomba FloraBloom": "assets/img/peris3.png",
+            "Bomba de Agua": "assets/img/boma.png",
+            "Lámpara LED": "assets/img/luz.png",
+            "Ventilador": "assets/img/ven.png"
+        }
+
         # --- Frame exterior ---
         outer_frame = QFrame()
         outer_frame.setFixedHeight(75)
@@ -128,6 +156,22 @@ class ActuatorsAppAdmin(QWidget):
         actuator_frame.setFixedHeight(70)
         actuator_layout = QHBoxLayout(actuator_frame)
         actuator_layout.setContentsMargins(20, 10, 20, 10)
+
+        # Buscar ícono según el nombre
+        icon_path = self.actuadores_icons.get(nombre, "assets/img/logo.png")
+
+        # Icono PNG al lado izquierdo del nombre
+        icon_label = QLabel()
+        icon_pixmap = QPixmap(icon_path)
+
+        if icon_pixmap.isNull():
+            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+
+        # Escalar sin recortar
+        icon_label.setPixmap(icon_pixmap.scaledToHeight(32, Qt.SmoothTransformation))
+        icon_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        icon_label.setAlignment(Qt.AlignCenter)
+        """icon_label.setStyleSheet("margin-right: 10px;")"""
 
         name_label = QLabel(nombre)
         name_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px;")
@@ -236,6 +280,8 @@ class ActuatorsAppAdmin(QWidget):
             buttons_layout.addWidget(toggle_button)
             buttons_layout.addWidget(features_button)
 
+
+        actuator_layout.addWidget(icon_label)
         actuator_layout.addWidget(name_label)
         actuator_layout.addStretch()
         actuator_layout.addLayout(buttons_layout)
