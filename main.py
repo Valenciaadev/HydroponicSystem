@@ -13,9 +13,10 @@ from views.inicio_sesion_admin import InicioSesionAdministradorWidget
 from controllers.auth_controller import hash_password
 from views.homeapp_admin import HomeappAdmin
 from views.homeapp_worker import HomeappWorker
+from models.serial_thread import SerialReaderThread
 
-""" # Crear un nuevo usuario trabajador
-usuario_trabajador = Usuario(
+# Crear un nuevo usuario trabajador
+'''usuario_trabajador = Usuario(
     nombre="Alexis",
     apellido_paterno="Verduzco",
     apellido_materno="Lopez",
@@ -49,8 +50,7 @@ id_usuario_admin = usuario_admin.guardar_en_db()
 if id_usuario_admin:
     administrador = Administrador(id_usuario=id_usuario_admin)
     administrador.guardar_en_db()
-"""
-
+'''
 class TitleBar(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
@@ -149,12 +149,6 @@ class LoginRegisterApp(QDialog):
 
         # Mostrar la vista de login por defecto
         self.stack.setCurrentWidget(self.user_select_widget)
-
-    # def center_window(self):
-    #     screen = QApplication.primaryScreen().geometry()  # Obtener el tamaño de la pantalla
-    #     window_rect = self.frameGeometry()  # Obtener el tamaño de la ventana
-    #     window_rect.moveCenter(screen.center())  # Mover la geometría de la ventana al centro
-    #     self.move(window_rect.topLeft())  # Establecer la posición final de la ventana
     
     def mostrar_panel_admin(self):
         self.homeapp_admin = HomeappAdmin(self)
@@ -192,6 +186,19 @@ if __name__ == "__main__":
     palette.setColor(QPalette.WindowText, QColor("#FFFFFF"))  # Texto
     app.setPalette(palette)
 
+    # Lanza tu ventana principal
     window = LoginRegisterApp()
     window.show()
-    sys.exit(app.exec_())
+
+    # 🔄 Inicia el hilo del lector serial
+    serial_thread = SerialReaderThread()
+    serial_thread.start()
+
+    try:
+        exit_code = app.exec_()
+    finally:
+        # ⛔ Detener el hilo correctamente al cerrar la app
+        serial_thread.stop()
+        serial_thread.join()
+
+    sys.exit(exit_code)

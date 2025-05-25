@@ -11,7 +11,7 @@ def connect_db():
         conn = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="",
+            password="admin",
             database="hydrophonic_sys",
             port=3306,
         )
@@ -196,24 +196,16 @@ def get_admin_password():
 
     try:
         cursor = conn.cursor()
-        query = """
-            SELECT us.clabe 
-            FROM administradores ad 
-            JOIN usuarios us ON ad.id_usuario = us.id
-            LIMIT 1
-        """
+        query = "SELECT clabe FROM administradores ad join usuarios us WHERE ad.id_usuario = us.id"
         cursor.execute(query)
         result = cursor.fetchone()
         return result[0] if result else None
-
     except mysql.connector.Error as err:
         print(f"ERROR en `get_admin_password()`: {err}")
         return None
-
     finally:
-        if cursor:
+        if conn.is_connected():
             cursor.close()
-        if conn and conn.is_connected():
             conn.close()
 
 def create_line_graph():
@@ -482,3 +474,34 @@ def getbyYear():
     finally:
         cursor.close()
         conn.close()
+
+def guardar_mediciones_cada_6h(ph, orp, temperatura):
+    """
+    Guarda los datos en la tabla `registro_mediciones` si la hora actual es 06:00, 12:00, 18:00 o 00:00.
+    Usa connect_db ya existente.
+    """
+    from datetime import datetime
+    hora_actual = datetime.now().strftime("%H:%M")
+    if hora_actual in ["06:00", "12:00", "18:00", "00:00"]:
+        try:
+            conn = connect_db()
+            if not conn:
+                print("❌ No se pudo conectar para guardar datos.")
+                return
+
+            cursor = conn.cursor()
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            query = """
+                INSERT INTO registro_mediciones 
+                (ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha)
+                VALUES (%s, %s, %s, 0.0, 0.0, 0.0, %s)
+            """
+            cursor.execute(query, (ph, orp, temperatura, now))
+            conn.commit()
+            print(f"✅ Datos guardados automáticamente a las {hora_actual}: pH={ph}, ORP={orp}, TempAgua={temperatura}")
+        except Exception as e:
+            print(f"❌ Error al guardar datos en DB:", e)
+        finally:
+            cursor.close()
+            conn.close()
