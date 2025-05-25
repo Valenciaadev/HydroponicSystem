@@ -8,6 +8,7 @@ from views.sensorsapp_admin import SensorsAppAdmin
 from views.historyapp_admin import HistoryAppAdmin
 from views.managment_users_admin import ManagmentAppAdmin
 from views.gestionhortalizas_admin import GestionHortalizasAppAdmin
+from models.serial_thread import SerialReaderThread
 
 class HomeappAdmin(QWidget):
     def __init__(self, ventana_login):
@@ -189,6 +190,10 @@ class HomeappAdmin(QWidget):
         layout_principal.addWidget(content_widget)
 
         self.setLayout(layout_principal)
+
+        self.serial_thread = SerialReaderThread()
+        self.serial_thread.datos_actualizados.connect(self.inicio_widget.recibir_datos_sensores)
+        self.serial_thread.start()
         
     # def log_out(self):
         #self.ventana_login.show()
@@ -271,6 +276,14 @@ class HomeappAdmin(QWidget):
         
     def confirm_logout(self, dialog):
         dialog.accept()
+
+        # 🛑 Detener hilo serial si está corriendo
+        if hasattr(self, 'serial_thread'):
+            self.serial_thread.stop()
+            self.serial_thread.quit()
+            self.serial_thread.wait()
+            print("🔌 Hilo serial detenido correctamente al cerrar sesión.")
+
         self.ventana_login.show()
         self.close()
 

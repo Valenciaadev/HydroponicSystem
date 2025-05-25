@@ -14,6 +14,7 @@ from controllers.auth_controller import hash_password
 from views.homeapp_admin import HomeappAdmin
 from views.homeapp_worker import HomeappWorker
 from models.serial_thread import SerialReaderThread
+from views.summaryapp_admin import SummaryAppAdmin
 
 # Crear un nuevo usuario trabajador
 '''usuario_trabajador = Usuario(
@@ -152,6 +153,11 @@ class LoginRegisterApp(QDialog):
     
     def mostrar_panel_admin(self):
         self.homeapp_admin = HomeappAdmin(self)
+        self.serial_thread = SerialReaderThread()
+        self.serial_thread.datos_actualizados.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
+        self.serial_thread.start()
+
+        # Mostrar la vista principal
         self.homeapp_admin.showFullScreen()
         self.hide()
     
@@ -188,17 +194,25 @@ if __name__ == "__main__":
 
     # Lanza tu ventana principal
     window = LoginRegisterApp()
-    window.show()
 
-    # 🔄 Inicia el hilo del lector serial
-    serial_thread = SerialReaderThread()
-    serial_thread.start()
+    def cerrar_hilos_al_salir():
+        if hasattr(window, 'homeapp_admin') and hasattr(window.homeapp_admin, 'serial_thread'):
+            window.homeapp_admin.serial_thread.stop()
+            window.homeapp_admin.serial_thread.quit()
+            window.homeapp_admin.serial_thread.wait()
+            print("🛑 Hilo serial cerrado desde aboutToQuit.")
+
+    app.aboutToQuit.connect(cerrar_hilos_al_salir)
+
+
+    window.show()
 
     try:
         exit_code = app.exec_()
     finally:
-        # ⛔ Detener el hilo correctamente al cerrar la app
-        serial_thread.stop()
-        serial_thread.join()
+        if hasattr(window, 'homeapp_admin') and hasattr(window.homeapp_admin, 'serial_thread'):
+            window.homeapp_admin.serial_thread.stop()
+            window.homeapp_admin.serial_thread.quit()
+            window.homeapp_admin.serial_thread.wait()
 
     sys.exit(exit_code)

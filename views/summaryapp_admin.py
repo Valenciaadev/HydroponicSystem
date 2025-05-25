@@ -45,25 +45,25 @@ class SummaryAppAdmin(QWidget):
         
         cards_info = [
             (
-                "Temperatura del aire", "24°", "26/2 21:23:04",
+                "Temperatura del aire", "0°", "00/0 00:00:00",
                 "<b>Temperatura del Aire</b><br>"
                 "Ideal entre <b>18°C y 24°C</b> para el crecimiento óptimo de lechugas.<br>"
                 "Evita temperaturas mayores a 27°C para prevenir estrés térmico."
             ),
             (
-                "Humedad del aire", "61.2", "26/2 21:23:04",
+                "Humedad del aire", "00.0", "00/0 00:00:00",
                 "<b>Humedad Relativa del Aire</b><br>"
                 "Rango ideal: <b>50% a 70%</b>.<br>"
                 "Niveles adecuados reducen la transpiración excesiva y promueven la fotosíntesis."
             ),
             (
-                "Temperatura del agua", "26°", "26/2 21:23:04",
+                "Temperatura del agua", "00°", "00/0 00:00:00",
                 "<b>Temperatura del Agua</b><br>"
                 "Ideal entre <b>18°C y 22°C</b>.<br>"
                 "Temperaturas superiores a 24°C pueden reducir el oxígeno disuelto, afectando las raíces."
             ),
             (
-                "Nivel pH del agua", "5 pH", "26/2 21:23:04",
+                "Nivel pH del agua", "0 pH", "00/0 00:00:00",
                 "<b>Nivel de pH del Agua</b><br>"
                 "Rango óptimo: <b>5.5 a 6.5</b> para lechugas.<br>"
                 "Valores fuera de este rango dificultan la absorción de nutrientes."
@@ -173,7 +173,6 @@ class SummaryAppAdmin(QWidget):
             }
         """)
 
-        # Tooltip personalizado al hacer hover
         class InfoButtonEnterEvent:
             def __init__(self, button):
                 self.button = button
@@ -190,7 +189,6 @@ class SummaryAppAdmin(QWidget):
 
         info_button.enterEvent = InfoButtonEnterEvent(info_button).enterEvent
 
-        # Título + ícono
         title_label = QLabel(title)
         title_label.setFont(QFont("Arial", 10, QFont.Bold))
 
@@ -200,7 +198,6 @@ class SummaryAppAdmin(QWidget):
         title_info_layout.addWidget(title_label)
         title_info_layout.addWidget(info_button)
 
-        # Centro del contenido
         value_label = QLabel(value)
         value_label.setFont(QFont("Arial", 18, QFont.Bold))
         value_label.setMinimumHeight(40)
@@ -210,7 +207,11 @@ class SummaryAppAdmin(QWidget):
         time_label.setFont(QFont("Arial", 9))
         time_label.setAlignment(Qt.AlignCenter)
 
-        # Layout principal
+        # Guardamos referencias en self.card_labels
+        if not hasattr(self, "card_labels"):
+            self.card_labels = {}
+        self.card_labels[title] = (value_label, time_label)
+
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignCenter)
         main_layout.addLayout(title_info_layout)
@@ -218,6 +219,22 @@ class SummaryAppAdmin(QWidget):
         main_layout.addWidget(time_label)
         card.setLayout(main_layout)
         return card
+
+    def recibir_datos_sensores(self, data):
+        """Actualiza en tiempo real las tarjetas de pH, ORP y temperatura del agua."""
+        mapping = {
+            "Temperatura del agua": ("temp_agua", "°C"),
+            "Nivel pH del agua": ("ph", " pH"),
+            "Nivel ORP": ("orp", " mV"),
+        }
+
+        for title, (key, unidad) in mapping.items():
+            if title in self.card_labels and key in data:
+                valor = data[key]
+                hora = data["hora"]
+                value_label, time_label = self.card_labels[title]
+                value_label.setText(f"{valor:.2f} {unidad}")
+                time_label.setText(hora)
 
     def create_gauge_column(self, titles):
         gauges_layout = QVBoxLayout()
