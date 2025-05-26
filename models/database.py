@@ -264,16 +264,24 @@ def get_admin_password():
 
     try:
         cursor = conn.cursor()
-        query = "SELECT clabe FROM administradores ad join usuarios us WHERE ad.id_usuario = us.id"
+        query = """
+            SELECT us.clabe 
+            FROM administradores ad 
+            JOIN usuarios us ON ad.id_usuario = us.id
+            LIMIT 1
+        """
         cursor.execute(query)
         result = cursor.fetchone()
         return result[0] if result else None
+
     except mysql.connector.Error as err:
         print(f"ERROR en `get_admin_password()`: {err}")
         return None
+
     finally:
-        if conn.is_connected():
+        if cursor:
             cursor.close()
+        if conn and conn.is_connected():
             conn.close()
 
 def create_line_graph():

@@ -3,9 +3,9 @@ import mysql.connector
 from models.usuario import Usuario
 from models.trabajador import Trabajador
 from models.administrador import Administrador
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QStackedWidget, QWidget, QHBoxLayout, QPushButton, QLabel, QInputDialog, QLineEdit, QMessageBox
+from PyQt5.QtCore import Qt, QPoint, QSize
+from PyQt5.QtGui import QPalette, QColor, QIcon
 from views.registro import RegistroWidget
 from views.inicio_sesion_worker import InicioSesionWidget
 from views.seleccion_usuario import SeleccionUsuarioWidget
@@ -14,6 +14,7 @@ from controllers.auth_controller import hash_password
 from views.homeapp_admin import HomeappAdmin
 from views.homeapp_worker import HomeappWorker
 
+"""
 # Crear un nuevo usuario trabajador
 usuario_trabajador = Usuario(
     nombre="Alexis",
@@ -49,7 +50,7 @@ id_usuario_admin = usuario_admin.guardar_en_db()
 if id_usuario_admin:
     administrador = Administrador(id_usuario=id_usuario_admin)
     administrador.guardar_en_db()
-
+"""
 
 class TitleBar(QWidget):
     def __init__(self, parent):
@@ -121,11 +122,11 @@ class LoginRegisterApp(QDialog):
 
         # Creación de la ventana sin la barra de título nativa
         self.setWindowTitle("Sistema Hidropónico")
-        self.setGeometry(0, 0, 500, 500)
+        self.setGeometry(660, 200, 500, 500)
         self.setStyleSheet("background-color: #1E1B2E;")
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-        self.center_window()
+        # self.center_window()
         
         # Creación del stack de vistas
         self.stack = QStackedWidget()
@@ -150,11 +151,11 @@ class LoginRegisterApp(QDialog):
         # Mostrar la vista de login por defecto
         self.stack.setCurrentWidget(self.user_select_widget)
 
-    def center_window(self):
-        screen = QApplication.primaryScreen().geometry()  # Obtener el tamaño de la pantalla
-        window_rect = self.frameGeometry()  # Obtener el tamaño de la ventana
-        window_rect.moveCenter(screen.center())  # Mover la geometría de la ventana al centro
-        self.move(window_rect.topLeft())  # Establecer la posición final de la ventana
+    # def center_window(self):
+    #     screen = QApplication.primaryScreen().geometry()  # Obtener el tamaño de la pantalla
+    #     window_rect = self.frameGeometry()  # Obtener el tamaño de la ventana
+    #     window_rect.moveCenter(screen.center())  # Mover la geometría de la ventana al centro
+    #     self.move(window_rect.topLeft())  # Establecer la posición final de la ventana
     
     def mostrar_panel_admin(self):
         self.homeapp_admin = HomeappAdmin(self)

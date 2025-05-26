@@ -2,6 +2,7 @@ import bcrypt
 from mysql.connector import Error
 from models.database import connect_db
 from controllers.auth_controller import show_message, is_valid_email
+from views.registro import RegistroWidget
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -56,12 +57,58 @@ class TitleBar(QWidget):
             event.accept()
 
 class ManagmentAppAdmin(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.setFixedHeight(30)
+        self.setStyleSheet("background-color: #1E1B2E; color: white;")
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(5, 0, 5, 0)
+
+        self.title = QLabel("Sistema Hidropónico")
+        self.title.setStyleSheet("font-size: 14px;")
+        layout.addWidget(self.title)
+
+        self.minimize_button = QPushButton("")
+        self.minimize_button.setIcon(QIcon("assets/icons/btn-minimize-white.svg"))
+        self.minimize_button.setIconSize(QSize(24, 24))
+        self.minimize_button.setFixedSize(30, 30)
+        self.minimize_button.setStyleSheet("background-color: transparent;")
+        self.minimize_button.clicked.connect(self.parent.showMinimized)
+        self.minimize_button.setCursor(Qt.PointingHandCursor)
+        self.minimize_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
+        layout.addWidget(self.minimize_button)
+
+        self.close_button = QPushButton("")
+        self.close_button.setIcon(QIcon("assets/icons/btn-close-white.svg"))
+        self.close_button.setIconSize(QSize(24, 24))
+        self.close_button.setFixedSize(30, 30)
+        self.close_button.setStyleSheet("background-color: transparent;")
+        self.close_button.clicked.connect(self.parent.close)
+        self.close_button.setCursor(Qt.PointingHandCursor)
+        self.close_button.setStyleSheet("QPushButton:hover { background-color: blue; }")
+        layout.addWidget(self.close_button)
+
+        self.setLayout(layout)
+        self.drag_position = None
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.drag_position = event.globalPos() - self.parent.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton and self.drag_position is not None:
+            self.parent.move(event.globalPos() - self.drag_position)
+            event.accept()
+
+class ManagmentAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__(ventana_login)
         self.ventana_login = ventana_login
         self.offset = None
         self.usuario_seleccionado = None
-
         self.init_ui()
 
     def init_ui(self):
@@ -70,8 +117,7 @@ class ManagmentAppAdmin(QWidget):
                 font-size: 28px;
                 font-weight: bold;
                 color: white;
-                margin-left: 3px;
-
+                margin-left: 10px;
             }
             QPushButton {
                 padding: 8px 16px;
@@ -106,7 +152,7 @@ class ManagmentAppAdmin(QWidget):
 
         # Escalar sin recortar
         icon_label.setPixmap(icon_pixmap.scaledToHeight(28, Qt.SmoothTransformation))
-        icon_label.setContentsMargins(10, 0, 0, 0)
+        icon_label.setContentsMargins(20, 0, 0, 0)
         icon_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         icon_label.setAlignment(Qt.AlignCenter)
         """icon_label.setStyleSheet("margin-right: 10px;")"""
@@ -115,13 +161,92 @@ class ManagmentAppAdmin(QWidget):
         titulo = QLabel("Gestor de usuarios")
         titulo.setObjectName("Title")
 
-        # --- Layout horizontal para título ---
+        self.add_user_frame = QFrame()
+        self.add_user_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #60D4B8, stop:1 #1E2233);
+                border-radius: 32px;
+                padding: 2px;
+            }
+        """)
+        self.add_user_button = QPushButton("Agregar usuario")
+        self.add_user_button.setCursor(Qt.PointingHandCursor)
+        self.add_user_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1F2232;
+                color: white;
+                font-weight: bold;
+                font-size: 16px;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 30px;
+            }
+            QPushButton:hover {
+                background-color: #2B2E3F;
+            }
+        """)
+        self.add_user_button.clicked.connect(self.abrir_modal_registro)
+
+        inner_layout = QVBoxLayout(self.add_user_frame)
+        inner_layout.setContentsMargins(0, 0, 0, 0)
+        inner_layout.addWidget(self.add_user_button)
+
         top_layout = QHBoxLayout()
         top_layout.addWidget(icon_label)
         top_layout.addWidget(titulo, alignment=Qt.AlignVCenter)
         top_layout.addStretch()
+        top_layout.addWidget(self.add_user_frame)
 
-        # --- Contenedor para los usuarios ---
+        # Buscador
+        frame_busqueda = QFrame()
+        frame_busqueda.setFrameShape(QFrame.StyledPanel)
+        frame_busqueda.setObjectName("frame_busquedad")
+        frame_busqueda.setStyleSheet("""
+            #frame_busquedad {
+                padding: 15px;
+                border-radius: 10px;
+                background-color: #1E1B2E;
+            }
+        """)
+        frame_busqueda_layout = QHBoxLayout(frame_busqueda)
+        frame_busqueda_layout.setContentsMargins(20, 20, 20, 20)
+        frame_busqueda_layout.setSpacing(20)
+
+        form_layout = QFormLayout()
+        self.input_field = self.create_gradient_input("Ingresa texto")
+        label = QLabel("Buscador de usuarios")
+        label.setStyleSheet("font-size: 15px; min-width: 150px; background: transparent;")
+        form_layout.addRow(label, self.input_field)
+        self.input_field.input_field.textChanged.connect(self.filtrar_usuarios)
+        frame_busqueda_layout.addLayout(form_layout, stretch=1)
+
+        # Filtro
+        self.filtro_rol = QComboBox()
+        self.filtro_rol.addItems(["Todos", "Administradores", "Trabajadores"])
+        self.filtro_rol.setStyleSheet("""
+            QComboBox {
+                background-color: #1E1B2E;
+                color: white;
+                padding: 8px;
+                border: 2px solid #30EACE;
+                border-radius: 20px;
+                font: bold;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1E1B2E;
+                color: white;
+                selection-background-color: #30EACE;
+            }
+        """)
+        self.filtro_rol.currentIndexChanged.connect(self.filtrar_usuarios)
+        frame_busqueda_layout.addWidget(self.filtro_rol)
+
+        container_layout.addLayout(top_layout)
+        container_layout.addSpacing(35)
+        container_layout.addWidget(frame_busqueda)
+
+        # Scroll
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("""
@@ -138,54 +263,9 @@ class ManagmentAppAdmin(QWidget):
                 border-radius: 6px;
             }
         """)
-        
         scroll_content = QWidget()
         scroll_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
-        # --- Frame de búsqueda ---
-        frame_busqueda = QFrame()
-        frame_busqueda.setFrameShape(QFrame.StyledPanel)
-        frame_busqueda.setObjectName("frame_busquedad")
-        frame_busqueda.setStyleSheet("""
-            #frame_busquedad {
-                padding: 15px;
-                border-radius: 10px;
-                background-color: #1E1B2E;
-            }
-        """)
-        frame_busqueda_layout = QHBoxLayout(frame_busqueda)
-        frame_busqueda_layout.setContentsMargins(20, 20, 20, 20)
-        frame_busqueda_layout.setSpacing(20)
-
-        form_layout = QFormLayout()
-        # form_layout.setVerticalSpacing(15)
-        # form_layout.setHorizontalSpacing(15)
-        # form_layout.setContentsMargins(0,0,0,0)
-
-        self.input_field = self.create_gradient_input("Ingresa texto")
-
-        label = QLabel("Buscador de usuarios")
-        label.setStyleSheet("font-size: 15px; min-width: 150px; background: transparent;")
-        form_layout.addRow(label, self.input_field)
-        self.input_field.input_field.textChanged.connect(self.filtrar_usuarios)
-        frame_busqueda_layout.addLayout(form_layout, stretch=1)
-
-        # --- Layout principal ---
-        container_layout.addLayout(top_layout)
-
-        # Espacio entre el título y el buscador
-        space_between = QWidget()
-        space_between.setFixedHeight(30)
-        container_layout.addWidget(space_between)
-
-        container_layout.addWidget(frame_busqueda)
-
-        # Espacio entre el buscador y la lista
-        space_between2 = QWidget()
-        space_between2.setFixedHeight(20)
-        container_layout.addWidget(space_between2)
-
-        # Configurar el scroll area
         self.scroll_layout = QVBoxLayout(scroll_content)
         scroll_content.setContentsMargins(0, 0, 0, 0)
         scroll_area.setContentsMargins(0, 0, 0, 0)
@@ -196,9 +276,13 @@ class ManagmentAppAdmin(QWidget):
         container_layout.addWidget(scroll_area)
 
         main_layout.addWidget(container_frame)
-
         self.usuarios_completos = []
         self.cargar_datos()
+        
+    def abrir_modal_registro(self):
+        dialog = ModalRegistro(self)
+        dialog.exec_()  # Modal bloqueante
+        self.actualizar_datos()
 
     def create_gradient_input(self, placeholder_text=""):
         """Crea un input con el marco degradado como los actuadores"""
@@ -303,24 +387,47 @@ class ManagmentAppAdmin(QWidget):
         return resultados if not exacto else None
 
     def filtrar_usuarios(self):
-        """Filtra usuarios según el texto de búsqueda"""
+        """Filtra usuarios por texto de búsqueda y tipo de usuario"""
         texto_busqueda = self.input_field.input_field.text().strip().lower()
+        filtro_tipo_label = self.filtro_rol.currentText().lower()
 
-        # Limpiar la lista actual
+        # Mapeo de opciones visibles a valores reales del campo tipo_usuario
+        filtro_tipo_map = {
+            "todos": None,
+            "administradores": "administrador",
+            "trabajadores": "trabajador"
+        }
+        filtro_tipo = filtro_tipo_map.get(filtro_tipo_label)
+
         self.limpiar_lista_usuarios()
+        usuarios_filtrados = []
 
-        if not texto_busqueda:
-            self.mostrar_todos_usuarios()
-            return
+        for usuario in self.usuarios_completos:
+            tipo = usuario.get('tipo_usuario', '').lower()
 
-        usuarios = self.buscar_usuario(texto_busqueda)
+            # Filtro por tipo de usuario
+            if filtro_tipo and tipo != filtro_tipo:
+                continue
 
-        if usuarios:
-            for usuario in usuarios:
+            # Filtro por nombre
+            nombre = usuario.get('nombre', '').lower()
+            apellido_p = usuario.get('apellido_paterno', '').lower()
+            apellido_m = usuario.get('apellido_materno', '').lower()
+            nombre_completo = f"{nombre} {apellido_p} {apellido_m}".strip()
+
+            if not texto_busqueda or (
+                texto_busqueda in nombre or
+                texto_busqueda in apellido_p or
+                texto_busqueda in apellido_m or
+                texto_busqueda in nombre_completo
+            ):
+                usuarios_filtrados.append(usuario)
+
+        if usuarios_filtrados:
+            for usuario in usuarios_filtrados:
                 self.agregar_usuario_a_lista(usuario)
         else:
-            self.mostrar_mensaje_sin_resultado(texto_busqueda)
-
+            self.mostrar_mensaje_sin_resultado(texto_busqueda or filtro_tipo_label)
         
     def limpiar_lista_usuarios(self):
         """Elimina todos los widgets de la lista de usuarios"""
@@ -363,27 +470,10 @@ class ManagmentAppAdmin(QWidget):
         frame_layout = QHBoxLayout(inner_frame)
         frame_layout.setContentsMargins(20, 10, 20, 10)  # Mismos márgenes que en ActuatorsAppAdmin
 
-        # Buscar ícono según el nombre
-        icon_path = "assets/img/user.png"
-
-        # Icono PNG al lado izquierdo del nombre
-        icon_label = QLabel()
-        icon_pixmap = QPixmap(icon_path)
-
-        if icon_pixmap.isNull():
-            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
-
-        # Escalar sin recortar
-        icon_label.setPixmap(icon_pixmap.scaledToHeight(32, Qt.SmoothTransformation))
-        icon_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        icon_label.setAlignment(Qt.AlignCenter)
-        icon_label.setStyleSheet("margin-right: 5px;")
-
         lbl_nombre = QLabel(
             f"{usuario['nombre']} {usuario['apellido_paterno']} {usuario['apellido_materno']}"
         )
         lbl_nombre.setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent;")
-        frame_layout.addWidget(icon_label)
         frame_layout.addWidget(lbl_nombre)
 
         frame_layout.addStretch()
@@ -412,26 +502,27 @@ class ManagmentAppAdmin(QWidget):
         btn_editar.clicked.connect(lambda: self.open_usuarios_editar(usuario))
 
         # Botón Eliminar (estilo similar al de "Apagar")
-        btn_eliminar = QPushButton("Eliminar")
-        btn_eliminar.setObjectName("btnEliminar")
-        btn_eliminar.setStyleSheet("""
-            #btnEliminar {
-                background-color: #3A1212;
-                color: white;
-                font-weight: bold;
-                border-radius: 14px;
-                padding: 6px 14px;
-                min-width: 98px;
-                border: 1px solid #DC2626;
-            }
-            #btnEliminar:hover {
-                background-color: #8B1E1E;
-            }
-        """)
-        btn_eliminar.clicked.connect(lambda: self.open_usuarios_eliminados(usuario))
+        if usuario['tipo_usuario'].lower() == 'trabajador':
+            btn_eliminar = QPushButton("Eliminar")
+            btn_eliminar.setObjectName("btnEliminar")
+            btn_eliminar.setStyleSheet("""
+                #btnEliminar {
+                    background-color: #3A1212;
+                    color: white;
+                    font-weight: bold;
+                    border-radius: 14px;
+                    padding: 6px 14px;
+                    min-width: 98px;
+                    border: 1px solid #DC2626;
+                }
+                #btnEliminar:hover {
+                    background-color: #8B1E1E;
+                }
+            """)
+            btn_eliminar.clicked.connect(lambda: self.open_usuarios_eliminados(usuario))
+            btn_layout.addWidget(btn_eliminar)
 
         btn_layout.addWidget(btn_editar)
-        btn_layout.addWidget(btn_eliminar)
 
         frame_layout.addLayout(btn_layout)
 
@@ -476,6 +567,29 @@ class ManagmentAppAdmin(QWidget):
 
     def actualizar_datos(self):
         self.cargar_datos()
+
+class ModalRegistro(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        self.setFixedSize(500, 700)
+        self.setStyleSheet("background-color: #1E1B2E;")
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(10, 5, 10, 10)
+
+        # Barra de título reutilizable
+        self.title_bar = TitleBar(self)
+        layout.addWidget(self.title_bar)
+
+        # Widget de registro
+        self.registro_widget = RegistroWidget(self.cerrar_modal)
+        layout.addWidget(self.registro_widget)
+
+        self.setLayout(layout)
+
+    def cerrar_modal(self):
+        self.accept()  # Cierra el modal cuando se completa el registro
 
 class ModalEliminar(QDialog):
     usuario_eliminado = pyqtSignal()

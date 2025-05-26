@@ -45,31 +45,31 @@ class SummaryAppAdmin(QWidget):
         
         cards_info = [
             (
-                "Temperatura del aire", "00", "00/0 00:00:00",
+                "Temperatura del aire", "00 °C", "00/0 00:00:00",
                 "<b>Temperatura del Aire</b><br>"
                 "Ideal entre <b>00°C y 00°C</b> para el crecimiento óptimo de lechugas.<br>"
                 "Evita temperaturas mayores a 27°C para prevenir estrés térmico."
             ),
             (
-                "Humedad del aire", "00", "00/0 00:00:00",
+                "Humedad del aire", "00 %", "00/0 00:00:00",
                 "<b>Humedad Relativa del Aire</b><br>"
                 "Rango ideal: <b>% a %</b>.<br>"
                 "Niveles adecuados reducen la transpiración excesiva y promueven la fotosíntesis."
             ),
             (
-                "Temperatura del agua", "00", "00/0 00:00:00",
+                "Temperatura del agua", "00 °C", "00/0 00:00:00",
                 "<b>Temperatura del Agua</b><br>"
                 "Ideal entre <b>°C y °C</b>.<br>"
                 "Temperaturas superiores a 24°C pueden reducir el oxígeno disuelto, afectando las raíces."
             ),
             (
-                "Nivel pH del agua", "00", "00/0 00:00:00",
+                "Nivel pH del agua", "00 cm", "00/0 00:00:00",
                 "<b>Nivel de pH del Agua</b><br>"
                 "Rango óptimo: <b>ph a ph</b> para lechugas.<br>"
                 "Valores fuera de este rango dificultan la absorción de nutrientes."
             ),
             (
-                "Nivel ORP", "0°", "00/0 00:00:00",
+                "Nivel ORP", "00 mV", "00/0 00:00:00",
                 "<b>Potencial Redox (ORP)</b><br>"
                 "Rango ideal para lechugas: <b>mV a mV</b>.<br>"
                 "Un ORP dentro de este rango indica un buen equilibrio entre oxidantes y reductores, "
