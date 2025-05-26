@@ -22,6 +22,28 @@ def connect_db():
         print(f"ERROR en `connect_db()`: {err}")
         return None
 
+
+def update_hortaliza_seleccion(id_hortaliza):
+    conn = connect_db()
+    if not conn:
+        return False
+
+    try:
+        cursor = conn.cursor()
+        # Primero deseleccionar todas
+        cursor.execute("UPDATE seleccion_hortalizas SET seleccion = 0")
+        # Luego seleccionar la específica
+        cursor.execute("UPDATE seleccion_hortalizas SET seleccion = 1 WHERE id_hortaliza = %s", (id_hortaliza,))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating hortaliza: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
 def get_sensor_ranges(hortaliza_id, sensor_id):
     """Obtiene los rangos mínimos y máximos para un sensor específico de una hortaliza"""
     query = """
@@ -68,34 +90,6 @@ def get_sensors_data(hortaliza_id):
     finally:
         connection.close()
 
-def get_averages_all():
-    """Obtiene los promedios de todos los registros"""
-    conn = connect_db()
-    if conn is None:
-        return []
-
-    try:
-        cursor = conn.cursor()
-        query = """
-        
-        SELECT 
-            AVG(ph_value) as avg_ph,
-            AVG(ce_value) as avg_ce,
-            AVG(tagua_value) as avg_t_agua,
-            AVG(us_value) as avg_nivel,
-            AVG(tam_value) as avg_t_ambiente,
-            AVG(hum_value) as avg_humedad
-        FROM registro_mediciones
-        """
-        cursor.execute(query)
-        return cursor.fetchone()
-    except Exception as e:
-        print(f"Error al obtener promedios generales: {e}")
-        return []
-    finally:
-        cursor.close()
-        conn.close()
-
 def get_hortalizas():
     conn = connect_db()
     if not conn:
@@ -132,6 +126,35 @@ def update_hortaliza_seleccion(id_hortaliza):
     finally:
         cursor.close()
         conn.close()
+
+def get_averages_all():
+    """Obtiene los promedios de todos los registros"""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        query = """
+        
+        SELECT 
+            AVG(ph_value) as avg_ph,
+            AVG(ce_value) as avg_ce,
+            AVG(tagua_value) as avg_t_agua,
+            AVG(us_value) as avg_nivel,
+            AVG(tam_value) as avg_t_ambiente,
+            AVG(hum_value) as avg_humedad
+        FROM registro_mediciones
+        """
+        cursor.execute(query)
+        return cursor.fetchone()
+    except Exception as e:
+        print(f"Error al obtener promedios generales: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 def get_date_ranges(weeks=False, months=False):
@@ -269,7 +292,7 @@ def create_line_graph():
             LIMIT 10
         """)
         rows = cursor.fetchall()
-        print("📊 Datos recibidos para la gráfica:", rows)
+        """ print("📊 Datos recibidos para la gráfica:", rows) """
     except Exception as e:
         import traceback
         print("❌ Error en la consulta SQL:")

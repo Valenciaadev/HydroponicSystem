@@ -70,7 +70,6 @@ class HistoryAppAdmin(QWidget):
                 gridline-color: #7FD1B9;
                 color: white;
                 border: none;
-                overflow: hidden;
             }
         """)
 
