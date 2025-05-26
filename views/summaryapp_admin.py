@@ -4,6 +4,10 @@ from PyQt5.QtGui import *
 from models.database import create_line_graph
 from models.database import create_bar_graph
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from picamera2 import Picamera2
+from PyQt5.QtCore import QTimer
+import cv2
+from PyQt5.QtGui import QImage, QPixmap
 import matplotlib.pyplot as plt
 import random
 import math
@@ -11,6 +15,8 @@ import math
 class SummaryAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__()
+
+        self.camera = None
 
         QToolTip.setFont(QFont("Arial", 12))
         QApplication.instance().setStyleSheet("""
@@ -69,14 +75,14 @@ class SummaryAppAdmin(QWidget):
                 "Valores fuera de este rango dificultan la absorción de nutrientes."
             ),
             (
-                "Nivel ORP", "320 mV", "26/2 21:23:04",
+                "Nivel ORP", "320 mV", "00/0 00:00:00",
                 "<b>Potencial Redox (ORP)</b><br>"
                 "Rango ideal para lechugas: <b>250 mV a 400 mV</b>.<br>"
                 "Un ORP dentro de este rango indica un buen equilibrio entre oxidantes y reductores, "
                 "lo cual favorece la absorción de nutrientes y evita la proliferación de microorganismos indeseados."
             ),
             (
-                "Nivel del agua", "0 bool", "26/2 21:23:04",
+                "Nivel del agua", "0 bool", "00/0 00:00:00",
                 "<b>Nivel del Agua</b><br>"
                 "Debe cubrir completamente las raíces sin llegar al tallo.<br>"
                 "Se recomienda mantener un nivel constante para evitar estrés hídrico."
@@ -112,32 +118,53 @@ class SummaryAppAdmin(QWidget):
         graph_layout.addWidget(self.graph_canvas_top)
 
         middle_layout.addWidget(graph_frame)
-        # FIN DE LA GRÁFICA DE BARRAS //////////////////////
+        # FIN DE LA GRÁFICA DE BARRAS ////////////////////// 
 
         # 2.3 RECUADRO PARA LA CÁMARA //////////////////////
         camera_frame = QFrame()
         camera_frame.setFixedSize(405, 405)
-        camera_frame.setStyleSheet("background-color: #1f2232; border: 2px solid #444444; border-radius: 20px;")
-        camera_label = QLabel("Vista Cámara", camera_frame)
-        camera_label.setStyleSheet("color: white;")
-        camera_label.setAlignment(Qt.AlignCenter)
+        camera_frame.setStyleSheet("""
+            background-color: #1f2232;
+            border: 2px solid #444444;
+            border-radius: 20px;
+        """)
+        camera_layout = QVBoxLayout(camera_frame)
+        camera_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.camera_label = QLabel("Cargando cámara...")
+        self.camera_label.setAlignment(Qt.AlignCenter)
+        self.camera_label.setStyleSheet("color: white; background-color: black;")
+        self.camera_label.setFixedSize(400, 400)
+        camera_layout.addWidget(self.camera_label)
         middle_layout.addWidget(camera_frame)
 
         layout.addLayout(middle_layout)
 
-        # SECCIÓN 3 PARTE INFERIOR
-        bottom_layout = QHBoxLayout()
-
-        # 3.1 INICIO DE LA GRÁFICA DE LÍNEAS //////////////////////
         self.graph_canvas_bottom = create_line_graph()
         self.graph_canvas_bottom.setFixedSize(1350, 400)
+        bottom_layout = QHBoxLayout()
         bottom_layout.addWidget(self.graph_canvas_bottom)
-        # 3.1 FIN DE LA GRÁFICA DE LÍNEAS //////////////////////
-
-        # 3.2 Gauges derechos
         bottom_layout.addLayout(self.create_gauge_column(["PH Agua", "Nivel Agua", "ORP"]))
-
         layout.addLayout(bottom_layout)
+
+        # Inicializar Picamera
+        self.picam = Picamera2()
+        config = self.picam.create_preview_configuration(main={"size": (640, 480)})
+        self.picam.configure(config)
+        self.picam.start()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_camera_frame)
+        self.timer.start(30)
+
+    def update_camera_frame(self):
+        frame = self.picam.capture_array()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        h, w, ch = frame.shape
+        bytes_per_line = ch * w
+        qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(qimg).scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.camera_label.setPixmap(pixmap)
 
     def create_card(self, title, value, timestamp, tooltip_text):
         card = QFrame()

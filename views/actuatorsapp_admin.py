@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from views.seleccion_usuario import TitleBar
+from controllers.actuadores_serial import enviar_comando
 from views.about_actuator_modal import AboutActuatorWidget
 from views.actuator_managment_modal import ActuatorManagmentWidget
 from models.database import connect_db
@@ -209,6 +210,10 @@ class ActuatorsAppAdmin(QWidget):
                         }
                     """)
                     self.update_estado(actuator_id, 1)
+                    if "ventilador" in nombre.lower():
+                        enviar_comando("EN")
+                    elif "lampara" in nombre.lower() or "lámpara" in nombre.lower():
+                        enviar_comando("ON", dispositivo="lampara")
                     print(f"{nombre} encendido")
                 else:
                     toggle_button.setText("Encender")
@@ -227,6 +232,10 @@ class ActuatorsAppAdmin(QWidget):
                         }
                     """)
                     self.update_estado(actuator_id, 0)
+                    if "ventilador" in nombre.lower():
+                        enviar_comando("AP")
+                    elif "lampara" in nombre.lower() or "lámpara" in nombre.lower():
+                        enviar_comando("OFF", dispositivo="lampara")
                     print(f"{nombre} apagado")
 
             toggle_button.clicked.connect(toggle_state)
