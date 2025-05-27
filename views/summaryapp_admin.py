@@ -45,40 +45,40 @@ class SummaryAppAdmin(QWidget):
         
         cards_info = [
             (
-                "Temperatura del aire", "24°", "26/2 21:23:04",
+                "Temperatura del aire", "00 °C", "00/0 00:00:00",
                 "<b>Temperatura del Aire</b><br>"
-                "Ideal entre <b>18°C y 24°C</b> para el crecimiento óptimo de lechugas.<br>"
+                "Ideal entre <b>00°C y 00°C</b> para el crecimiento óptimo de lechugas.<br>"
                 "Evita temperaturas mayores a 27°C para prevenir estrés térmico."
             ),
             (
-                "Humedad del aire", "61.2", "26/2 21:23:04",
+                "Humedad del aire", "00 %", "00/0 00:00:00",
                 "<b>Humedad Relativa del Aire</b><br>"
-                "Rango ideal: <b>50% a 70%</b>.<br>"
+                "Rango ideal: <b>% a %</b>.<br>"
                 "Niveles adecuados reducen la transpiración excesiva y promueven la fotosíntesis."
             ),
             (
-                "Temperatura del agua", "26°", "26/2 21:23:04",
+                "Temperatura del agua", "00 °C", "00/0 00:00:00",
                 "<b>Temperatura del Agua</b><br>"
-                "Ideal entre <b>18°C y 22°C</b>.<br>"
+                "Ideal entre <b>°C y °C</b>.<br>"
                 "Temperaturas superiores a 24°C pueden reducir el oxígeno disuelto, afectando las raíces."
             ),
             (
-                "Nivel pH del agua", "5 pH", "26/2 21:23:04",
+                "Nivel pH del agua", "00 cm", "00/0 00:00:00",
                 "<b>Nivel de pH del Agua</b><br>"
-                "Rango óptimo: <b>5.5 a 6.5</b> para lechugas.<br>"
+                "Rango óptimo: <b>ph a ph</b> para lechugas.<br>"
                 "Valores fuera de este rango dificultan la absorción de nutrientes."
             ),
             (
-                "Nivel ORP", "320 mV", "26/2 21:23:04",
+                "Nivel ORP", "00 mV", "00/0 00:00:00",
                 "<b>Potencial Redox (ORP)</b><br>"
-                "Rango ideal para lechugas: <b>250 mV a 400 mV</b>.<br>"
+                "Rango ideal para lechugas: <b>mV a mV</b>.<br>"
                 "Un ORP dentro de este rango indica un buen equilibrio entre oxidantes y reductores, "
                 "lo cual favorece la absorción de nutrientes y evita la proliferación de microorganismos indeseados."
             ),
             (
-                "Nivel del agua", "0 bool", "26/2 21:23:04",
+                "Nivel del agua", "Text", "00/0 00:00:00",
                 "<b>Nivel del Agua</b><br>"
-                "Debe cubrir completamente las raíces sin llegar al tallo.<br>"
+                "Debe estar por debajo del límite del contenedor en el que se ecuentra y superior al a mitad de este mismo<br>"
                 "Se recomienda mantener un nivel constante para evitar estrés hídrico."
             ),
         ]

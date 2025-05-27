@@ -14,7 +14,8 @@ from controllers.auth_controller import hash_password
 from views.homeapp_admin import HomeappAdmin
 from views.homeapp_worker import HomeappWorker
 
-""" # Crear un nuevo usuario trabajador
+"""
+# Crear un nuevo usuario trabajador
 usuario_trabajador = Usuario(
     nombre="Alexis",
     apellido_paterno="Verduzco",

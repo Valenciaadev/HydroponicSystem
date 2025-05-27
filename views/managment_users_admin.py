@@ -117,7 +117,7 @@ class ManagmentAppAdmin(QWidget):
                 font-size: 28px;
                 font-weight: bold;
                 color: white;
-                margin-left: 15px;
+                margin-left: 10px;
             }
             QPushButton {
                 padding: 8px 16px;
@@ -132,11 +132,32 @@ class ManagmentAppAdmin(QWidget):
         """)
 
         main_layout = QVBoxLayout(self)
+
+        # --- Frame principal ---
         container_frame = QFrame()
         container_frame.setStyleSheet("background-color: #28243C; border-radius: 15px;")
         container_layout = QVBoxLayout(container_frame)
         container_layout.setContentsMargins(20, 40, 20, 20)
 
+
+        # Buscar ícono según el nombre
+        icon_path = "assets/icons/users-solid.svg"
+
+        # Icono PNG al lado izquierdo del nombre
+        icon_label = QLabel()
+        icon_pixmap = QPixmap(icon_path)
+
+        if icon_pixmap.isNull():
+            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+
+        # Escalar sin recortar
+        icon_label.setPixmap(icon_pixmap.scaledToHeight(28, Qt.SmoothTransformation))
+        icon_label.setContentsMargins(20, 0, 0, 0)
+        icon_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        icon_label.setAlignment(Qt.AlignCenter)
+        """icon_label.setStyleSheet("margin-right: 10px;")"""
+
+        # --- Título ---
         titulo = QLabel("Gestor de usuarios")
         titulo.setObjectName("Title")
 
@@ -172,6 +193,7 @@ class ManagmentAppAdmin(QWidget):
         inner_layout.addWidget(self.add_user_button)
 
         top_layout = QHBoxLayout()
+        top_layout.addWidget(icon_label)
         top_layout.addWidget(titulo, alignment=Qt.AlignVCenter)
         top_layout.addStretch()
         top_layout.addWidget(self.add_user_frame)
@@ -447,6 +469,7 @@ class ManagmentAppAdmin(QWidget):
         # Layout del frame interior
         frame_layout = QHBoxLayout(inner_frame)
         frame_layout.setContentsMargins(20, 10, 20, 10)  # Mismos márgenes que en ActuatorsAppAdmin
+
         lbl_nombre = QLabel(
             f"{usuario['nombre']} {usuario['apellido_paterno']} {usuario['apellido_materno']}"
         )
