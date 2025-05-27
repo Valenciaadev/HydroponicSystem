@@ -288,6 +288,16 @@ class HomeappAdmin(QWidget):
             self.serial_thread.wait()
             print("🔌 Hilo serial detenido correctamente al cerrar sesión.")
 
+        # 🚿 Apagar bomba de agua al cerrar sesión
+        try:
+            import serial
+            arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+            arduino.write(b'BAOFF\n')
+            arduino.close()
+            print("✅ Bomba de agua apagada al cerrar sesión.")
+        except Exception as e:
+            print("⚠️ No se pudo apagar la bomba al cerrar sesión:", e)
+
         self.ventana_login.show()
         self.close()
 

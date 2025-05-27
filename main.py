@@ -203,8 +203,16 @@ if __name__ == "__main__":
             window.homeapp_admin.serial_thread.quit()
             window.homeapp_admin.serial_thread.wait()
             print("🛑 Hilo serial cerrado desde aboutToQuit.")
+            try:
+                import serial
+                arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+                arduino.write(b'BAOFF\n')
+                print("🚿 Bomba de agua apagada automáticamente al salir.")
+                arduino.close()
+            except Exception as e:
+                print("⚠️ No se pudo apagar la bomba al salir:", e)
 
-    app.aboutToQuit.connect(cerrar_hilos_al_salir)
+            app.aboutToQuit.connect(cerrar_hilos_al_salir)
 
 
     window.show()
