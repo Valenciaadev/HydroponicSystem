@@ -20,12 +20,27 @@ except serial.SerialException as e:
     print("❌ Error al conectar con Arduino lámpara:", e)
     arduino_lampara = None
 
+# Conexión al Arduino de la bomba (/dev/ttyACM0)
+try:
+    arduino_bomba = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+    time.sleep(2)
+    print("✅ Arduino bomba conectado en /dev/ttyACM0")
+except serial.SerialException as e:
+    print("❌ Error al conectar con Arduino bomba:", e)
+    arduino_bomba = None
+
 def enviar_comando(comando, dispositivo="ventilador"):
-    """Envía un comando al Arduino según el tipo de dispositivo."""
-    target = arduino_ventilador if dispositivo == "ventilador" else arduino_lampara
+    targets = {
+        "ventilador": arduino_ventilador,
+        "lampara": arduino_lampara,
+        "bomba": arduino_bomba,
+    }
+    target = targets.get(dispositivo)
     if target and target.is_open:
         try:
             target.write(f"{comando}\n".encode())
             print(f"📤 Comando enviado a {dispositivo.upper()}: {comando}")
         except Exception as e:
             print(f"❌ Error al enviar comando a {dispositivo}: {e}")
+
+

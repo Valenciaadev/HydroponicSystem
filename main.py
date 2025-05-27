@@ -15,6 +15,8 @@ from views.homeapp_admin import HomeappAdmin
 from views.homeapp_worker import HomeappWorker
 from models.serial_thread import SerialReaderThread
 from views.summaryapp_admin import SummaryAppAdmin
+import serial
+import time
 
 # Crear un nuevo usuario trabajador
 '''usuario_trabajador = Usuario(
@@ -206,6 +208,16 @@ if __name__ == "__main__":
 
 
     window.show()
+
+    # Encender bomba de agua al iniciar
+    try:
+        arduino_bomba = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+        time.sleep(2)
+        arduino_bomba.write(b'BAON\n')
+        print("🚿 Bomba de agua encendida automáticamente.")
+    except serial.SerialException as e:
+        print("❌ No se pudo encender la bomba de agua automáticamente:", e)
+
 
     try:
         exit_code = app.exec_()

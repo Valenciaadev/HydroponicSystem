@@ -258,6 +258,8 @@ class ActuatorsAppAdmin(QWidget):
                         enviar_comando("EN")
                     elif "lampara" in nombre.lower() or "lámpara" in nombre.lower():
                         enviar_comando("ON", dispositivo="lampara")
+                    elif "bomba" in nombre.lower():
+                        enviar_comando("BAON", dispositivo="bomba")
                     print(f"{nombre} encendido")
                 else:
                     toggle_button.setText("Encender")
@@ -280,6 +282,8 @@ class ActuatorsAppAdmin(QWidget):
                         enviar_comando("AP")
                     elif "lampara" in nombre.lower() or "lámpara" in nombre.lower():
                         enviar_comando("OFF", dispositivo="lampara")
+                    elif "bomba" in nombre.lower():
+                        enviar_comando("BAOFF", dispositivo="bomba")
                     print(f"{nombre} apagado")
 
             toggle_button.clicked.connect(toggle_state)
