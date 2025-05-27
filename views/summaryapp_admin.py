@@ -200,6 +200,7 @@ class SummaryAppAdmin(QWidget):
             }
         """)
 
+        # Tooltip personalizado al hacer hover
         class InfoButtonEnterEvent:
             def __init__(self, button):
                 self.button = button
@@ -216,6 +217,7 @@ class SummaryAppAdmin(QWidget):
 
         info_button.enterEvent = InfoButtonEnterEvent(info_button).enterEvent
 
+        # Título + ícono
         title_label = QLabel(title)
         title_label.setFont(QFont("Arial", 10, QFont.Bold))
 
@@ -225,6 +227,7 @@ class SummaryAppAdmin(QWidget):
         title_info_layout.addWidget(title_label)
         title_info_layout.addWidget(info_button)
 
+        # Centro del contenido
         value_label = QLabel(value)
         value_label.setFont(QFont("Arial", 18, QFont.Bold))
         value_label.setMinimumHeight(40)

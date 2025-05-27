@@ -190,6 +190,10 @@ class HomeappAdmin(QWidget):
         layout_principal.addWidget(content_widget)
 
         self.setLayout(layout_principal)
+        
+    # def log_out(self):
+        #self.ventana_login.show()
+        # self.close()
 
         self.serial_thread = SerialReaderThread()
         self.serial_thread.datos_actualizados.connect(self.inicio_widget.recibir_datos_sensores)

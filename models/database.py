@@ -51,6 +51,74 @@ def get_averages_all():
         cursor.close()
         conn.close()
 
+
+def update_hortaliza_seleccion(id_hortaliza):
+    conn = connect_db()
+    if not conn:
+        return False
+
+    try:
+        cursor = conn.cursor()
+        # Primero deseleccionar todas
+        cursor.execute("UPDATE seleccion_hortalizas SET seleccion = 0")
+        # Luego seleccionar la específica
+        cursor.execute("UPDATE seleccion_hortalizas SET seleccion = 1 WHERE id_hortaliza = %s", (id_hortaliza,))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating hortaliza: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_sensor_ranges(hortaliza_id, sensor_id):
+    """Obtiene los rangos mínimos y máximos para un sensor específico de una hortaliza"""
+    query = """
+        SELECT valor_min_acept, valor_max_acept 
+        FROM config_sensores 
+        WHERE id_hortaliza = %s AND id_sensor = %s
+    """
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (hortaliza_id, sensor_id))
+            result = cursor.fetchone()
+            if result:
+                return {
+                    'min': result[0],  # valor_min_acept está en la posición 0
+                    'max': result[1]   # valor_max_acept está en la posición 1
+                }
+            return {'min': 0, 'max': 0}
+    finally:
+        connection.close()
+
+def get_sensors_data(hortaliza_id):
+    """Obtiene todos los sensores con sus rangos configurados para una hortaliza"""
+    query = """
+        SELECT s.id_sensor, s.nombre, cs.valor_min_acept, cs.valor_max_acept
+        FROM sensores s
+        LEFT JOIN config_sensores cs ON s.id_sensor = cs.id_sensor AND cs.id_hortaliza = %s
+        ORDER BY s.id_sensor
+    """
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (hortaliza_id,))
+            columns = [column[0] for column in cursor.description]  # Obtenemos los nombres de las columnas
+            return [
+                {
+                    'id': row[columns.index('id_sensor')],
+                    'nombre': row[columns.index('nombre')],
+                    'rango_min': row[columns.index('valor_min_acept')] or 0,
+                    'rango_max': row[columns.index('valor_max_acept')] or 0
+                }
+                for row in cursor.fetchall()
+            ]
+    finally:
+        connection.close()
+
 def get_hortalizas():
     conn = connect_db()
     if not conn:
@@ -87,6 +155,35 @@ def update_hortaliza_seleccion(id_hortaliza):
     finally:
         cursor.close()
         conn.close()
+
+def get_averages_all():
+    """Obtiene los promedios de todos los registros"""
+    conn = connect_db()
+    if conn is None:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        query = """
+        
+        SELECT 
+            AVG(ph_value) as avg_ph,
+            AVG(ce_value) as avg_ce,
+            AVG(tagua_value) as avg_t_agua,
+            AVG(us_value) as avg_nivel,
+            AVG(tam_value) as avg_t_ambiente,
+            AVG(hum_value) as avg_humedad
+        FROM registro_mediciones
+        """
+        cursor.execute(query)
+        return cursor.fetchone()
+    except Exception as e:
+        print(f"Error al obtener promedios generales: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 def get_date_ranges(weeks=False, months=False):
@@ -196,16 +293,24 @@ def get_admin_password():
 
     try:
         cursor = conn.cursor()
-        query = "SELECT clabe FROM administradores ad join usuarios us WHERE ad.id_usuario = us.id"
+        query = """
+            SELECT us.clabe 
+            FROM administradores ad 
+            JOIN usuarios us ON ad.id_usuario = us.id
+            LIMIT 1
+        """
         cursor.execute(query)
         result = cursor.fetchone()
         return result[0] if result else None
+
     except mysql.connector.Error as err:
         print(f"ERROR en `get_admin_password()`: {err}")
         return None
+
     finally:
-        if conn.is_connected():
+        if cursor:
             cursor.close()
+        if conn and conn.is_connected():
             conn.close()
 
 def create_line_graph():
@@ -224,7 +329,7 @@ def create_line_graph():
             LIMIT 10
         """)
         rows = cursor.fetchall()
-        print("📊 Datos recibidos para la gráfica:", rows)
+        """ print("📊 Datos recibidos para la gráfica:", rows) """
     except Exception as e:
         import traceback
         print("❌ Error en la consulta SQL:")

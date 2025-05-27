@@ -150,7 +150,7 @@ class LoginRegisterApp(QDialog):
 
         # Mostrar la vista de login por defecto
         self.stack.setCurrentWidget(self.user_select_widget)
-    
+        
     def mostrar_panel_admin(self):
         self.homeapp_admin = HomeappAdmin(self)
         self.serial_thread = SerialReaderThread()
