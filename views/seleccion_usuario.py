@@ -59,10 +59,9 @@ class TitleBar(QWidget):
             event.accept()
 
 class SeleccionUsuarioWidget(QWidget):
-    def __init__(self, switch_to_admin, switch_to_worker):
+    def __init__(self, switch_to_admin):
         super().__init__()
         self.switch_to_admin = switch_to_admin
-        self.switch_to_worker = switch_to_worker
         
         layout = QVBoxLayout()
 
@@ -93,25 +92,6 @@ class SeleccionUsuarioWidget(QWidget):
         admin_button.clicked.connect(self.prompt_admin_password)
         layout.addWidget(admin_button)
 
-        # Botón Trabajador
-        worker_button = QPushButton(" Trabajador")
-        worker_button.setIcon(QIcon("assets/icons/user-icon-white.svg"))
-        worker_button.setIconSize(QSize(24, 24))
-        worker_button.setStyleSheet("""
-            QPushButton {
-                background-color: gray;
-                color: white;
-                border-radius: 5px;
-                padding: 10px;
-                font-size: 14px;
-                font: bold;
-            }
-            QPushButton:hover {
-                background-color: #505050;
-            }
-        """)
-        worker_button.clicked.connect(self.confirm_worker_selection)
-        layout.addWidget(worker_button)
 
         self.setLayout(layout)
         
@@ -160,7 +140,7 @@ class SeleccionUsuarioWidget(QWidget):
                 background-color: #005A9E;
             }
         """)        
-        confirm_button.clicked.connect(lambda: self.accept_worker(dialog))
+        
         button_layout.addWidget(confirm_button)
         
         cancel_button = QPushButton(" Regresar")

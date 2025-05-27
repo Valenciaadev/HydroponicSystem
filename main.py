@@ -135,7 +135,7 @@ class LoginRegisterApp(QDialog):
 
         self.register_widget = RegistroWidget(self.switch_to_login)
         self.login_widget = InicioSesionWidget(parent_app=self)
-        self.user_select_widget = SeleccionUsuarioWidget(self.switch_to_admin, self.switch_to_worker)
+        self.user_select_widget = SeleccionUsuarioWidget(self.switch_to_admin)
         self.login_admin_widget = InicioSesionAdministradorWidget(parent_app=self)
 
         self.stack.addWidget(self.user_select_widget)
