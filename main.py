@@ -14,7 +14,6 @@ from controllers.auth_controller import hash_password
 from views.homeapp_admin import HomeappAdmin
 from views.homeapp_worker import HomeappWorker
 
-"""
 # Crear un nuevo usuario trabajador
 usuario_trabajador = Usuario(
     nombre="Alexis",
@@ -50,7 +49,6 @@ id_usuario_admin = usuario_admin.guardar_en_db()
 if id_usuario_admin:
     administrador = Administrador(id_usuario=id_usuario_admin)
     administrador.guardar_en_db()
-"""
 
 class TitleBar(QWidget):
     def __init__(self, parent):

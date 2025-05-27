@@ -51,7 +51,6 @@ class TitleBar(QWidget):
             self.parent.move(event.globalPos() - self.drag_position)
             event.accept()
 
-
 class AboutSensorWidget(QDialog):
     def __init__(self, ventana_login, sensor_id=None):
         super().__init__()
