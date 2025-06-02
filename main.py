@@ -15,6 +15,8 @@ from views.homeapp_admin import HomeappAdmin
 from views.homeapp_worker import HomeappWorker
 from models.serial_thread import SerialReaderThread
 from views.summaryapp_admin import SummaryAppAdmin
+from views.summaryapp_worker import SummaryAppWorker
+
 import serial
 import time
 
@@ -135,7 +137,7 @@ class LoginRegisterApp(QDialog):
 
         self.register_widget = RegistroWidget(self.switch_to_login)
         self.login_widget = InicioSesionWidget(parent_app=self)
-        self.user_select_widget = SeleccionUsuarioWidget(self.switch_to_admin)
+        self.user_select_widget = SeleccionUsuarioWidget(self.switch_to_admin, self.switch_to_worker)
         self.login_admin_widget = InicioSesionAdministradorWidget(parent_app=self)
 
         self.stack.addWidget(self.user_select_widget)
@@ -165,6 +167,11 @@ class LoginRegisterApp(QDialog):
     
     def mostrar_panel_worker(self):
         self.homeapp_worker = HomeappWorker(self)
+        self.serial_thread = SerialReaderThread()
+        self.serial_thread.datos_actualizados.connect(self.homeapp_worker.inicio_widget.recibir_datos_sensores)
+        self.serial_thread.start()
+
+        # Mostrar la vista principal
         self.homeapp_worker.showFullScreen()
         self.hide()
 
@@ -202,6 +209,12 @@ if __name__ == "__main__":
             window.homeapp_admin.serial_thread.stop()
             window.homeapp_admin.serial_thread.quit()
             window.homeapp_admin.serial_thread.wait()
+            
+        if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread'):
+            window.homeapp_worker.serial_thread.stop()
+            window.homeapp_worker.serial_thread.quit()
+            window.homeapp_worker.serial_thread.wait()
+
             print("🛑 Hilo serial cerrado desde aboutToQuit.")
             try:
                 import serial
@@ -234,5 +247,10 @@ if __name__ == "__main__":
             window.homeapp_admin.serial_thread.stop()
             window.homeapp_admin.serial_thread.quit()
             window.homeapp_admin.serial_thread.wait()
+
+        if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread'):
+            window.homeapp_worker.serial_thread.stop()
+            window.homeapp_worker.serial_thread.quit()
+            window.homeapp_worker.serial_thread.wait()
 
     sys.exit(exit_code)

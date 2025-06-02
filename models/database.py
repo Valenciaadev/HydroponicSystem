@@ -389,6 +389,7 @@ def create_line_graph():
     canvas = FigureCanvas(fig)
     return canvas
 
+
 def create_bar_graph():
     conn = connect_db()
     if conn is None:
@@ -399,27 +400,15 @@ def create_bar_graph():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT 
-                'pH' AS categoria,
-                AVG(ph_value) AS valor
+                AVG(ph_value) as avg_ph,
+                AVG(ce_value) as avg_ce,
+                AVG(tagua_value) as avg_t_agua,
+                AVG(us_value) as avg_nivel,
+                AVG(tam_value) as avg_t_ambiente,
+                AVG(hum_value) as avg_humedad
             FROM registro_mediciones
-            UNION ALL
-            SELECT 
-                'CE' AS categoria,
-                AVG(ce_value) AS valor
-            FROM registro_mediciones
-            UNION ALL
-            SELECT 
-                'Temp Agua' AS categoria,
-                AVG(tagua_value) AS valor
-            FROM registro_mediciones
-            UNION ALL
-            SELECT 
-                'Nivel del agua' AS categoria,
-                AVG(us_value) AS valor
-            FROM registro_mediciones
-            LIMIT 4
         """)
-        rows = cursor.fetchall()
+        row = cursor.fetchone()
     except Exception as e:
         print(f"❌ Error en la consulta SQL para gráfica de barras: {e}")
         return QLabel(f"Error al cargar la gráfica de barras: {str(e)}")
@@ -429,50 +418,52 @@ def create_bar_graph():
         if conn:
             conn.close()
 
-    if not rows:
+    if not row or all(val is None for val in row):
         print("⚠️ No hay datos para la gráfica de barras")
         return QLabel("Sin datos para mostrar")
 
-    # Extraer categorías y valores
-    categorias = [row[0] for row in rows]
-    valores = [float(row[1]) for row in rows]
+    # Etiquetas y valores
+    categorias = [
+        "Sensor de pH",
+        "Sensor de ORP",
+        "Temperatura Agua",
+        "Nivel de agua",
+        "Temperatura Ambiente",
+        "Sensor humedad"
+    ]
+    valores = [float(val) if val is not None else 0.0 for val in row]
 
     # Crear la figura
-    fig = plt.figure(figsize=(9, 4))
+    fig = plt.figure(figsize=(10, 4))
     fig.patch.set_facecolor('#1f2232')
 
     ax = fig.subplots()
     ax.set_facecolor('#1f2232')
-    
-    # Paleta de colores vibrantes para cada barra
-    colores = ['#00FFFF', '#FF00FF', '#FFFF00', '#00FF00']
-    
-    # Gráfica de barras con datos reales
+
+    colores = ['#00FFFF', '#FF00FF', '#FFFF00', '#00FF00', '#FFA500', '#6495ED']
+
     bars = ax.bar(categorias, valores, color=colores, edgecolor='white', linewidth=1)
-    
-    # Añadir valores encima de cada barra
+
     for bar in bars:
         height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height,
+        ax.text(bar.get_x() + bar.get_width() / 2., height,
                 f'{height:.2f}',
-                ha='center', va='bottom', 
+                ha='center', va='bottom',
                 color='white', fontweight='bold', fontsize=10)
 
     ax.set_title("Promedio de Mediciones", color='white', fontsize=12, pad=20)
-    ax.tick_params(axis='x', colors='white', labelsize=10)
+    ax.tick_params(axis='x', colors='white', labelsize=9, rotation=20)
     ax.tick_params(axis='y', colors='white', labelsize=10)
     ax.set_ylabel("Valor promedio", color='white', fontsize=11)
 
     ax.grid(axis='y', color='#2a3b4d', alpha=0.3, linestyle='--')
-    
     for spine in ax.spines.values():
         spine.set_color('white')
         spine.set_linewidth(1.5)
 
-    plt.tight_layout()    
-    
-    canvas = FigureCanvas(fig)
-    return canvas
+    plt.tight_layout()
+
+    return FigureCanvas(fig)
 
 def getAll():
     """Obtiene todos los datos del historial."""

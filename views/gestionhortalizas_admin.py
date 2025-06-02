@@ -88,6 +88,7 @@ class GestionHortalizasAppAdmin(QWidget):
                     stop:0 #60D4B8, stop:1 #1E2233);
                 border-radius: 0px;
                 padding: 2px;
+                margin: 0px;
             }
         """)
         
