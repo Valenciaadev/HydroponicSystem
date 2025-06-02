@@ -16,6 +16,7 @@ from views.homeapp_worker import HomeappWorker
 from models.serial_thread import SerialReaderThread
 from views.summaryapp_admin import SummaryAppAdmin
 from views.summaryapp_worker import SummaryAppWorker
+from models.database import connect_db
 
 import serial
 import time
@@ -166,12 +167,19 @@ class LoginRegisterApp(QDialog):
         self.hide()
     
     def mostrar_panel_worker(self):
+        # ✅ Cierra ventana anterior si ya existía
+        if hasattr(self, 'homeapp_worker'):
+            if hasattr(self.homeapp_worker, 'inicio_widget') and hasattr(self.homeapp_worker.inicio_widget, 'liberar_camara'):
+                self.homeapp_worker.inicio_widget.liberar_camara()
+            self.homeapp_worker.close()
+            del self.homeapp_worker
+
+        # ✅ Ahora sí creamos una nueva
         self.homeapp_worker = HomeappWorker(self)
         self.serial_thread = SerialReaderThread()
         self.serial_thread.datos_actualizados.connect(self.homeapp_worker.inicio_widget.recibir_datos_sensores)
         self.serial_thread.start()
 
-        # Mostrar la vista principal
         self.homeapp_worker.showFullScreen()
         self.hide()
 
@@ -236,6 +244,16 @@ if __name__ == "__main__":
         time.sleep(2)
         arduino_bomba.write(b'BAON\n')
         print("🚿 Bomba de agua encendida automáticamente.")
+
+        try:
+            conn = connect_db()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE actuadores SET estado_actual = 1 WHERE nombre LIKE '%Bomba de Agua%'")
+            conn.commit()
+            conn.close()
+            print("🟢 Estado de la bomba actualizado en la base de datos.")
+        except Exception as e:
+            print("⚠️ Error al actualizar el estado de la bomba en la base de datos:", e)
     except serial.SerialException as e:
         print("❌ No se pudo encender la bomba de agua automáticamente:", e)
 

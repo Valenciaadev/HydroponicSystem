@@ -166,6 +166,16 @@ class SummaryAppWorker(QWidget):
         pixmap = QPixmap.fromImage(qimg).scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.camera_label.setPixmap(pixmap)
 
+    def liberar_camara(self):
+        if hasattr(self, "picam"):
+            try:
+                self.timer.stop()
+                self.picam.stop()
+                self.picam.close()
+                print("📷 Cámara liberada correctamente.")
+            except Exception as e:
+                print("⚠️ Error al liberar la cámara:", e)
+
     def create_card(self, title, value, timestamp, tooltip_text):
         card = QFrame()
         card.setStyleSheet("""
