@@ -572,12 +572,13 @@ def getbyYear():
         cursor.close()
         conn.close()
 
-def guardar_mediciones_cada_6h(ph, orp, temperatura):
+def guardar_mediciones_cada_6h(ph, orp, temp_agua, nivel_agua=0.0, temp_aire=0.0, humedad_aire=0.0):
     """
-    Guarda los datos en la tabla `registro_mediciones` si la hora actual es 06:00, 12:00, 18:00 o 00:00.
-    Usa connect_db ya existente.
+    Guarda todos los valores en la tabla `registro_mediciones` si la hora actual es 06:00, 12:00, 18:00 o 00:00.
     """
     from datetime import datetime
+    from models.database import connect_db
+
     hora_actual = datetime.now().strftime("%H:%M")
     if hora_actual in ["06:00", "12:00", "18:00", "00:00"]:
         try:
@@ -592,13 +593,22 @@ def guardar_mediciones_cada_6h(ph, orp, temperatura):
             query = """
                 INSERT INTO registro_mediciones 
                 (ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha)
-                VALUES (%s, %s, %s, 0.0, 0.0, 0.0, %s)
+                VALUES (%s, %s, %s, %s, %s, 0.0, %s)
             """
-            cursor.execute(query, (ph, orp, temperatura, now))
+            cursor.execute(query, (
+                ph,
+                orp,
+                temp_agua,
+                nivel_agua,
+                temp_aire,
+                now
+            ))
             conn.commit()
-            print(f"✅ Datos guardados automáticamente a las {hora_actual}: pH={ph}, ORP={orp}, TempAgua={temperatura}")
+            print(f"✅ Datos guardados automáticamente a las {hora_actual}:\n"
+                  f"pH={ph}, ORP={orp}, TempAgua={temp_agua}, Nivel={nivel_agua}, TempAire={temp_aire}")
         except Exception as e:
             print(f"❌ Error al guardar datos en DB:", e)
         finally:
             cursor.close()
             conn.close()
+

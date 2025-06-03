@@ -147,8 +147,8 @@ class ManagmentAppAdmin(QWidget):
         icon_label = QLabel()
         icon_pixmap = QPixmap(icon_path)
 
-        if icon_pixmap.isNull():
-            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+        # if icon_pixmap.isNull():
+            # print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
 
         # Escalar sin recortar
         icon_label.setPixmap(icon_pixmap.scaledToHeight(28, Qt.SmoothTransformation))
@@ -476,8 +476,8 @@ class ManagmentAppAdmin(QWidget):
         icon_label = QLabel()
         icon_pixmap = QPixmap(icon_path)
 
-        if icon_pixmap.isNull():
-            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+        # if icon_pixmap.isNull():
+            # print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
 
         # Escalar sin recortar
         icon_label.setPixmap(icon_pixmap.scaledToHeight(38, Qt.SmoothTransformation))
@@ -1320,7 +1320,7 @@ class ModalEditar(QDialog):
 
         except Error as e:
             show_message("Error", f"No se pudieron guardar los cambios:\n{str(e)}", "error", self)
-            print(f"Error en guardar_cambios: {str(e)}")
+            # print(f"Error en guardar_cambios: {str(e)}")
 
         finally:
             if cursor:

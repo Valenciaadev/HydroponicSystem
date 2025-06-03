@@ -179,7 +179,7 @@ class ActuatorsAppWorker(QWidget):
 
             buttons_layout = QHBoxLayout()
             buttons_layout.setSpacing(10)
-            buttons_layout.addWidget(gestionar_button)
+            # buttons_layout.addWidget(gestionar_button)
             buttons_layout.addWidget(features_button)
 
         else:
@@ -292,7 +292,7 @@ class ActuatorsAppWorker(QWidget):
                 (nuevo_estado, actuator_id)
             )
             self.conn.commit()
-            print(f"Estado del actuador {actuator_id} actualizado a {nuevo_estado}")
+            # print(f"Estado del actuador {actuator_id} actualizado a {nuevo_estado}")
         except Exception as e:
             print("Error al actualizar el estado del actuador:", e)
 

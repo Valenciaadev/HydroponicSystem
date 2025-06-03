@@ -244,14 +244,14 @@ class HomeappWorker(QWidget):
             self.serial_thread.stop()
             self.serial_thread.quit()
             self.serial_thread.wait()
-            print("🔌 Hilo serial detenido correctamente al cerrar sesión.")
+            # print("🔌 Hilo serial detenido correctamente al cerrar sesión.")
 
         try:
             import serial
             arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
             arduino.write(b'BAOFF\n')
             arduino.close()
-            print("✅ Bomba de agua apagada al cerrar sesión.")
+            # print("✅ Bomba de agua apagada al cerrar sesión.")
         except Exception as e:
             print("⚠️ No se pudo apagar la bomba al cerrar sesión:", e)
 

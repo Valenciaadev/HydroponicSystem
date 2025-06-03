@@ -26,14 +26,13 @@ class SerialReaderThread(QThread):
         while self._running:
             try:
                 ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
-                print(f"✅ Conectado a {SERIAL_PORT}")
+                # print(f"✅ Conectado a {SERIAL_PORT}")
                 time.sleep(2)
 
                 while self._running and ser.is_open:
                     try:
                         line = ser.readline().decode('utf-8').strip()
                         if line:
-                            print("📥 Línea recibida:", line)
                             try:
                                 data = dict(item.split(':') for item in line.split(','))
                                 temp = float(data['TEMP'])
@@ -49,7 +48,7 @@ class SerialReaderThread(QThread):
 
                                 hora_actual = datetime.now().hour
                                 minuto = datetime.now().minute
-                                if minuto == 0 and hora_actual in [0, 6, 12, 18]:
+                                if minuto == 00 and hora_actual in [0, 6, 12, 18]:
                                     if hora_actual != self._ultima_hora_guardado:
                                         guardar_mediciones_cada_6h(ph, orp, temp)
                                         self._ultima_hora_guardado = hora_actual

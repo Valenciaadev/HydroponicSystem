@@ -40,21 +40,16 @@ def show_message(title, message, type="info", parent=None):
     # Definir íconos y colores según el tipo de mensaje
     if type == "error":
         color = "#F10D32"  # Rojo fuerte para errores
-        icon = "🚨"
     elif type == "warning":
         color = "#F10D32"
-        icon = "⚠️"
     elif type == "success":
         color = "#08D9D6"
-        icon = "✅"
     else:
         color = "#F10D32"
-        icon = "ℹ️"
 
     content_layout = QVBoxLayout()
 
     label = QLabel(f"<div style='text-align: center;'>"
-                    f"<h1>{icon}</h1>"
                     f"<h2 style='color: white;'>{title}</h2>"
                     f"<p style='font-size: 14px; color: white; font: bold;'>{message}</p></div>")
     label.setAlignment(Qt.AlignCenter)
@@ -88,7 +83,6 @@ def is_valid_email(email):
 
 def is_valid_phone(telefono):
     return telefono.isdigit() and len(telefono) == 10
-
 
 # Función para registrar un nuevo usuario
 def register_user(nombre, apellido_paterno, apellido_materno, email, telefono, password, acepta_terminos, parent=None):

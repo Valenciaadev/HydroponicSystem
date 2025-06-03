@@ -893,7 +893,7 @@ class HistoryAppWorker(QWidget):
                 c.showPage()
 
         c.save()
-        print(f"PDF guardado en: {file_path}")
+        # print(f"PDF guardado en: {file_path}")
         
         # Limpiar archivos temporales
         import os

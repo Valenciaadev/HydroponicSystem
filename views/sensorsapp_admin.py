@@ -12,8 +12,8 @@ class SensorsAppAdmin(QWidget):
         self.conn = connect_db()
         if self.conn:
             self.cursor = self.conn.cursor(dictionary=True)
-        else:
-            print("No se pudo establecer la conexión a la base de datos.")
+        # else:
+            # print("No se pudo establecer la conexión a la base de datos.")
         self.init_ui()
 
     def init_ui(self):
@@ -57,8 +57,8 @@ class SensorsAppAdmin(QWidget):
         icon_label = QLabel()
         icon_pixmap = QPixmap(icon_path)
 
-        if icon_pixmap.isNull():
-            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+        # if icon_pixmap.isNull():
+            # print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
 
         # Escalar sin recortar
         icon_label.setPixmap(icon_pixmap.scaledToHeight(28, Qt.SmoothTransformation))
@@ -196,9 +196,9 @@ class SensorsAppAdmin(QWidget):
 
 
         conn = connect_db()
-        if not conn:
-            print("No se pudo conectar a la base de datos para cargar sensores.")
-            return
+        # if not conn:
+            # print("No se pudo conectar a la base de datos para cargar sensores.")
+            # return
 
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id_sensor, nombre FROM sensores")
@@ -235,8 +235,8 @@ class SensorsAppAdmin(QWidget):
             icon_label = QLabel()
             icon_pixmap = QPixmap(icon_path)
 
-            if icon_pixmap.isNull():
-                print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+            # if icon_pixmap.isNull():
+                # print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
 
             # Escalar sin recortar
             icon_label.setPixmap(icon_pixmap.scaledToHeight(32, Qt.SmoothTransformation))

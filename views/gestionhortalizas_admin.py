@@ -89,10 +89,9 @@ class GestionHortalizasAppAdmin(QWidget):
                     stop:0 #60D4B8, stop:1 #1E2233);
                 border-radius: 0px;
                 padding: 2px;
-                margin: 0px;
             }
         """)
-        
+
         self.select_crop_button = QPushButton("Selecciona tu cultivo")
         self.select_crop_button.setCursor(Qt.PointingHandCursor)
         self.select_crop_button.setStyleSheet("""
@@ -102,9 +101,8 @@ class GestionHortalizasAppAdmin(QWidget):
                 font-weight: bold;
                 font-size: 16px;
                 border: none;
-                border-radius: 0px;
-                padding: 10px 20px;
-                margin: 0px; /* Ensure no margin is applied to the button */
+                padding: 10px 5px;
+                border-radius: 30px;
             }
             QPushButton:hover {
                 background-color: #2B2E3F;

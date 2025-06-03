@@ -86,7 +86,6 @@ class RegistroWidget(QWidget):
         form_layout.addRow("", self.email)
 
         self.phone = self.create_labeled_input("Teléfono", "Ej. 1234567890")
-        # self.phone.input_field.setValidator(QRegExpValidator(QRegExp("\\d{0,10}")))
         form_layout.addRow("", self.phone)
 
         self.password = self.create_labeled_input("Contraseña")

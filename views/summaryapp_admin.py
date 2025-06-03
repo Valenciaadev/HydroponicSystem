@@ -262,7 +262,6 @@ class SummaryAppAdmin(QWidget):
         return card
 
     def recibir_datos_sensores(self, data):
-        print("📨 Datos recibidos:", data)
         self.sensor_data.update(data)  # Mantener unificado el estado
 
         mapping = {

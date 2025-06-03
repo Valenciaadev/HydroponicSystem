@@ -131,8 +131,6 @@ class LoginRegisterApp(QDialog):
         self.setGeometry(660, 200, 500, 500)
         self.setStyleSheet("background-color: #1E1B2E;")
         self.setWindowFlags(Qt.FramelessWindowHint)
-
-        # self.center_window()
         
         # Creación del stack de vistas
         self.stack = QStackedWidget()
@@ -249,13 +247,13 @@ if __name__ == "__main__":
             window.homeapp_worker.nivel_agua_thread.stop()
             window.homeapp_worker.nivel_agua_thread.quit()
             window.homeapp_worker.nivel_agua_thread.wait()
+            #print("🛑 Hilo serial cerrado desde aboutToQuit.")
 
-            print("🛑 Hilo serial cerrado desde aboutToQuit.")
             try:
                 import serial
                 arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
                 arduino.write(b'BAOFF\n')
-                print("🚿 Bomba de agua apagada automáticamente al salir.")
+                #print("🚿 Bomba de agua apagada automáticamente al salir.")
                 arduino.close()
             except Exception as e:
                 print("⚠️ No se pudo apagar la bomba al salir:", e)
@@ -269,7 +267,7 @@ if __name__ == "__main__":
         arduino_bomba = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
         time.sleep(2)
         arduino_bomba.write(b'BAON\n')
-        print("🚿 Bomba de agua encendida automáticamente.")
+        # print("🚿 Bomba de agua encendida automáticamente.")
 
         try:
             conn = connect_db()
@@ -277,7 +275,7 @@ if __name__ == "__main__":
             cursor.execute("UPDATE actuadores SET estado_actual = 1 WHERE nombre LIKE '%Bomba de Agua%'")
             conn.commit()
             conn.close()
-            print("🟢 Estado de la bomba actualizado en la base de datos.")
+            # print("🟢 Estado de la bomba actualizado en la base de datos.")
         except Exception as e:
             print("⚠️ Error al actualizar el estado de la bomba en la base de datos:", e)
     except serial.SerialException as e:

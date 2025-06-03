@@ -105,18 +105,6 @@ class InicioSesionAdministradorWidget(QWidget):
         layout.addLayout(button_layout)
         self.setLayout(layout)
 
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.offset = event.pos()
-        else:
-            super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if self.offset is not None and event.buttons() == QtCore.Qt.LeftButton:
-            self.move(self.pos() + event.pos() - self.offset)
-        else:
-            super().mouseMoveEvent(event)
-
     def create_gradient_input(self, placeholder_text=""):
         """Crea un input con el marco degradado como los actuadores"""
         outer_frame = QFrame()

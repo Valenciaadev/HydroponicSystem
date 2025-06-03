@@ -53,11 +53,6 @@ class TitleBar(QWidget):
             self.drag_position = event.globalPos() - self.parent.frameGeometry().topLeft()
             event.accept()
 
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton and self.drag_position is not None:
-            self.parent.move(event.globalPos() - self.drag_position)
-            event.accept()
-
 class SeleccionUsuarioWidget(QWidget):
     def __init__(self, switch_to_admin, switch_to_worker):
         super().__init__()

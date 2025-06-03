@@ -179,7 +179,7 @@ class ActuatorsAppAdmin(QWidget):
 
             buttons_layout = QHBoxLayout()
             buttons_layout.setSpacing(10)
-            buttons_layout.addWidget(gestionar_button)
+            # buttons_layout.addWidget(gestionar_button)
             buttons_layout.addWidget(features_button)
 
         else:
