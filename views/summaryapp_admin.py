@@ -265,7 +265,9 @@ class SummaryAppAdmin(QWidget):
             "Temperatura del agua": ("temp_agua", "°C"),
             "Nivel pH del agua": ("ph", " pH"),
             "Nivel ORP": ("orp", " mV"),
-            "Nivel del agua": ("nivel_agua", " cm")  # ⬅️ Añadido
+            "Nivel del agua": ("nivel_agua", " cm"),
+            "Temperatura del aire": ("temp_aire", "°C"),
+            "Humedad del aire": ("humedad_aire", "%")
         }
 
         for title, (key, unidad) in mapping.items():
@@ -285,6 +287,10 @@ class SummaryAppAdmin(QWidget):
             self.gauges["Temp. Agua"].set_value(data["temp_agua"])
         if "nivel_agua" in data and "Nivel Agua" in self.gauges:
             self.gauges["Nivel Agua"].set_value(data["nivel_agua"])
+        if "temp_aire" in data and "Temp. Aire" in self.gauges:
+            self.gauges["Temp. Aire"].set_value(data["temp_aire"])
+        if "humedad_aire" in data and "Humedad Aire" in self.gauges:
+            self.gauges["Humedad Aire"].set_value(data["humedad_aire"])
 
 
     def create_gauge_column(self, titles):

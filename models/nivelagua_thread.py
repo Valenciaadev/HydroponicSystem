@@ -1,17 +1,20 @@
-# models/nivelagua_thread.py
 from PyQt5.QtCore import QThread, pyqtSignal
 import RPi.GPIO as GPIO
 import time
+import serial
+import re
 from datetime import datetime
 
 class NivelAguaThread(QThread):
     datos_nivel_agua = pyqtSignal(dict)
 
-    def __init__(self, trig_pin=8, echo_pin=10, altura_total=45):
+    def __init__(self, trig_pin=8, echo_pin=10, altura_total=45, serial_port='/dev/ttyACM0', baudrate=9600):
         super().__init__()
         self.trig = trig_pin
         self.echo = echo_pin
         self.altura_total = altura_total
+        self.serial_port = serial_port
+        self.baudrate = baudrate
         self._running = True
 
         GPIO.setmode(GPIO.BOARD)
@@ -19,8 +22,14 @@ class NivelAguaThread(QThread):
         GPIO.setup(self.echo, GPIO.IN)
 
     def run(self):
-        while self._running:
-            try:
+        try:
+            ser = serial.Serial(self.serial_port, self.baudrate, timeout=1)
+            time.sleep(2)
+            ser.write(b"LEER\n")
+            ser.write(b"TON\n")
+
+            while self._running:
+                # 1. Medición de nivel de agua
                 GPIO.output(self.trig, False)
                 time.sleep(0.5)
 
@@ -40,19 +49,37 @@ class NivelAguaThread(QThread):
                 pulse_duration = pulse_end - pulse_start
                 distancia = pulse_duration * 17150
 
-                if 2 < distancia < 400:
-                    nivel_agua = round(self.altura_total - distancia, 2)
+                nivel_agua = round(self.altura_total - distancia, 2) if 2 < distancia < 400 else None
+
+                # 2. Leer datos del puerto serial (temp y humedad)
+                temp = None
+                hum = None
+
+                start_time = time.time()
+                while time.time() - start_time < 2:  # Leer datos por 2 segundos
+                    line = ser.readline().decode('utf-8', errors='ignore').strip()
+
+                    if line.startswith("TEMP:"):
+                        match = re.search(r'TEMP:([-+]?\d+(\.\d+)?)', line)
+                        if match:
+                            temp = float(match.group(1))
+
+                    elif line.startswith("HUM:"):
+                        match = re.search(r'HUM:(\d+(\.\d+)?)', line)
+                        if match:
+                            hum = float(match.group(1))
+
+                # Emitir datos si se obtuvo al menos uno
+                if nivel_agua is not None or temp is not None or hum is not None:
                     self.datos_nivel_agua.emit({
                         "nivel_agua": nivel_agua,
+                        "temp_aire": temp,
+                        "humedad_aire": hum,
                         "hora": datetime.now().strftime("%d/%m %H:%M:%S")
                     })
-                else:
-                    print("❌ Lectura fuera de rango.")
 
-                time.sleep(2)
-
-            except Exception as e:
-                print(f"⚠️ Error en NivelAguaThread: {e}")
+        except Exception as e:
+            print(f"⚠️ Error en NivelAguaThread: {e}")
 
     def stop(self):
         self._running = False
