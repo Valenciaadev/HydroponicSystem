@@ -157,6 +157,14 @@ class LoginRegisterApp(QDialog):
         self.stack.setCurrentWidget(self.user_select_widget)
         
     def mostrar_panel_admin(self):
+        # ✅ Cierra ventana anterior si ya existía
+        if hasattr(self, 'homeapp_admin'):
+            if hasattr(self.homeapp_admin, 'inicio_widget') and hasattr(self.homeapp_admin.inicio_widget, 'liberar_camara'):
+                self.homeapp_admin.inicio_widget.liberar_camara()
+            self.homeapp_admin.close()
+            del self.homeapp_admin
+        
+        # ✅ Ahora sí creamos una nueva
         self.homeapp_admin = HomeappAdmin(self)
         self.serial_thread = SerialReaderThread()
         self.serial_thread.datos_actualizados.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
@@ -237,7 +245,6 @@ if __name__ == "__main__":
 
 
     window.show()
-
     # Encender bomba de agua al iniciar
     try:
         arduino_bomba = serial.Serial('/dev/ttyACM0', 9600, timeout=1)

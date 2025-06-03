@@ -166,6 +166,16 @@ class SummaryAppAdmin(QWidget):
         pixmap = QPixmap.fromImage(qimg).scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.camera_label.setPixmap(pixmap)
 
+    def liberar_camara(self):
+        if hasattr(self, "picam"):
+            try:
+                self.timer.stop()
+                self.picam.stop()
+                self.picam.close()
+                print("📷 Cámara liberada correctamente.")
+            except Exception as e:
+                print("⚠️ Error al liberar la cámara:", e)
+
     def create_card(self, title, value, timestamp, tooltip_text):
         card = QFrame()
         card.setStyleSheet("""
@@ -274,8 +284,6 @@ class SummaryAppAdmin(QWidget):
         if "temp_agua" in data and "Temp. Agua" in self.gauges:
             self.gauges["Temp. Agua"].set_value(data["temp_agua"])
 
-    
-
     def create_gauge_column(self, titles):
         gauges_layout = QVBoxLayout()
         gauge_frame = QFrame()
@@ -350,8 +358,6 @@ class SummaryAppAdmin(QWidget):
                 painter.setFont(font)
                 painter.drawText(0, int(center.y() + radius / 2), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
 
-
-        
         gauge = CircularGauge(title)
         self.gauges[title] = gauge  # ⬅️ Guardamos la instancia
         return gauge

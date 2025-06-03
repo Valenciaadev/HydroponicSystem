@@ -101,8 +101,10 @@ class HomeappWorker(QWidget):
         self.btn_history.setIcon(QIcon("assets/icons/history-white.svg"))
         self.btn_history.setIconSize(QSize(24, 24))
 
+        # Espaciador para empujar el botón de cerrar sesión al final
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
+        
+        # Botón de cerrar sesión
         btn_exit = QPushButton(" Cerrar sesión")
         btn_exit.setStyleSheet(btn_style)
         btn_exit.setIcon(QIcon("assets/icons/log_out-white.svg"))
@@ -118,6 +120,7 @@ class HomeappWorker(QWidget):
             border-radius: 15px;
         """)
 
+        # Orden de los botones en el sidebar
         sidebar.addWidget(label_vistas)
         sidebar.addWidget(self.btn_home)
         sidebar.addWidget(self.btn_actuators)

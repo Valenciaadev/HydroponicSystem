@@ -120,6 +120,7 @@ class HomeappAdmin(QWidget):
         self.btn_hortalizas.clicked.connect(lambda: self.change_view(5))
         self.btn_hortalizas.setIcon(QIcon("assets/icons/sapling.svg"))
         self.btn_hortalizas.setIconSize(QSize(24, 24))
+
         # Espacio antes del botón de cerrar sesión
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         
@@ -166,6 +167,9 @@ class HomeappAdmin(QWidget):
 
         # Stacked layout para cambiar entre vistas
         self.stacked_layout = QStackedLayout()
+
+        if hasattr(self, "inicio_widget") and hasattr(self.inicio_widget, "liberar_camara"):
+            self.inicio_widget.liberar_camara()
         
         # Crear las vistas de cada sección (nueva vista de hortalizas primero)
         self.inicio_widget = SummaryAppAdmin(self.ventana_login, embed=True)
@@ -175,7 +179,6 @@ class HomeappAdmin(QWidget):
         self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
         self.hortalizas_widget = GestionHortalizasAppAdmin(self.ventana_login, embed=True)
 
-        
         # Agregar vistas al stacked layout (nueva vista en posición 0)
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
@@ -191,18 +194,10 @@ class HomeappAdmin(QWidget):
         layout_principal.addWidget(content_widget)
 
         self.setLayout(layout_principal)
-        
-    # def log_out(self):
-        #self.ventana_login.show()
-        # self.close()
 
         self.serial_thread = SerialReaderThread()
         self.serial_thread.datos_actualizados.connect(self.inicio_widget.recibir_datos_sensores)
         self.serial_thread.start()
-        
-    # def log_out(self):
-        #self.ventana_login.show()
-        # self.close()
 
     def log_out(self):
         dialog = QDialog(self)
@@ -255,7 +250,6 @@ class HomeappAdmin(QWidget):
         cancel_button = QPushButton(" Regresar")
         cancel_button.setIcon(QIcon("assets/icons/btn-return-white.svg"))
         cancel_button.setIconSize(QSize(24, 24))
-        cancel_button.setStyleSheet("background-color: gray; color: white; padding: 5px; border-radius: 5px;")
         cancel_button.setStyleSheet("""
         QPushButton {
             background-color: gray;
