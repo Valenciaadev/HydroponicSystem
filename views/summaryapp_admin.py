@@ -261,11 +261,11 @@ class SummaryAppAdmin(QWidget):
         return card
 
     def recibir_datos_sensores(self, data):
-        """Actualiza en tiempo real las tarjetas de pH, ORP y temperatura del agua."""
         mapping = {
             "Temperatura del agua": ("temp_agua", "°C"),
             "Nivel pH del agua": ("ph", " pH"),
             "Nivel ORP": ("orp", " mV"),
+            "Nivel del agua": ("nivel_agua", " cm")  # ⬅️ Añadido
         }
 
         for title, (key, unidad) in mapping.items():
@@ -276,13 +276,16 @@ class SummaryAppAdmin(QWidget):
                 value_label.setText(f"{valor:.2f} {unidad}")
                 time_label.setText(hora)
 
-        # Actualización de gauges
+        # Gauges
         if "ph" in data and "PH Agua" in self.gauges:
             self.gauges["PH Agua"].set_value(data["ph"])
         if "orp" in data and "ORP" in self.gauges:
             self.gauges["ORP"].set_value(data["orp"])
         if "temp_agua" in data and "Temp. Agua" in self.gauges:
             self.gauges["Temp. Agua"].set_value(data["temp_agua"])
+        if "nivel_agua" in data and "Nivel Agua" in self.gauges:
+            self.gauges["Nivel Agua"].set_value(data["nivel_agua"])
+
 
     def create_gauge_column(self, titles):
         gauges_layout = QVBoxLayout()
@@ -330,17 +333,22 @@ class SummaryAppAdmin(QWidget):
                 painter.drawText(0, 35, rect.width(), 20, Qt.AlignCenter, self.title)
 
                 # Arco
-                gradient = QConicalGradient(center, 90)
-                gradient.setColorAt(0.0, Qt.green)
-                gradient.setColorAt(0.5, Qt.cyan)
-                gradient.setColorAt(1.0, Qt.green)
-                painter.setPen(QPen(QBrush(gradient), 12))
+                gradient = QConicalGradient(center, -90)  # -90 grados es hacia arriba
+                gradient.setColorAt(0.0, QColor("#FF8800"))   # Naranja (empieza desde la derecha)
+                gradient.setColorAt(1/6, QColor("#FF8800"))   # Verde (parte superior)
+                gradient.setColorAt(2/6, QColor("#00FF00"))   # Naranja (izquierda)
+                gradient.setColorAt(3/6, QColor("#00FF00"))   # Naranja (izquierda)
+                gradient.setColorAt(4/6, QColor("#00FF00"))   # Naranja (izquierda)
+                gradient.setColorAt(5/6, QColor("#FF8800"))   # Naranja (izquierda)
+                gradient.setColorAt(1.0, QColor("#FF8800"))   # Cierra ciclo con naranja
+
 
                 arc_rect = QRect(
                     int(center.x() - radius), int(center.y() - radius),
                     int(2 * radius), int(2 * radius)
                 )
 
+                painter.setPen(QPen(QBrush(gradient), 12))
                 painter.drawArc(arc_rect, 225 * 16, -270 * 16)
 
                 # Aguja

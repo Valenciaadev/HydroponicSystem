@@ -281,7 +281,14 @@ class HomeappAdmin(QWidget):
             self.serial_thread.stop()
             self.serial_thread.quit()
             self.serial_thread.wait()
-            print("🔌 Hilo serial detenido correctamente al cerrar sesión.")
+            print("Hilo serial detenido correctamente al cerrar sesión.")
+        
+        if hasattr(self, 'nivel_agua_thread'):
+            self.nivel_agua_thread.stop()
+            self.nivel_agua_thread.quit()
+            self.nivel_agua_thread.wait()
+            print("Hilo de nivel de agua detenido.")
+
 
         # 🚿 Apagar bomba de agua al cerrar sesión
         try:

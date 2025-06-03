@@ -17,6 +17,7 @@ from models.serial_thread import SerialReaderThread
 from views.summaryapp_admin import SummaryAppAdmin
 from views.summaryapp_worker import SummaryAppWorker
 from models.database import connect_db
+from models.nivelagua_thread import NivelAguaThread
 
 import serial
 import time
@@ -170,6 +171,11 @@ class LoginRegisterApp(QDialog):
         self.serial_thread.datos_actualizados.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
         self.serial_thread.start()
 
+        # Iniciar el hilo de nivel de agua
+        self.nivel_agua_thread = NivelAguaThread()
+        self.nivel_agua_thread.datos_nivel_agua.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
+        self.nivel_agua_thread.start()
+
         # Mostrar la vista principal
         self.homeapp_admin.showFullScreen()
         self.hide()
@@ -187,6 +193,11 @@ class LoginRegisterApp(QDialog):
         self.serial_thread = SerialReaderThread()
         self.serial_thread.datos_actualizados.connect(self.homeapp_worker.inicio_widget.recibir_datos_sensores)
         self.serial_thread.start()
+
+        # Iniciar el hilo de nivel de agua
+        self.nivel_agua_thread = NivelAguaThread()
+        self.nivel_agua_thread.datos_nivel_agua.connect(self.homeapp_worker.inicio_widget.recibir_datos_sensores)
+        self.nivel_agua_thread.start()
 
         self.homeapp_worker.showFullScreen()
         self.hide()
@@ -221,15 +232,23 @@ if __name__ == "__main__":
     window = LoginRegisterApp()
 
     def cerrar_hilos_al_salir():
-        if hasattr(window, 'homeapp_admin') and hasattr(window.homeapp_admin, 'serial_thread'):
+        if hasattr(window, 'homeapp_admin') and hasattr(window.homeapp_admin, 'serial_thread') and hasattr(window.homeapp_admin, 'nivel_agua_thread'):
             window.homeapp_admin.serial_thread.stop()
             window.homeapp_admin.serial_thread.quit()
             window.homeapp_admin.serial_thread.wait()
+
+            window.homeapp_admin.nivel_agua_thread.stop()
+            window.homeapp_admin.nivel_agua_thread.quit()
+            window.homeapp_admin.nivel_agua_thread.wait()
             
-        if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread'):
+        if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread') and hasattr(window.homeapp_worker, 'nivel_agua_thread'):
             window.homeapp_worker.serial_thread.stop()
             window.homeapp_worker.serial_thread.quit()
             window.homeapp_worker.serial_thread.wait()
+
+            window.homeapp_worker.nivel_agua_thread.stop()
+            window.homeapp_worker.nivel_agua_thread.quit()
+            window.homeapp_worker.nivel_agua_thread.wait()
 
             print("🛑 Hilo serial cerrado desde aboutToQuit.")
             try:
@@ -268,14 +287,22 @@ if __name__ == "__main__":
     try:
         exit_code = app.exec_()
     finally:
-        if hasattr(window, 'homeapp_admin') and hasattr(window.homeapp_admin, 'serial_thread'):
+        if hasattr(window, 'homeapp_admin') and hasattr(window.homeapp_admin, 'serial_thread') and hasattr(window.homeapp_admin, 'nivel_agua_thread'):
             window.homeapp_admin.serial_thread.stop()
             window.homeapp_admin.serial_thread.quit()
             window.homeapp_admin.serial_thread.wait()
 
-        if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread'):
+            window.homeapp_admin.nivel_agua_thread.stop()
+            window.homeapp_admin.nivel_agua_thread.quit()
+            window.homeapp_admin.nivel_agua_thread.wait()
+            
+        if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread') and hasattr(window.homeapp_worker, 'nivel_agua_thread'):
             window.homeapp_worker.serial_thread.stop()
             window.homeapp_worker.serial_thread.quit()
             window.homeapp_worker.serial_thread.wait()
+
+            window.homeapp_worker.nivel_agua_thread.stop()
+            window.homeapp_worker.nivel_agua_thread.quit()
+            window.homeapp_worker.nivel_agua_thread.wait()
 
     sys.exit(exit_code)

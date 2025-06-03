@@ -2,7 +2,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from models.database import get_hortalizas, update_hortaliza_seleccion, get_sensors_data
-from PyQt5.QtCore import pyqtSignal
 
 class GestionHortalizasAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=None):
@@ -13,9 +12,6 @@ class GestionHortalizasAppAdmin(QWidget):
         self.details_frames = {}
         self.dialog = None  # Referencia al diálogo de selección
         self.init_ui()
-
-    class GestionHortalizasAppAdmin(QWidget):
-        hortaliza_cambiada = pyqtSignal()  # ⬅️ NUEVA SEÑAL
 
 
     def init_ui(self):
@@ -265,8 +261,6 @@ class GestionHortalizasAppAdmin(QWidget):
             # Revertir cambios si falla la BD
             self.load_hortalizas()
             self.update_button_text()
-        else:
-            self.hortaliza_cambiada.emit()  # ⬅️ EMITIR SEÑAL
 
 
     def update_button_text(self):
