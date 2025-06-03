@@ -25,8 +25,9 @@ class NivelAguaThread(QThread):
         try:
             ser = serial.Serial(self.serial_port, self.baudrate, timeout=1)
             time.sleep(2)
-            ser.write(b"LEER\n")
-            ser.write(b"TON\n")
+            ser.reset_input_buffer()
+            ser.write(b"LEER\r\n")  # ⬅️ Muy importante: \r\n
+            ser.write(b"TON\r\n")   # ⬅️ Muy importante: \r\n
 
             while self._running:
                 # 1. Medición de nivel de agua
@@ -42,22 +43,23 @@ class NivelAguaThread(QThread):
 
                 while GPIO.input(self.echo) == 0 and time.time() < timeout:
                     pulse_start = time.time()
-
                 while GPIO.input(self.echo) == 1 and time.time() < timeout:
                     pulse_end = time.time()
 
                 pulse_duration = pulse_end - pulse_start
                 distancia = pulse_duration * 17150
-
                 nivel_agua = round(self.altura_total - distancia, 2) if 2 < distancia < 400 else None
 
-                # 2. Leer datos del puerto serial (temp y humedad)
+                # 2. Leer temperatura y humedad del aire
                 temp = None
                 hum = None
 
                 start_time = time.time()
                 while time.time() - start_time < 2:  # Leer datos por 2 segundos
                     line = ser.readline().decode('utf-8', errors='ignore').strip()
+                    if not line:
+                        continue
+                    print(f"📥 Línea serial: {line}")  # ⬅️ Depuración
 
                     if line.startswith("TEMP:"):
                         match = re.search(r'TEMP:([-+]?\d+(\.\d+)?)', line)
@@ -69,7 +71,7 @@ class NivelAguaThread(QThread):
                         if match:
                             hum = float(match.group(1))
 
-                # Emitir datos si se obtuvo al menos uno
+                # 3. Emitir si hay al menos un dato
                 if nivel_agua is not None or temp is not None or hum is not None:
                     self.datos_nivel_agua.emit({
                         "nivel_agua": nivel_agua,

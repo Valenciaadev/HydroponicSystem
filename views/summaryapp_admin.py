@@ -16,6 +16,7 @@ class SummaryAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__()
         self.gauges = {}
+        self.sensor_data = {}  # Para conservar los últimos valores conocidos
         self.camera = None
 
         QToolTip.setFont(QFont("Arial", 12))
@@ -261,6 +262,9 @@ class SummaryAppAdmin(QWidget):
         return card
 
     def recibir_datos_sensores(self, data):
+        print("📨 Datos recibidos:", data)
+        self.sensor_data.update(data)  # Mantener unificado el estado
+
         mapping = {
             "Temperatura del agua": ("temp_agua", "°C"),
             "Nivel pH del agua": ("ph", " pH"),
@@ -271,26 +275,31 @@ class SummaryAppAdmin(QWidget):
         }
 
         for title, (key, unidad) in mapping.items():
-            if title in self.card_labels and key in data:
-                valor = data[key]
-                hora = data["hora"]
+            if title in self.card_labels:
                 value_label, time_label = self.card_labels[title]
-                value_label.setText(f"{valor:.2f} {unidad}")
+                valor = self.sensor_data.get(key)
+                hora = self.sensor_data.get("hora", "—")
+                if valor is not None:
+                    value_label.setText(f"{valor:.2f} {unidad}")
+                else:
+                    value_label.setText("N/D")
                 time_label.setText(hora)
 
         # Gauges
-        if "ph" in data and "PH Agua" in self.gauges:
-            self.gauges["PH Agua"].set_value(data["ph"])
-        if "orp" in data and "ORP" in self.gauges:
-            self.gauges["ORP"].set_value(data["orp"])
-        if "temp_agua" in data and "Temp. Agua" in self.gauges:
-            self.gauges["Temp. Agua"].set_value(data["temp_agua"])
-        if "nivel_agua" in data and "Nivel Agua" in self.gauges:
-            self.gauges["Nivel Agua"].set_value(data["nivel_agua"])
-        if "temp_aire" in data and "Temp. Aire" in self.gauges:
-            self.gauges["Temp. Aire"].set_value(data["temp_aire"])
-        if "humedad_aire" in data and "Humedad Aire" in self.gauges:
-            self.gauges["Humedad Aire"].set_value(data["humedad_aire"])
+        if "ph" in self.sensor_data and "PH Agua" in self.gauges:
+            self.gauges["PH Agua"].set_value(self.sensor_data["ph"])
+        if "orp" in self.sensor_data and "ORP" in self.gauges:
+            self.gauges["ORP"].set_value(self.sensor_data["orp"])
+        if "temp_agua" in self.sensor_data and "Temp. Agua" in self.gauges:
+            self.gauges["Temp. Agua"].set_value(self.sensor_data["temp_agua"])
+        if "nivel_agua" in self.sensor_data and "Nivel Agua" in self.gauges:
+            self.gauges["Nivel Agua"].set_value(self.sensor_data["nivel_agua"])
+        if "temp_aire" in self.sensor_data and "Temp. Aire" in self.gauges:
+            self.gauges["Temp. Aire"].set_value(self.sensor_data["temp_aire"])
+        if "humedad_aire" in self.sensor_data and "Humedad Aire" in self.gauges:
+            self.gauges["Humedad Aire"].set_value(self.sensor_data["humedad_aire"])
+
+
 
 
     def create_gauge_column(self, titles):
@@ -317,7 +326,8 @@ class SummaryAppAdmin(QWidget):
                 self.timer.start(1000)
 
             def set_value(self, new_value):
-                self.value = new_value
+                self.value = new_value if new_value is not None else 0
+                self.valid = new_value is not None
                 self.update()
 
             def paintEvent(self, event):
@@ -358,14 +368,15 @@ class SummaryAppAdmin(QWidget):
                 painter.drawArc(arc_rect, 225 * 16, -270 * 16)
 
                 # Aguja
-                angle = 225 - (self.value - 15) / 20 * 270
-                angle_rad = math.radians(angle)
+                if getattr(self, "valid", True):  # Solo si el valor es válido
+                    angle = 225 - (self.value - 15) / 20 * 270
+                    angle_rad = math.radians(angle)
 
-                needle_length = radius - 10
-                needle_x = center.x() + needle_length * math.cos(angle_rad)
-                needle_y = center.y() - needle_length * math.sin(angle_rad)
-                painter.setPen(QPen(Qt.white, 2))
-                painter.drawLine(center, QPointF(needle_x, needle_y))
+                    needle_length = radius - 10
+                    needle_x = center.x() + needle_length * math.cos(angle_rad)
+                    needle_y = center.y() - needle_length * math.sin(angle_rad)
+                    painter.setPen(QPen(Qt.white, 2))
+                    painter.drawLine(center, QPointF(needle_x, needle_y))
 
                 # Valor
                 font.setPointSize(10)
