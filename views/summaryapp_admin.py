@@ -4,6 +4,10 @@ from PyQt5.QtGui import *
 from models.database import create_line_graph
 from models.database import create_bar_graph
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from picamera2 import Picamera2
+from PyQt5.QtCore import QTimer
+import cv2
+from PyQt5.QtGui import QImage, QPixmap
 import matplotlib.pyplot as plt
 import random
 import math
@@ -11,6 +15,8 @@ import math
 class SummaryAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__()
+        self.gauges = {}
+        self.camera = None
 
         QToolTip.setFont(QFont("Arial", 12))
         QApplication.instance().setStyleSheet("""
@@ -45,40 +51,40 @@ class SummaryAppAdmin(QWidget):
         
         cards_info = [
             (
-                "Temperatura del aire", "00 °C", "00/0 00:00:00",
+                "Temperatura del aire", "0°", "00/0 00:00:00",
                 "<b>Temperatura del Aire</b><br>"
-                "Ideal entre <b>00°C y 00°C</b> para el crecimiento óptimo de lechugas.<br>"
+                "Ideal entre <b>18°C y 24°C</b> para el crecimiento óptimo de lechugas.<br>"
                 "Evita temperaturas mayores a 27°C para prevenir estrés térmico."
             ),
             (
-                "Humedad del aire", "00 %", "00/0 00:00:00",
+                "Humedad del aire", "00.0", "00/0 00:00:00",
                 "<b>Humedad Relativa del Aire</b><br>"
-                "Rango ideal: <b>% a %</b>.<br>"
+                "Rango ideal: <b>50% a 70%</b>.<br>"
                 "Niveles adecuados reducen la transpiración excesiva y promueven la fotosíntesis."
             ),
             (
-                "Temperatura del agua", "00 °C", "00/0 00:00:00",
+                "Temperatura del agua", "00°", "00/0 00:00:00",
                 "<b>Temperatura del Agua</b><br>"
-                "Ideal entre <b>°C y °C</b>.<br>"
+                "Ideal entre <b>18°C y 22°C</b>.<br>"
                 "Temperaturas superiores a 24°C pueden reducir el oxígeno disuelto, afectando las raíces."
             ),
             (
-                "Nivel pH del agua", "00 cm", "00/0 00:00:00",
+                "Nivel pH del agua", "0 pH", "00/0 00:00:00",
                 "<b>Nivel de pH del Agua</b><br>"
-                "Rango óptimo: <b>ph a ph</b> para lechugas.<br>"
+                "Rango óptimo: <b>5.5 a 6.5</b> para lechugas.<br>"
                 "Valores fuera de este rango dificultan la absorción de nutrientes."
             ),
             (
-                "Nivel ORP", "00 mV", "00/0 00:00:00",
+                "Nivel ORP", "320 mV", "00/0 00:00:00",
                 "<b>Potencial Redox (ORP)</b><br>"
-                "Rango ideal para lechugas: <b>mV a mV</b>.<br>"
+                "Rango ideal para lechugas: <b>250 mV a 400 mV</b>.<br>"
                 "Un ORP dentro de este rango indica un buen equilibrio entre oxidantes y reductores, "
                 "lo cual favorece la absorción de nutrientes y evita la proliferación de microorganismos indeseados."
             ),
             (
-                "Nivel del agua", "Text", "00/0 00:00:00",
+                "Nivel del agua", "0 bool", "00/0 00:00:00",
                 "<b>Nivel del Agua</b><br>"
-                "Debe estar por debajo del límite del contenedor en el que se ecuentra y superior al a mitad de este mismo<br>"
+                "Debe cubrir completamente las raíces sin llegar al tallo.<br>"
                 "Se recomienda mantener un nivel constante para evitar estrés hídrico."
             ),
         ]
@@ -93,7 +99,7 @@ class SummaryAppAdmin(QWidget):
         middle_layout = QHBoxLayout()
 
         # 2.1 Gauges izquierdos
-        middle_layout.addLayout(self.create_gauge_column(["Temp. Aire", "Humedad Aire", "Temp. Agua"]))
+        middle_layout.addLayout(self.create_gauge_column(["PH Agua", "Temp. Agua", "ORP"]))
 
         # 2.2 INICIO DE LA GRÁFICA DE BARRAS //////////////////////
         self.graph_canvas_top = create_bar_graph()
@@ -112,32 +118,53 @@ class SummaryAppAdmin(QWidget):
         graph_layout.addWidget(self.graph_canvas_top)
 
         middle_layout.addWidget(graph_frame)
-        # FIN DE LA GRÁFICA DE BARRAS //////////////////////
+        # FIN DE LA GRÁFICA DE BARRAS ////////////////////// 
 
         # 2.3 RECUADRO PARA LA CÁMARA //////////////////////
         camera_frame = QFrame()
         camera_frame.setFixedSize(405, 405)
-        camera_frame.setStyleSheet("background-color: #1f2232; border: 2px solid #444444; border-radius: 20px;")
-        camera_label = QLabel("Vista Cámara", camera_frame)
-        camera_label.setStyleSheet("color: white;")
-        camera_label.setAlignment(Qt.AlignCenter)
+        camera_frame.setStyleSheet("""
+            background-color: #1f2232;
+            border: 2px solid #444444;
+            border-radius: 20px;
+        """)
+        camera_layout = QVBoxLayout(camera_frame)
+        camera_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.camera_label = QLabel("Cargando cámara...")
+        self.camera_label.setAlignment(Qt.AlignCenter)
+        self.camera_label.setStyleSheet("color: white; background-color: black;")
+        self.camera_label.setFixedSize(400, 400)
+        camera_layout.addWidget(self.camera_label)
         middle_layout.addWidget(camera_frame)
 
         layout.addLayout(middle_layout)
 
-        # SECCIÓN 3 PARTE INFERIOR
-        bottom_layout = QHBoxLayout()
-
-        # 3.1 INICIO DE LA GRÁFICA DE LÍNEAS //////////////////////
         self.graph_canvas_bottom = create_line_graph()
         self.graph_canvas_bottom.setFixedSize(1350, 400)
+        bottom_layout = QHBoxLayout()
         bottom_layout.addWidget(self.graph_canvas_bottom)
-        # 3.1 FIN DE LA GRÁFICA DE LÍNEAS //////////////////////
-
-        # 3.2 Gauges derechos
-        bottom_layout.addLayout(self.create_gauge_column(["PH Agua", "Nivel Agua", "ORP"]))
-
+        bottom_layout.addLayout(self.create_gauge_column(["Humedad Aire", "Temp. Aire", "Nivel Agua"]))
         layout.addLayout(bottom_layout)
+
+        # Inicializar Picamera
+        self.picam = Picamera2()
+        config = self.picam.create_preview_configuration(main={"size": (640, 480)})
+        self.picam.configure(config)
+        self.picam.start()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_camera_frame)
+        self.timer.start(30)
+
+    def update_camera_frame(self):
+        frame = self.picam.capture_array()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        h, w, ch = frame.shape
+        bytes_per_line = ch * w
+        qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(qimg).scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.camera_label.setPixmap(pixmap)
 
     def create_card(self, title, value, timestamp, tooltip_text):
         card = QFrame()
@@ -210,7 +237,11 @@ class SummaryAppAdmin(QWidget):
         time_label.setFont(QFont("Arial", 9))
         time_label.setAlignment(Qt.AlignCenter)
 
-        # Layout principal
+        # Guardamos referencias en self.card_labels
+        if not hasattr(self, "card_labels"):
+            self.card_labels = {}
+        self.card_labels[title] = (value_label, time_label)
+
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignCenter)
         main_layout.addLayout(title_info_layout)
@@ -218,6 +249,32 @@ class SummaryAppAdmin(QWidget):
         main_layout.addWidget(time_label)
         card.setLayout(main_layout)
         return card
+
+    def recibir_datos_sensores(self, data):
+        """Actualiza en tiempo real las tarjetas de pH, ORP y temperatura del agua."""
+        mapping = {
+            "Temperatura del agua": ("temp_agua", "°C"),
+            "Nivel pH del agua": ("ph", " pH"),
+            "Nivel ORP": ("orp", " mV"),
+        }
+
+        for title, (key, unidad) in mapping.items():
+            if title in self.card_labels and key in data:
+                valor = data[key]
+                hora = data["hora"]
+                value_label, time_label = self.card_labels[title]
+                value_label.setText(f"{valor:.2f} {unidad}")
+                time_label.setText(hora)
+
+        # Actualización de gauges
+        if "ph" in data and "PH Agua" in self.gauges:
+            self.gauges["PH Agua"].set_value(data["ph"])
+        if "orp" in data and "ORP" in self.gauges:
+            self.gauges["ORP"].set_value(data["orp"])
+        if "temp_agua" in data and "Temp. Agua" in self.gauges:
+            self.gauges["Temp. Agua"].set_value(data["temp_agua"])
+
+    
 
     def create_gauge_column(self, titles):
         gauges_layout = QVBoxLayout()
@@ -235,15 +292,15 @@ class SummaryAppAdmin(QWidget):
         class CircularGauge(QWidget):
             def __init__(self, title="Gauge"):
                 super().__init__()
-                self.value = 24.1
+                self.value = 0.0
                 self.title = title
                 self.setFixedSize(125, 125)
                 self.timer = QTimer(self)
-                self.timer.timeout.connect(self.update_value)
-                self.timer.start(2000)
+                self.timer.timeout.connect(self.update)
+                self.timer.start(1000)
 
-            def update_value(self):
-                self.value = round(random.uniform(15.0, 35.0), 1)
+            def set_value(self, new_value):
+                self.value = new_value
                 self.update()
 
             def paintEvent(self, event):
@@ -253,35 +310,48 @@ class SummaryAppAdmin(QWidget):
                 center = rect.center()
                 radius = min(rect.width(), rect.height()) / 2 - 10
 
+                # Fondo
                 painter.setBrush(QColor("#1f2232"))
                 painter.setPen(Qt.NoPen)
                 painter.drawRect(rect)
 
+                # Título
                 painter.setPen(Qt.white)
                 font = QFont("Candara", 8)
                 painter.setFont(font)
-                painter.drawText(0, 20, rect.width(), 20, Qt.AlignCenter, self.title)
+                painter.drawText(0, 35, rect.width(), 20, Qt.AlignCenter, self.title)
 
-                gradient = QConicalGradient(center, -90)
+                # Arco
+                gradient = QConicalGradient(center, 90)
                 gradient.setColorAt(0.0, Qt.green)
                 gradient.setColorAt(0.5, Qt.cyan)
                 gradient.setColorAt(1.0, Qt.green)
                 painter.setPen(QPen(QBrush(gradient), 12))
+
                 arc_rect = QRect(
                     int(center.x() - radius), int(center.y() - radius),
                     int(2 * radius), int(2 * radius)
                 )
-                painter.drawArc(arc_rect, 45 * 16, 270 * 16)
 
-                angle = 45 + (self.value - 15) / 20 * 270
+                painter.drawArc(arc_rect, 225 * 16, -270 * 16)
+
+                # Aguja
+                angle = 225 - (self.value - 15) / 20 * 270
+                angle_rad = math.radians(angle)
+
                 needle_length = radius - 10
-                needle_x = center.x() + needle_length * math.cos(math.radians(angle - 90))
-                needle_y = center.y() + needle_length * math.sin(math.radians(angle - 90))
+                needle_x = center.x() + needle_length * math.cos(angle_rad)
+                needle_y = center.y() - needle_length * math.sin(angle_rad)
                 painter.setPen(QPen(Qt.white, 2))
                 painter.drawLine(center, QPointF(needle_x, needle_y))
 
+                # Valor
                 font.setPointSize(10)
                 painter.setFont(font)
-                painter.drawText(0, int(center.y() - radius + 50), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
+                painter.drawText(0, int(center.y() + radius / 2), rect.width(), 40, Qt.AlignCenter, f"{self.value:.1f}")
 
-        return CircularGauge(title)
+
+        
+        gauge = CircularGauge(title)
+        self.gauges[title] = gauge  # ⬅️ Guardamos la instancia
+        return gauge

@@ -125,7 +125,6 @@ class SensorsAppAdmin(QWidget):
         self.populate_sensors()
         
     def add_sensor_card(self, sensor_id, nombre):
-
         # --- Frame exterior ---
         outer_frame = QFrame()
         outer_frame.setFixedHeight(75)

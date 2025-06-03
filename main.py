@@ -13,9 +13,16 @@ from views.inicio_sesion_admin import InicioSesionAdministradorWidget
 from controllers.auth_controller import hash_password
 from views.homeapp_admin import HomeappAdmin
 from views.homeapp_worker import HomeappWorker
+from models.serial_thread import SerialReaderThread
+from views.summaryapp_admin import SummaryAppAdmin
+from views.summaryapp_worker import SummaryAppWorker
+from models.database import connect_db
+
+import serial
+import time
 
 # Crear un nuevo usuario trabajador
-usuario_trabajador = Usuario(
+'''usuario_trabajador = Usuario(
     nombre="Alexis",
     apellido_paterno="Verduzco",
     apellido_materno="Lopez",
@@ -49,7 +56,7 @@ id_usuario_admin = usuario_admin.guardar_en_db()
 if id_usuario_admin:
     administrador = Administrador(id_usuario=id_usuario_admin)
     administrador.guardar_en_db()
-
+'''
 class TitleBar(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
@@ -148,20 +155,31 @@ class LoginRegisterApp(QDialog):
 
         # Mostrar la vista de login por defecto
         self.stack.setCurrentWidget(self.user_select_widget)
-
-    # def center_window(self):
-    #     screen = QApplication.primaryScreen().geometry()  # Obtener el tamaño de la pantalla
-    #     window_rect = self.frameGeometry()  # Obtener el tamaño de la ventana
-    #     window_rect.moveCenter(screen.center())  # Mover la geometría de la ventana al centro
-    #     self.move(window_rect.topLeft())  # Establecer la posición final de la ventana
-    
+        
     def mostrar_panel_admin(self):
         self.homeapp_admin = HomeappAdmin(self)
+        self.serial_thread = SerialReaderThread()
+        self.serial_thread.datos_actualizados.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
+        self.serial_thread.start()
+
+        # Mostrar la vista principal
         self.homeapp_admin.showFullScreen()
         self.hide()
     
     def mostrar_panel_worker(self):
+        # ✅ Cierra ventana anterior si ya existía
+        if hasattr(self, 'homeapp_worker'):
+            if hasattr(self.homeapp_worker, 'inicio_widget') and hasattr(self.homeapp_worker.inicio_widget, 'liberar_camara'):
+                self.homeapp_worker.inicio_widget.liberar_camara()
+            self.homeapp_worker.close()
+            del self.homeapp_worker
+
+        # ✅ Ahora sí creamos una nueva
         self.homeapp_worker = HomeappWorker(self)
+        self.serial_thread = SerialReaderThread()
+        self.serial_thread.datos_actualizados.connect(self.homeapp_worker.inicio_widget.recibir_datos_sensores)
+        self.serial_thread.start()
+
         self.homeapp_worker.showFullScreen()
         self.hide()
 
@@ -191,6 +209,66 @@ if __name__ == "__main__":
     palette.setColor(QPalette.WindowText, QColor("#FFFFFF"))  # Texto
     app.setPalette(palette)
 
+    # Lanza tu ventana principal
     window = LoginRegisterApp()
+
+    def cerrar_hilos_al_salir():
+        if hasattr(window, 'homeapp_admin') and hasattr(window.homeapp_admin, 'serial_thread'):
+            window.homeapp_admin.serial_thread.stop()
+            window.homeapp_admin.serial_thread.quit()
+            window.homeapp_admin.serial_thread.wait()
+            
+        if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread'):
+            window.homeapp_worker.serial_thread.stop()
+            window.homeapp_worker.serial_thread.quit()
+            window.homeapp_worker.serial_thread.wait()
+
+            print("🛑 Hilo serial cerrado desde aboutToQuit.")
+            try:
+                import serial
+                arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+                arduino.write(b'BAOFF\n')
+                print("🚿 Bomba de agua apagada automáticamente al salir.")
+                arduino.close()
+            except Exception as e:
+                print("⚠️ No se pudo apagar la bomba al salir:", e)
+
+            app.aboutToQuit.connect(cerrar_hilos_al_salir)
+
+
     window.show()
-    sys.exit(app.exec_())
+
+    # Encender bomba de agua al iniciar
+    try:
+        arduino_bomba = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+        time.sleep(2)
+        arduino_bomba.write(b'BAON\n')
+        print("🚿 Bomba de agua encendida automáticamente.")
+
+        try:
+            conn = connect_db()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE actuadores SET estado_actual = 1 WHERE nombre LIKE '%Bomba de Agua%'")
+            conn.commit()
+            conn.close()
+            print("🟢 Estado de la bomba actualizado en la base de datos.")
+        except Exception as e:
+            print("⚠️ Error al actualizar el estado de la bomba en la base de datos:", e)
+    except serial.SerialException as e:
+        print("❌ No se pudo encender la bomba de agua automáticamente:", e)
+
+
+    try:
+        exit_code = app.exec_()
+    finally:
+        if hasattr(window, 'homeapp_admin') and hasattr(window.homeapp_admin, 'serial_thread'):
+            window.homeapp_admin.serial_thread.stop()
+            window.homeapp_admin.serial_thread.quit()
+            window.homeapp_admin.serial_thread.wait()
+
+        if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread'):
+            window.homeapp_worker.serial_thread.stop()
+            window.homeapp_worker.serial_thread.quit()
+            window.homeapp_worker.serial_thread.wait()
+
+    sys.exit(exit_code)

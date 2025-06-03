@@ -117,7 +117,7 @@ class ManagmentAppAdmin(QWidget):
                 font-size: 28px;
                 font-weight: bold;
                 color: white;
-                margin-left: 10px;
+                margin-left: 15px;
             }
             QPushButton {
                 padding: 8px 16px;
@@ -469,11 +469,27 @@ class ManagmentAppAdmin(QWidget):
         # Layout del frame interior
         frame_layout = QHBoxLayout(inner_frame)
         frame_layout.setContentsMargins(20, 10, 20, 10)  # Mismos márgenes que en ActuatorsAppAdmin
+        # Buscar ícono según el nombre
+        icon_path = "assets/img/user.png"
 
+        # Icono PNG al lado izquierdo del nombre
+        icon_label = QLabel()
+        icon_pixmap = QPixmap(icon_path)
+
+        if icon_pixmap.isNull():
+            print(f"⚠️ No se pudo cargar el ícono: {icon_path}")
+
+        # Escalar sin recortar
+        icon_label.setPixmap(icon_pixmap.scaledToHeight(38, Qt.SmoothTransformation))
+        icon_label.setContentsMargins(0, 0, 0, 0)
+        icon_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        icon_label.setAlignment(Qt.AlignCenter)
+        icon_label.setStyleSheet("margin-right: 5px;")
         lbl_nombre = QLabel(
             f"{usuario['nombre']} {usuario['apellido_paterno']} {usuario['apellido_materno']}"
         )
         lbl_nombre.setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent;")
+        frame_layout.addWidget(icon_label),
         frame_layout.addWidget(lbl_nombre)
 
         frame_layout.addStretch()

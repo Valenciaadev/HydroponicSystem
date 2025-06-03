@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/raspberrypi/HydroponicSystem/models/serial_thread.py", line 32, in run
+    line = ser.readline().decode('utf-8').strip()
+           ^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/serial/serialposix.py", line 595, in read
+    raise SerialException(
+serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)
+Aborted

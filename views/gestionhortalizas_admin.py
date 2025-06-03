@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from models.database import get_hortalizas, update_hortaliza_seleccion, get_sensors_data
+from PyQt5.QtCore import pyqtSignal
 
 class GestionHortalizasAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=None):
@@ -13,6 +14,10 @@ class GestionHortalizasAppAdmin(QWidget):
         self.dialog = None  # Referencia al diálogo de selección
         self.init_ui()
 
+    class GestionHortalizasAppAdmin(QWidget):
+        hortaliza_cambiada = pyqtSignal()  # ⬅️ NUEVA SEÑAL
+
+
     def init_ui(self):
         self.setStyleSheet("""
             QLabel#Title {
@@ -23,6 +28,13 @@ class GestionHortalizasAppAdmin(QWidget):
                 margin-bottom: 20px;
                 font-family: 'Candara';
             }
+            QLabel#Subtitle {
+                font-size: 22px;
+                font-weight: bold;
+                color: white;
+                margin-top: 10px;
+                font-family: 'Candara';
+            }
             QPushButton {
                 padding: 5px 10px;
                 border-radius: 10px;
@@ -31,6 +43,14 @@ class GestionHortalizasAppAdmin(QWidget):
             }
             QPushButton:hover {
                 background-color: #357ABD;
+            }
+            QComboBox {
+                padding: 5px 10px;
+                border: 2px solid #60D4B8;
+                border-radius: 10px;
+                background-color: #1E1E2E;
+                color: white;
+                min-width: 150px;
             }
             QPushButton:checked {
                 background-color: #546A7B;
@@ -73,7 +93,7 @@ class GestionHortalizasAppAdmin(QWidget):
                     stop:0 #60D4B8, stop:1 #1E2233);
                 border-radius: 0px;
                 padding: 2px;
-                margin: none;
+                margin: 0px;
             }
         """)
         
@@ -88,6 +108,7 @@ class GestionHortalizasAppAdmin(QWidget):
                 border: none;
                 border-radius: 0px;
                 padding: 10px 20px;
+                margin: 0px; /* Ensure no margin is applied to the button */
             }
             QPushButton:hover {
                 background-color: #2B2E3F;
@@ -244,6 +265,9 @@ class GestionHortalizasAppAdmin(QWidget):
             # Revertir cambios si falla la BD
             self.load_hortalizas()
             self.update_button_text()
+        else:
+            self.hortaliza_cambiada.emit()  # ⬅️ EMITIR SEÑAL
+
 
     def update_button_text(self):
         hortalizas = get_hortalizas()
