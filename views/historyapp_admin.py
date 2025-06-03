@@ -537,7 +537,7 @@ class HistoryAppAdmin(QWidget):
         # Configuración inicial de ejes Y para todas las gráficas
         self.ax1.clear()
         self.ax1.set_ylim(0, 9)
-        self.ax1.set_yticks([0, 3, 6, 9])
+        self.ax1.set_yticks([0, 150, 300, 450])
         
         self.ax2.clear()
         self.ax2.set_ylim(0, 40)

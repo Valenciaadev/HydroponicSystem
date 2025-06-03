@@ -23,45 +23,51 @@ class SerialReaderThread(QThread):
         from datetime import datetime
         import time
 
-        try:
-            ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
-            print("✅ Conectado al puerto serial")
-            time.sleep(2)
+        while self._running:
+            try:
+                ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+                print(f"✅ Conectado a {SERIAL_PORT}")
+                time.sleep(2)
 
-            while self._running:
-                line = ser.readline().decode('utf-8').strip()
-                if line:
-                    print("📥 Línea recibida:", line)
+                while self._running and ser.is_open:
                     try:
-                        data = dict(item.split(':') for item in line.split(','))
-                        temp = float(data['TEMP'])
-                        ph = float(data['PH'])
-                        orp = float(data['ORP'])
+                        line = ser.readline().decode('utf-8').strip()
+                        if line:
+                            print("📥 Línea recibida:", line)
+                            try:
+                                data = dict(item.split(':') for item in line.split(','))
+                                temp = float(data['TEMP'])
+                                ph = float(data['PH'])
+                                orp = float(data['ORP'])
 
-                        # Emitimos señal a la GUI
-                        self.datos_actualizados.emit({
-                            "temp_agua": temp,
-                            "ph": ph,
-                            "orp": orp,
-                            "hora": datetime.now().strftime("%d/%m %H:%M:%S")
-                        })
+                                self.datos_actualizados.emit({
+                                    "temp_agua": temp,
+                                    "ph": ph,
+                                    "orp": orp,
+                                    "hora": datetime.now().strftime("%d/%m %H:%M:%S")
+                                })
 
-                        # Guardado programado
-                        hora_actual = datetime.now().hour
-                        minuto = datetime.now().minute
-                        if minuto == 0 and hora_actual in [0, 6, 12, 18]:
-                            if hora_actual != self._ultima_hora_guardado:
-                                guardar_mediciones_cada_6h(ph, orp, temp)
-                                self._ultima_hora_guardado = hora_actual
+                                hora_actual = datetime.now().hour
+                                minuto = datetime.now().minute
+                                if minuto == 0 and hora_actual in [0, 6, 12, 18]:
+                                    if hora_actual != self._ultima_hora_guardado:
+                                        guardar_mediciones_cada_6h(ph, orp, temp)
+                                        self._ultima_hora_guardado = hora_actual
+                            except Exception as e:
+                                print(f"⚠️ Línea inválida: {line} — Error: {e}")
 
-                    except Exception as e:
-                        print(f"⚠️ Línea inválida: {line} — Error: {e}")
+                        time.sleep(1)
 
-                time.sleep(1)
+                    except serial.SerialException as e:
+                        print(f"🔌 Error de lectura: {e}")
+                        break  # salimos del bucle interior y reconectamos
 
-        finally:
-            if 'ser' in locals() and ser.is_open:
-                ser.close()
+            except serial.SerialException as e:
+                print(f"❌ No se pudo conectar a {SERIAL_PORT}: {e}")
+            
+            # Esperamos antes de intentar reconectar
+            time.sleep(5)
+
 
     def stop(self):
         self._running = False

@@ -119,6 +119,7 @@ def get_sensors_data(hortaliza_id):
     finally:
         connection.close()
 
+
 def get_hortalizas():
     conn = connect_db()
     if not conn:

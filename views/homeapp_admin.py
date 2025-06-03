@@ -174,6 +174,7 @@ class HomeappAdmin(QWidget):
         self.historial_widget = HistoryAppAdmin(self.ventana_login, embed=True)
         self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
         self.hortalizas_widget = GestionHortalizasAppAdmin(self.ventana_login, embed=True)
+
         
         # Agregar vistas al stacked layout (nueva vista en posición 0)
         self.stacked_layout.addWidget(self.inicio_widget)
