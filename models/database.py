@@ -11,7 +11,7 @@ def connect_db():
         conn = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="",
+            password="manuel123",
             database="hydrophonic_sys",
             port=3306,
         )
