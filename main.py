@@ -24,13 +24,13 @@ import time
 
 # Crear un nuevo usuario trabajador
 '''usuario_trabajador = Usuario(
-    nombre="Alexis",
-    apellido_paterno="Verduzco",
-    apellido_materno="Lopez",
-    email="wverduzco@ucol.mx",
-    clabe=123456,
-    password=hash_password("qwerty"),
-    telefono="3141234567",
+    nombre="",
+    apellido_paterno="",
+    apellido_materno="",
+    email="",
+    clabe=,
+    password=hash_password(""),
+    telefono="",
     tipo_usuario="trabajador"
 )
 
@@ -42,13 +42,13 @@ if id_usuario_trabajador:
 
 # Crear un nuevo usuario administrador
 usuario_admin = Usuario(
-    nombre="Manuel",
-    apellido_paterno="Valencia",
-    apellido_materno="Antonio",
-    email="mvalencia18@ucol.mx",
-    clabe=789101,
-    password=hash_password("qwerty"),
-    telefono="3147654321",
+    nombre="",
+    apellido_paterno="",
+    apellido_materno="",
+    email="",
+    clabe=,
+    password=hash_password(""),
+    telefono="",
     tipo_usuario="administrador"
 )
 
