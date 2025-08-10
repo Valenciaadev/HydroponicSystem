@@ -59,7 +59,7 @@ class SerialReaderThread(QThread):
 
                     except serial.SerialException as e:
                         print(f"🔌 Error de lectura: {e}")
-                        break  # salimos del bucle interior y reconectamos
+                        break
 
             except serial.SerialException as e:
                 print(f"❌ No se pudo conectar a {SERIAL_PORT}: {e}")

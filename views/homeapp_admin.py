@@ -170,7 +170,7 @@ class HomeappAdmin(QWidget):
 
         if hasattr(self, "inicio_widget") and hasattr(self.inicio_widget, "liberar_camara"):
             self.inicio_widget.liberar_camara()
-        
+    
         # Crear las vistas de cada sección (nueva vista de hortalizas primero)
         self.inicio_widget = SummaryAppAdmin(self.ventana_login, embed=True)
         self.actuadores_widget = ActuatorsAppAdmin(self.ventana_login, embed=True)

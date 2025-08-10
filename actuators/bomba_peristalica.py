@@ -1,15 +1,20 @@
 import serial
 import time
 from datetime import datetime
+import pytz  # Necesario para zona horaria
 
 # === CONFIGURACIÓN SERIAL ===
 arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
 time.sleep(2)  # Esperar que Arduino se reinicie
 
 # === CONFIGURACIÓN HORARIO DE DOSIFICACIÓN ===
-HORA_EJECUCION = 7  # 7:00 AM
+HORA_EJECUCION = 10  # 10:00 AM hora local
 MINUTO_EJECUCION = 0
+DIA_EJECUCION = 0  # Lunes (0 = lunes, 6 = domingo)
 ya_ejecuto_hoy = False
+
+# Zona horaria de Colima, MX
+tz = pytz.timezone("America/Mexico_City")
 
 # === TIEMPOS DE DOSIFICACIÓN (en milisegundos) ===
 TIEMPO_BOMBA1 = 3452  # FloraMicro (8.3 ml)
@@ -22,12 +27,18 @@ print("[INFO] Bomba de agua encendida permanentemente.")
 
 try:
     while True:
-        now = datetime.now()
+        now = datetime.now(tz)
         hora = now.hour
         minuto = now.minute
+        dia_semana = now.weekday()  # Lunes = 0
 
-        if hora == HORA_EJECUCION and minuto == MINUTO_EJECUCION and not ya_ejecuto_hoy:
-            print(f"[{now.strftime('%H:%M:%S')}] Iniciando dosificación...")
+        if (
+            dia_semana == DIA_EJECUCION
+            and hora == HORA_EJECUCION
+            and minuto == MINUTO_EJECUCION
+            and not ya_ejecuto_hoy
+        ):
+            print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Iniciando dosificación...")
 
             # FloraMicro
             arduino.write(b'BON1\n')
@@ -51,10 +62,10 @@ try:
             time.sleep(TIEMPO_BOMBA3 / 1000)
             arduino.write(b'BOFF3\n')
 
-            print(f"[{now.strftime('%H:%M:%S')}] Dosificación completa.")
-            ya_ejecuto_hoy = True  # Solo una vez al día
+            print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Dosificación completa.")
+            ya_ejecuto_hoy = True
 
-        # Reset diario a la medianoche
+        # Reset diario a medianoche
         if hora == 0 and minuto == 0:
             ya_ejecuto_hoy = False
 
@@ -62,5 +73,5 @@ try:
 
 except KeyboardInterrupt:
     print("\n[INFO] Programa detenido por el usuario.")
-    arduino.write(b'BAOFF\n')  # Apagar bomba de agua (opcional)
+    arduino.write(b'BAOFF\n')
     arduino.close()
