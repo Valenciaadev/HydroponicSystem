@@ -179,6 +179,8 @@ class HomeappAdmin(QWidget):
         self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
         self.hortalizas_widget = GestionHortalizasAppAdmin(self.ventana_login, embed=True)
 
+        self.hortalizas_widget.crop_changed.connect(self.inicio_widget.on_crop_changed)
+
         # Agregar vistas al stacked layout (nueva vista en posición 0)
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)

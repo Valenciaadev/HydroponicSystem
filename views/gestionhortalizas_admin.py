@@ -2,8 +2,11 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from models.database import get_hortalizas, update_hortaliza_seleccion, get_sensors_data
+from PyQt5.QtCore import pyqtSignal
+
 
 class GestionHortalizasAppAdmin(QWidget):
+    crop_changed = pyqtSignal(int)
     def __init__(self, ventana_login, embed=None):
         super().__init__(ventana_login)
         self.ventana_login = ventana_login
@@ -255,7 +258,13 @@ class GestionHortalizasAppAdmin(QWidget):
 
     def finalize_db_update(self, hortaliza_id):
         success = update_hortaliza_seleccion(hortaliza_id)
-        if not success:
+        if success:
+            # Actualiza lista y botón
+            self.load_hortalizas()
+            self.update_button_text()
+            # Notifica a la vista de inicio para refrescar tooltips
+            self.crop_changed.emit(hortaliza_id)
+        else:
             # Revertir cambios si falla la BD
             self.load_hortalizas()
             self.update_button_text()

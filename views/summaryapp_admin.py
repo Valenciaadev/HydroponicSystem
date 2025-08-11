@@ -4,6 +4,7 @@ from PyQt5.QtGui import *
 from models.database import create_line_graph
 from models.database import create_bar_graph
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from models.database import get_hortalizas, get_sensors_data
 from picamera2 import Picamera2
 from PyQt5.QtCore import QTimer
 import cv2
@@ -18,6 +19,9 @@ class SummaryAppAdmin(QWidget):
         self.gauges = {}
         self.sensor_data = {}  # Para conservar los últimos valores conocidos
         self.camera = None
+        # Cargar rangos ideales al arrancar según la hortaliza seleccionada
+        
+
 
         QToolTip.setFont(QFont("Arial", 12))
         QApplication.instance().setStyleSheet("""
@@ -158,6 +162,8 @@ class SummaryAppAdmin(QWidget):
         self.timer.timeout.connect(self.update_camera_frame)
         self.timer.start(30)
 
+        QTimer.singleShot(0, self.actualizar_rangos_ideales_desde_db)
+
     def update_camera_frame(self):
         frame = self.picam.capture_array()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -178,6 +184,99 @@ class SummaryAppAdmin(QWidget):
                 print("⚠️ Error al liberar la cámara:", e)
 
     def create_card(self, title, value, timestamp, tooltip_text):
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #1f2232;
+                border-radius: 25px;
+                padding: 5px;
+                color: white;
+            }
+            QLabel {
+                qproperty-alignment: AlignCenter;
+            }
+        """)
+        card.setFixedSize(250, 185)
+
+        # Diccionario de tooltips dinámicos
+        if not hasattr(self, "tooltips_dict"):
+            self.tooltips_dict = {}
+        self.tooltips_dict[title] = tooltip_text  # guarda el inicial; luego lo actualizaremos
+
+        # Botón info
+        info_button = QPushButton()
+        icon_i = QIcon("assets/icons/info-circle.svg")
+        pixmap = icon_i.pixmap(QSize(20, 20))
+        info_button.setIcon(QIcon(pixmap))
+        info_button.setFixedSize(24, 24)
+        info_button.setIconSize(QSize(20, 20))
+        info_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                margin-left: 6px;
+            }
+            QPushButton:hover {
+                background-color: #444;
+                border-radius: 12px;
+            }
+        """)
+
+        # Tooltip que SIEMPRE lee el texto actual del diccionario
+        class InfoButtonEnterEvent:
+            def __init__(self, button, get_tooltip):
+                self.button = button
+                self.get_tooltip = get_tooltip
+            def enterEvent(self, event):
+                QToolTip.showText(
+                    self.button.mapToGlobal(QPoint(0, 20)),
+                    self.get_tooltip(),
+                    self.button,
+                    QRect(),
+                    0
+                )
+                super(type(self.button), self.button).enterEvent(event)
+
+        info_button.enterEvent = InfoButtonEnterEvent(
+            info_button,
+            lambda: self.tooltips_dict.get(title, "")
+        ).enterEvent
+
+        # Título + ícono
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Arial", 10, QFont.Bold))
+
+        title_info_layout = QHBoxLayout()
+        title_info_layout.setAlignment(Qt.AlignHCenter)
+        title_info_layout.setSpacing(4)
+        title_info_layout.addWidget(title_label)
+        title_info_layout.addWidget(info_button)
+
+        # Centro del contenido
+        value_label = QLabel(value)
+        value_label.setFont(QFont("Arial", 18, QFont.Bold))
+        value_label.setMinimumHeight(40)
+        value_label.setAlignment(Qt.AlignCenter)
+
+        time_label = QLabel(timestamp)
+        time_label.setFont(QFont("Arial", 9))
+        time_label.setAlignment(Qt.AlignCenter)
+
+        # Guardar referencias
+        if not hasattr(self, "card_labels"):
+            self.card_labels = {}
+        self.card_labels[title] = (value_label, time_label)
+
+        main_layout = QVBoxLayout()
+        main_layout.setAlignment(Qt.AlignCenter)
+        main_layout.addLayout(title_info_layout)
+        main_layout.addWidget(value_label)
+        main_layout.addWidget(time_label)
+        card.setLayout(main_layout)
+        return card
+
+
+    '''def create_card(self, title, value, timestamp, tooltip_text):
         card = QFrame()
         card.setStyleSheet("""
             QFrame {
@@ -259,7 +358,7 @@ class SummaryAppAdmin(QWidget):
         main_layout.addWidget(value_label)
         main_layout.addWidget(time_label)
         card.setLayout(main_layout)
-        return card
+        return card'''
 
     def recibir_datos_sensores(self, data):
         self.sensor_data.update(data)  # Mantener unificado el estado
@@ -297,6 +396,126 @@ class SummaryAppAdmin(QWidget):
             self.gauges["Temp. Aire"].set_value(self.sensor_data["temp_aire"])
         if "humedad_aire" in self.sensor_data and "Humedad Aire" in self.gauges:
             self.gauges["Humedad Aire"].set_value(self.sensor_data["humedad_aire"])
+
+
+    def _get_selected_crop_from_db(self):
+        """
+        Usa get_hortalizas() y devuelve (id_hortaliza, nombre) con seleccion=1.
+        Si hay varias, toma la primera que venga.
+        """
+        try:
+            horts = get_hortalizas() or []
+            for h in horts:
+                if h.get('seleccion') == 1:
+                    return h.get('id_hortaliza'), h.get('nombre')
+        except Exception as e:
+            print("⚠️ Error consultando hortaliza seleccionada:", e)
+        return None, None
+
+    def _build_tooltips_from_sensors_data(self, crop_name, sensores_data):
+        """
+        sensores_data: lista de dicts con al menos { 'nombre', 'rango_min', 'rango_max' }
+        Actualiza self.tooltips_dict por TÍTULO de tarjeta (excepto 'Nivel del agua').
+        """
+        # Mapeo por nombre de sensor → título de tarjeta + plantilla
+        name_to_title = {
+            "Sensor PH": "Nivel pH del agua",
+            "Temperatura en el aire": "Temperatura del aire",
+            "Temperatura en el agua": "Temperatura del agua",
+            "Sensor de Humedad": "Humedad del aire",
+            "Sensor de ORP": "Nivel ORP",
+            # "Sensor Ultrasónico": "Nivel del agua"  # ← este NO se modifica
+        }
+
+        def tooltip_tpl(titulo, cuerpo):
+            return f"<b>{titulo}</b><br>{cuerpo}"
+
+        # Recorre sensores y arma textos
+        for s in sensores_data or []:
+            nombre = s.get("nombre", "")
+            vmin = s.get("rango_min", None)
+            vmax = s.get("rango_max", None)
+            if nombre not in name_to_title or vmin is None or vmax is None:
+                continue
+
+            title = name_to_title[nombre]
+            # Construye según el tipo
+            if nombre == "Sensor PH":
+                self.tooltips_dict[title] = tooltip_tpl(
+                    "Nivel de pH del Agua",
+                    f"Rango ideal: <b>{float(vmin):.2f} a {float(vmax):.2f}</b> para {crop_name}.<br>"
+                    "Valores fuera de este rango dificultan la absorción de nutrientes."
+                )
+            elif nombre == "Temperatura en el aire":
+                self.tooltips_dict[title] = tooltip_tpl(
+                    "Temperatura del Aire",
+                    f"Ideal entre <b>{float(vmin):.0f}°C y {float(vmax):.0f}°C</b> para el crecimiento óptimo de {crop_name}.<br>"
+                    "Evita temperaturas mayores a 27°C para prevenir estrés térmico."
+                )
+            elif nombre == "Temperatura en el agua":
+                self.tooltips_dict[title] = tooltip_tpl(
+                    "Temperatura del Agua",
+                    f"Ideal entre <b>{float(vmin):.0f}°C y {float(vmax):.0f}°C</b>.<br>"
+                    "Temperaturas superiores a 24°C pueden reducir el oxígeno disuelto, afectando las raíces."
+                )
+            elif nombre == "Sensor de Humedad":
+                self.tooltips_dict[title] = tooltip_tpl(
+                    "Humedad Relativa del Aire",
+                    f"Rango ideal: <b>{float(vmin):.0f}% a {float(vmax):.0f}%</b>.<br>"
+                    "Niveles adecuados reducen la transpiración excesiva y promueven la fotosíntesis."
+                )
+            elif nombre == "Sensor de ORP":
+                self.tooltips_dict[title] = tooltip_tpl(
+                    "Potencial Redox (ORP)",
+                    f"Rango ideal para {crop_name}: <b>{float(vmin):.0f} mV a {float(vmax):.0f} mV</b>.<br>"
+                    "Un ORP dentro de este rango indica un buen equilibrio entre oxidantes y reductores, "
+                    "lo cual favorece la absorción de nutrientes y evita la proliferación de microorganismos indeseados."
+                )
+        # 'Nivel del agua' lo dejamos igual (sin rango)
+
+    @pyqtSlot()
+    def actualizar_rangos_ideales_desde_db(self, id_hortaliza=None):
+        """
+        Si no se pasa id_hortaliza, toma el actualmente seleccionado en DB.
+        Construye tooltips según get_sensors_data(id_hortaliza).
+        """
+        crop_id = id_hortaliza
+        crop_name = None
+
+        if crop_id is None:
+            crop_id, crop_name = self._get_selected_crop_from_db()
+        else:
+            # si nos pasan el id, buscamos solo el nombre para el texto
+            try:
+                horts = get_hortalizas() or []
+                for h in horts:
+                    if h.get('id_hortaliza') == crop_id:
+                        crop_name = h.get('nombre')
+                        break
+            except Exception as e:
+                print("⚠️ Error consultando nombre de hortaliza:", e)
+
+        if not crop_id:
+            print("⚠️ No hay hortaliza seleccionada.")
+            return
+
+        try:
+            sensores_data = get_sensors_data(crop_id) or []
+        except Exception as e:
+            print("⚠️ Error obteniendo rangos de sensores:", e)
+            sensores_data = []
+
+        if not crop_name:
+            crop_name = "esta hortaliza"
+
+        self._build_tooltips_from_sensors_data(crop_name, sensores_data)
+        # No hace falta refrescar widgets; el hover leerá los nuevos tooltips
+        print(f"ℹ️ Rangos ideales actualizados para {crop_name} (id={crop_id}).")
+
+    @pyqtSlot(int)
+    def on_crop_changed(self, id_hortaliza):
+        """Slot público para que Hortalizas nos notifique un cambio."""
+        self.actualizar_rangos_ideales_desde_db(id_hortaliza=id_hortaliza)
 
 
 
