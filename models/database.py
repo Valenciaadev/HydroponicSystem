@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 
 def connect_db():
     try:
-        print("Intentando conectar a la base de datos...")
+        # print("Intentando conectar a la base de datos...")
         conn = mysql.connector.connect(
             host="localhost",
             user="root",
@@ -15,7 +15,7 @@ def connect_db():
             database="hydrophonic_sys",
             port=3306,
         )
-        print("✅ Conexión exitosa a la base de datos desde `connect_db()`")
+        # print("✅ Conexión exitosa a la base de datos desde `connect_db()`")
         return conn
 
     except mysql.connector.Error as err:

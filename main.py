@@ -18,6 +18,7 @@ from views.summaryapp_admin import SummaryAppAdmin
 from views.summaryapp_worker import SummaryAppWorker
 from models.database import connect_db
 from models.nivelagua_thread import NivelAguaThread
+from models.dosificador_thread import DosificadorThread
 
 import serial
 import time
@@ -165,6 +166,7 @@ class LoginRegisterApp(QDialog):
         
         # ✅ Ahora sí creamos una nueva
         self.homeapp_admin = HomeappAdmin(self)
+
         self.serial_thread = SerialReaderThread()
         self.serial_thread.datos_actualizados.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
         self.serial_thread.start()
@@ -174,7 +176,33 @@ class LoginRegisterApp(QDialog):
         self.nivel_agua_thread.datos_nivel_agua.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
         self.nivel_agua_thread.start()
 
-        # Mostrar la vista principal
+
+        self.dosificador_thread = DosificadorThread(
+            port="/dev/ttyACM0",
+            baud=9600,
+            tz_name="America/Mexico_City",
+            weekday=0,
+            hour=10,
+            minute=0,
+            t_bomba1=3452,
+            t_bomba2=3452,
+            t_bomba3=1708
+        )
+        # Conectar logs a la vista inicial para mostrarlos en consola/log area si tienes
+        try:
+            iw = self.homeapp_admin.inicio_widget
+            self.dosificador_thread.log.connect(lambda m: print(m))
+            self.dosificador_thread.started_dose.connect(lambda m: print(m))
+            self.dosificador_thread.finished_dose.connect(lambda m: print(m))
+            self.dosificador_thread.error.connect(lambda m: print(m))
+            # Si tu SummaryAppAdmin tiene un método para logs, cámbialo aquí:
+            # self.dosificador_thread.log.connect(iw.agregar_log)  # por ejemplo
+        except Exception:
+            pass
+
+        self.dosificador_thread.start()
+        # self.dosificador_thread.dosificar_ahora()
+
         self.homeapp_admin.showFullScreen()
         self.hide()
     
@@ -238,6 +266,24 @@ if __name__ == "__main__":
             window.homeapp_admin.nivel_agua_thread.stop()
             window.homeapp_admin.nivel_agua_thread.quit()
             window.homeapp_admin.nivel_agua_thread.wait()
+
+            try:
+                window.dosificador_thread.detener()
+                window.dosificador_thread.quit()
+                window.dosificador_thread.wait()
+            except Exception as e:
+                print("⚠️ No se pudo cerrar el hilo dosificador:", e)
+
+            try:
+                import serial
+                arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+                arduino.write(b'BAOFF\n')
+                #print("🚿 Bomba de agua apagada automáticamente al salir.")
+                arduino.close()
+            except Exception as e:
+                print("⚠️ No se pudo apagar la bomba al salir:", e)
+
+            app.aboutToQuit.connect(cerrar_hilos_al_salir)
             
         if hasattr(window, 'homeapp_worker') and hasattr(window.homeapp_worker, 'serial_thread') and hasattr(window.homeapp_worker, 'nivel_agua_thread'):
             window.homeapp_worker.serial_thread.stop()
@@ -247,6 +293,7 @@ if __name__ == "__main__":
             window.homeapp_worker.nivel_agua_thread.stop()
             window.homeapp_worker.nivel_agua_thread.quit()
             window.homeapp_worker.nivel_agua_thread.wait()
+            GPIO.cleanup()
             #print("🛑 Hilo serial cerrado desde aboutToQuit.")
 
             try:

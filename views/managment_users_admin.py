@@ -898,7 +898,7 @@ class ModalEditar(QDialog):
         back_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         save_button = QPushButton("Guardar")
-        save_button.setIcon(QIcon("assets/icons/btn-save-white.svg"))
+        # save_button.setIcon(QIcon("assets/icons/btn-save-white.svg"))
         save_button.setStyleSheet("""
             QPushButton {
                 background-color: #30EACE;

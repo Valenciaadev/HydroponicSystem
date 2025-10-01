@@ -118,7 +118,7 @@ class RegistroWidget(QWidget):
         cancel_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         accept_button = QPushButton("Aceptar")
-        accept_button.setIcon(QIcon("assets/icons/btn-save-white.svg"))
+        # accept_button.setIcon(QIcon("assets/icons/btn-save-white.svg"))
         accept_button.setStyleSheet("""
             QPushButton {
                 background-color: #30EACE;

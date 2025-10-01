@@ -19,6 +19,7 @@ class NivelAguaThread(QThread):
         self._running = True
         self._ultima_hora_guardado = None
 
+        GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.trig, GPIO.OUT)
         GPIO.setup(self.echo, GPIO.IN)

@@ -105,6 +105,25 @@ class ActuatorsAppAdmin(QWidget):
 
         self.populate_actuators()
 
+    # AGREGUE ESTO _________________________________________________________________________
+    def _dosificar_ahora_desde_ui(self):
+        # Verifica que el hilo exista y esté vivo
+        hilo = getattr(self.ventana_login, "dosificador_thread", None)
+        if hilo is None:
+            QMessageBox.warning(self, "Dosificador", "El hilo de dosificación no está disponible en esta vista.")
+            return
+        if not hilo.isRunning():
+            QMessageBox.warning(self, "Dosificador", "El hilo de dosificación no está corriendo.")
+            return
+
+        # Dispara la dosificación manual (las 3 bombas, con los tiempos actuales)
+        try:
+            hilo.dosificar_ahora()
+            QMessageBox.information(self, "Dosificador", "Dosificación manual iniciada.")
+        except Exception as e:
+            QMessageBox.critical(self, "Dosificador", f"No se pudo iniciar la dosificación: {e}")
+    # AGREGUE ESTO _________________________________________________________________________
+
     def add_actuator_card(self, actuator_id, nombre, tipo, estado_actual):
         self.actuadores_icons = {
             "Bomba FloraGro": "assets/img/peris.png",
@@ -177,9 +196,29 @@ class ActuatorsAppAdmin(QWidget):
             """)
             gestionar_button.clicked.connect(lambda _, sid=actuator_id: self.actuators_managment(sid))
 
+            # AGREGUE ESTO _________________________________________________________________________
+            dosificar_button = QPushButton("Dosificar ahora")
+            dosificar_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #0D2B23;
+                    color: white;
+                    font-weight: bold;
+                    border-radius: 14px;
+                    padding: 6px 14px;
+                    border: 1px solid #10B981;
+                }
+                QPushButton:hover {
+                    background-color: #218463;
+                }
+            """)
+            dosificar_button.clicked.connect(self._dosificar_ahora_desde_ui)
+
             buttons_layout = QHBoxLayout()
             buttons_layout.setSpacing(10)
-            # buttons_layout.addWidget(gestionar_button)
+            buttons_layout.addWidget(dosificar_button)
+            buttons_layout.addWidget(gestionar_button)
+            # AGREGUE ESTO _________________________________________________________________________
+            
             buttons_layout.addWidget(features_button)
 
         else:

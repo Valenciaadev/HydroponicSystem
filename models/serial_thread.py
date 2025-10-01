@@ -10,7 +10,7 @@ SERIAL_PORT = '/dev/ttyUSB0'
 BAUD_RATE = 9600
 
 class SerialReaderThread(QThread):
-    datos_actualizados = pyqtSignal(dict)  # 👈 señal que enviará los datos
+    datos_actualizados = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()

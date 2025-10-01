@@ -1,4 +1,3 @@
-# models/poolkit_thread.py
 import serial
 import time
 from PyQt5.QtCore import QThread, pyqtSignal

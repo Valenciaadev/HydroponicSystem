@@ -517,9 +517,6 @@ class SummaryAppAdmin(QWidget):
         """Slot público para que Hortalizas nos notifique un cambio."""
         self.actualizar_rangos_ideales_desde_db(id_hortaliza=id_hortaliza)
 
-
-
-
     def create_gauge_column(self, titles):
         gauges_layout = QVBoxLayout()
         gauge_frame = QFrame()
