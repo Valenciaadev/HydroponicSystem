@@ -141,3 +141,25 @@ class DosificadorThread(QThread):
             self.error.emit(f"[ERR] Serial: {se}")
         except Exception as e:
             self.error.emit(f"[ERR] Dosificación: {e}")
+
+    # models/dosificador_thread.py (dentro de la clase DosificadorThread)
+    def dosificar_bomba(self, pump:int, ms:int):
+        if pump not in (1, 2, 3):
+            self.error.emit(f"[ERR] Bomba inválida: {pump}")
+            return
+        if ms <= 0:
+            self.error.emit(f"[ERR] Tiempo inválido para bomba {pump}: {ms} ms")
+            return
+        try:
+            import serial, time
+            with serial.Serial(self._port, self._baud, timeout=1) as arduino:
+                time.sleep(2)  # por si resetea al abrir
+                cmd_on  = f"BON{pump}\n".encode("utf-8")
+                cmd_off = f"BOFF{pump}\n".encode("utf-8")
+                arduino.write(cmd_on)
+                self.log.emit(f" → Bomba {pump}: ON por {ms} ms")
+                time.sleep(ms/1000.0)
+                arduino.write(cmd_off)
+            self.finished_dose.emit(f"[OK] Bomba {pump}: dosificación puntual completada ({ms} ms).")
+        except Exception as e:
+            self.error.emit(f"[ERR] Bomba {pump}: {e}")

@@ -3,6 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from models.database import connect_db
 from controllers.auth_controller import show_message
+from PyQt5.QtCore import QTimer, QDateTime
 
 class TitleBar(QWidget):
     def __init__(self, parent):
@@ -380,11 +381,13 @@ class ActuatorManagmentWidget(QDialog):
     def set_automated_mode(self):
         self.auto_button.setChecked(True)
         self.manual_button.setChecked(False)
-        self.dosis_input.input_field.setReadOnly(True)
-        self.fecha_input.input_field.setEnabled(False)
-        self.hora_input.input_field.setEnabled(False)
-        self.fecha_input.icon_button.setCursor(Qt.ForbiddenCursor)
-        self.hora_input.icon_button.setCursor(Qt.ForbiddenCursor)
+
+        self.dosis_input.input_field.setReadOnly(False)
+        self.fecha_input.input_field.setEnabled(True)
+        self.hora_input.input_field.setEnabled(True)
+        self.fecha_input.icon_button.setCursor(Qt.PointingHandCursor)
+        self.hora_input.icon_button.setCursor(Qt.PointingHandCursor)
+
         self.update_buttons()
 
     def update_buttons(self):
@@ -392,15 +395,98 @@ class ActuatorManagmentWidget(QDialog):
             self.button_layout.itemAt(i).widget().setParent(None)
 
         if self.manual_button.isChecked():
-            self.button_layout.addWidget(self.supply_button)
+            self.supply_button.setText("Suministrar")
+        else:
+            self.supply_button.setText("Programar")
+
+        self.button_layout.addWidget(self.supply_button)
         self.button_layout.addWidget(self.close_button)
 
     def supply_doses(self):
-        print("Suministrar dosis:", {
-            "dosis": self.dosis_input.input_field.text(),
-            "fecha": self.fecha_input.input_field.text(),
-            "hora": self.hora_input.input_field.text()
-        })
+        # Verifica disponibilidad del hilo
+        hilo = getattr(self.ventana_login, "dosificador_thread", None)
+        if hilo is None or not hilo.isRunning():
+            show_message("Dosificador no disponible", "El hilo de dosificación no está corriendo.", type="error", parent=self)
+            return
+
+        # Identificar la bomba a partir del actuador
+        nombre = self._resolver_nombre_actuador()
+        pump = self._pump_index_from_name(nombre)
+        if pump == 0:
+            show_message("Actuador desconocido", "No se pudo asociar este actuador a una bomba peristáltica.", type="error", parent=self)
+            return
+
+        # Leer dosis y fecha/hora del formulario
+        dosis_text = self.dosis_input.input_field.text().strip()
+        fecha_qdate = self.fecha_input.input_field.date()
+        hora_qtime  = self.hora_input.input_field.time()
+
+        # Modo Manual: ejecutar de inmediato en función de la dosis (ml)
+        if self.manual_button.isChecked():
+            if not dosis_text:
+                show_message("Dato faltante", "Ingresa la dosis en ml.", type="warning", parent=self)
+                return
+            try:
+                ml = float(dosis_text)
+                if ml <= 0:
+                    raise ValueError("ml <= 0")
+            except Exception:
+                show_message("Valor inválido", "La dosis debe ser un número mayor a 0.", type="error", parent=self)
+                return
+
+            ms_por_ml = self._ms_por_ml(pump)
+            if ms_por_ml <= 0:
+                show_message("Calibración faltante", "No fue posible calcular ms/ml para esta bomba.", type="error", parent=self)
+                return
+
+            ms = int(round(ml * ms_por_ml))
+            hilo.dosificar_bomba(pump, ms)
+            show_message("Dosis enviada", f"Se inició la dosificación de {ml:.2f} ml en la bomba {pump} (~{ms} ms).", type="success", parent=self)
+            return
+
+        # ===========================
+        #   MODO AUTOMATIZADO (one-shot)
+        # ===========================
+        target_dt = QDateTime(fecha_qdate, hora_qtime)
+        now_dt = QDateTime.currentDateTime()
+
+        if target_dt <= now_dt:
+            show_message("Fecha/Hora inválidas", "Programa una fecha/hora futura.", type="warning", parent=self)
+            return
+
+        # Dosis por defecto si está vacía: 8.3 ml (b1,b2) o 4.1 ml (b3)
+        if not dosis_text:
+            ml = 8.3 if pump in (1, 2) else 4.1
+        else:
+            try:
+                ml = float(dosis_text)
+                if ml <= 0:
+                    raise ValueError("ml <= 0")
+            except Exception:
+                show_message("Valor inválido", "La dosis debe ser un número mayor a 0.", type="error", parent=self)
+                return
+
+        ms_por_ml = self._ms_por_ml(pump)
+        if ms_por_ml <= 0:
+            show_message("Calibración faltante", "No fue posible calcular ms/ml para esta bomba.", type="error", parent=self)
+            return
+
+        ms = int(round(ml * ms_por_ml))
+        delay_ms = now_dt.msecsTo(target_dt)
+
+        # Programación puntual usando el loop de Qt (one-shot)
+        def _ejecutar_programado():
+            try:
+                hilo.dosificar_bomba(pump, ms)
+            except Exception as e:
+                show_message("Error", f"No se pudo ejecutar la dosis programada: {e}", type="error", parent=self)
+
+        QTimer.singleShot(delay_ms, _ejecutar_programado)
+        show_message(
+            "Dosis programada",
+            f"Se programó una dosis de {ml:.2f} ml en la bomba {pump} para {target_dt.toString('yyyy-MM-dd HH:mm')}.",
+            type="success", parent=self
+        )
 
     def load_actuator_data(self):
         conn = connect_db()
@@ -424,4 +510,49 @@ class ActuatorManagmentWidget(QDialog):
             conn.close()
         else:
             print("No se pudo conectar a la base de datos para cargar datos del actuador.")
+    
+    # actuator_managment_modal.py (dentro de ActuatorManagmentWidget)
+    def _resolver_nombre_actuador(self) -> str:
+        try:
+            conn = connect_db()
+            if not conn:
+                return ""
+            cur = conn.cursor(dictionary=True)
+            cur.execute("SELECT nombre FROM actuadores WHERE id_actuador=%s", (self.actuator_id,))
+            row = cur.fetchone()
+            cur.close()
+            conn.close()
+            return (row["nombre"] or "") if row else ""
+        except Exception:
+            return ""
+
+    def _pump_index_from_name(self, nombre:str) -> int:
+        n = (nombre or "").lower()
+        if "gro" in n:  # FloraMicro
+            return 1
+        if "micro" in n:    # FloraGro
+            return 2
+        if "bloom" in n:  # FloraBloom
+            return 3
+        return 0  # desconocido
+
+    def _ms_por_ml(self, pump:int) -> float:
+        """
+        Calcula ms/ml a partir de la calibración actual del hilo (t_bombaX y ml base).
+        Base conocida: 8.3ml (b1), 8.3ml (b2), 4.1ml (b3) según tu script original.
+        """
+        hilo = getattr(self.ventana_login, "dosificador_thread", None)
+        if not hilo:
+            return 0.0
+        if pump == 1:
+            base_ml = 8.3
+            return float(hilo.t_bomba1) / base_ml
+        if pump == 2:
+            base_ml = 8.3
+            return float(hilo.t_bomba2) / base_ml
+        if pump == 3:
+            base_ml = 4.1
+            return float(hilo.t_bomba3) / base_ml
+        return 0.0
+
     
