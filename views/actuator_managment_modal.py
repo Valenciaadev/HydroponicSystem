@@ -114,6 +114,13 @@ class ActuatorManagmentWidget(QDialog):
         self.fecha_input = self.create_date_input("Fecha de aplicaci\u00f3n", enabled=False)
         self.hora_input = self.create_time_input("Hora de aplicaci\u00f3n", enabled=False)
 
+        self.dosis_hint_label = QLabel("")
+        self.dosis_hint_label.setStyleSheet("color: #A0F0E5; font-size: 12px; margin-left: 16px;")
+        self.dosis_hint_label.setWordWrap(True)
+
+        self.dosis_input.layout().addWidget(self.dosis_hint_label)
+
+
         for widget in (self.dosis_input, self.fecha_input, self.hora_input):
             form_layout.addRow("", widget)
 
@@ -151,6 +158,25 @@ class ActuatorManagmentWidget(QDialog):
         self.set_automated_mode()
 
         self.setLayout(layout)
+        
+        self._last_auto_date = QDate.currentDate()
+        self._auto_refresh_timer = QTimer(self)
+        self._auto_refresh_timer.setInterval(60_000)  # cada minuto
+        self._auto_refresh_timer.timeout.connect(self._refresh_if_new_day)
+        self._auto_refresh_timer.start()
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        if self.auto_button.isChecked():
+            self.set_automated_mode()
+
+    def _proximo_dia_semana(self, target_dow:int) -> QDate:
+        hoy = QDate.currentDate()
+        dow = hoy.dayOfWeek()  # 1..7
+        delta = (target_dow - dow) % 7
+        if delta == 0:
+            delta = 7
+        return hoy.addDays(delta)
 
     def create_labeled_input(self, label_text, enabled=True):
         container = QWidget()
@@ -371,22 +397,54 @@ class ActuatorManagmentWidget(QDialog):
     def set_manual_mode(self):
         self.auto_button.setChecked(False)
         self.manual_button.setChecked(True)
+
         self.dosis_input.input_field.setReadOnly(False)
         self.fecha_input.input_field.setEnabled(True)
         self.hora_input.input_field.setEnabled(True)
         self.fecha_input.icon_button.setCursor(Qt.PointingHandCursor)
         self.hora_input.icon_button.setCursor(Qt.PointingHandCursor)
+
+        if self.dosis_input.input_field.text().startswith("Programado:"):
+            self.dosis_input.input_field.clear()
+
+        self.fecha_input.input_field.setDate(QDate.currentDate())
+        self.hora_input.input_field.setTime(QTime.currentTime())
+
+        nombre = self._resolver_nombre_actuador()
+        pump = self._pump_index_from_name(nombre)
+        self.dosis_hint_label.setText(self._recommended_ml_text(pump))
+        self.dosis_hint_label.show()
+
         self.update_buttons()
+
+    def _refresh_if_new_day(self):
+        """Si cambió el día y seguimos en modo Automatizado, recalcula el próximo lunes 10:00."""
+        current = QDate.currentDate()
+        if self.auto_button.isChecked() and current != self._last_auto_date:
+            self._last_auto_date = current
+            self.set_automated_mode()
 
     def set_automated_mode(self):
         self.auto_button.setChecked(True)
         self.manual_button.setChecked(False)
 
-        self.dosis_input.input_field.setReadOnly(False)
-        self.fecha_input.input_field.setEnabled(True)
-        self.hora_input.input_field.setEnabled(True)
-        self.fecha_input.icon_button.setCursor(Qt.PointingHandCursor)
-        self.hora_input.icon_button.setCursor(Qt.PointingHandCursor)
+        next_monday = self._proximo_dia_semana(1)  # 1 = lunes
+        self.fecha_input.input_field.setDate(next_monday)
+        self.hora_input.input_field.setTime(QTime(10, 0))
+
+        self.dosis_input.input_field.setReadOnly(True)
+        self.fecha_input.input_field.setEnabled(False)
+        self.hora_input.input_field.setEnabled(False)
+        self.fecha_input.icon_button.setCursor(Qt.ForbiddenCursor)
+        self.hora_input.icon_button.setCursor(Qt.ForbiddenCursor)
+
+        # Texto informativo
+        self.dosis_hint_label.setText("")
+        self.dosis_hint_label.hide()
+        self.dosis_input.input_field.setText("Programado: lunes 10:00 (recurrente)")
+
+        # Marca el “hoy” actual para que el timer detecte cambio de día
+        self._last_auto_date = QDate.currentDate()
 
         self.update_buttons()
 
@@ -396,10 +454,8 @@ class ActuatorManagmentWidget(QDialog):
 
         if self.manual_button.isChecked():
             self.supply_button.setText("Suministrar")
-        else:
-            self.supply_button.setText("Programar")
+            self.button_layout.addWidget(self.supply_button)
 
-        self.button_layout.addWidget(self.supply_button)
         self.button_layout.addWidget(self.close_button)
 
     def supply_doses(self):
@@ -441,52 +497,16 @@ class ActuatorManagmentWidget(QDialog):
 
             ms = int(round(ml * ms_por_ml))
             hilo.dosificar_bomba(pump, ms)
-            show_message("Dosis enviada", f"Se inició la dosificación de {ml:.2f} ml en la bomba {pump} (~{ms} ms).", type="success", parent=self)
+            show_message(
+                "Dosis enviada",
+                (
+                    f"Se inició la dosificación de {ml:.2f} ml en la bomba {pump} (~{ms} ms).\n\n"
+                    "Nota: la dosificación AUTOMATIZADA seguirá ejecutándose cada lunes a las 10:00."
+                ),
+                type="success",
+                parent=self
+            )
             return
-
-        # ===========================
-        #   MODO AUTOMATIZADO (one-shot)
-        # ===========================
-        target_dt = QDateTime(fecha_qdate, hora_qtime)
-        now_dt = QDateTime.currentDateTime()
-
-        if target_dt <= now_dt:
-            show_message("Fecha/Hora inválidas", "Programa una fecha/hora futura.", type="warning", parent=self)
-            return
-
-        # Dosis por defecto si está vacía: 8.3 ml (b1,b2) o 4.1 ml (b3)
-        if not dosis_text:
-            ml = 8.3 if pump in (1, 2) else 4.1
-        else:
-            try:
-                ml = float(dosis_text)
-                if ml <= 0:
-                    raise ValueError("ml <= 0")
-            except Exception:
-                show_message("Valor inválido", "La dosis debe ser un número mayor a 0.", type="error", parent=self)
-                return
-
-        ms_por_ml = self._ms_por_ml(pump)
-        if ms_por_ml <= 0:
-            show_message("Calibración faltante", "No fue posible calcular ms/ml para esta bomba.", type="error", parent=self)
-            return
-
-        ms = int(round(ml * ms_por_ml))
-        delay_ms = now_dt.msecsTo(target_dt)
-
-        # Programación puntual usando el loop de Qt (one-shot)
-        def _ejecutar_programado():
-            try:
-                hilo.dosificar_bomba(pump, ms)
-            except Exception as e:
-                show_message("Error", f"No se pudo ejecutar la dosis programada: {e}", type="error", parent=self)
-
-        QTimer.singleShot(delay_ms, _ejecutar_programado)
-        show_message(
-            "Dosis programada",
-            f"Se programó una dosis de {ml:.2f} ml en la bomba {pump} para {target_dt.toString('yyyy-MM-dd HH:mm')}.",
-            type="success", parent=self
-        )
 
     def load_actuator_data(self):
         conn = connect_db()
@@ -511,7 +531,15 @@ class ActuatorManagmentWidget(QDialog):
         else:
             print("No se pudo conectar a la base de datos para cargar datos del actuador.")
     
-    # actuator_managment_modal.py (dentro de ActuatorManagmentWidget)
+    def _recommended_ml_text(self, pump:int) -> str:
+        if pump == 1:
+            return "Recomendado para FloraMicro: 8.3 ml."
+        if pump == 2:
+            return "Recomendado para FloraGro: 8.3 ml."
+        if pump == 3:
+            return "Recomendado para FloraBloom: 4.1 ml."
+        return "Selecciona una dosis adecuada según tu calibración."
+
     def _resolver_nombre_actuador(self) -> str:
         try:
             conn = connect_db()
@@ -528,13 +556,14 @@ class ActuatorManagmentWidget(QDialog):
 
     def _pump_index_from_name(self, nombre:str) -> int:
         n = (nombre or "").lower()
-        if "gro" in n:  # FloraMicro
+        # ✅ Corrección del mapeo
+        if "micro" in n:
             return 1
-        if "micro" in n:    # FloraGro
+        if "gro" in n:
             return 2
-        if "bloom" in n:  # FloraBloom
+        if "bloom" in n:
             return 3
-        return 0  # desconocido
+        return 0
 
     def _ms_por_ml(self, pump:int) -> float:
         """
