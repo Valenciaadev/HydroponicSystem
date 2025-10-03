@@ -91,7 +91,7 @@ class GestionHortalizasAppAdmin(QWidget):
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #60D4B8, stop:1 #1E2233);
                 border-radius: 0px;
-                padding: 2px;
+                padding: 2px; 
             }
         """)
 
@@ -104,8 +104,8 @@ class GestionHortalizasAppAdmin(QWidget):
                 font-weight: bold;
                 font-size: 16px;
                 border: none;
-                padding: 10px 5px;
-                border-radius: 30px;
+                padding: 10px 20px;
+                border-radius: 0px;
             }
             QPushButton:hover {
                 background-color: #2B2E3F;

@@ -61,6 +61,7 @@ class AboutActuatorWidget(QDialog):
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 5, 0, 10)
+        self.setStyleSheet("background-color: #1E1B2E;")
 
         self.title_bar = TitleBar(self)
         layout.addWidget(self.title_bar)
@@ -68,7 +69,7 @@ class AboutActuatorWidget(QDialog):
         title_label = QLabel("Características del actuador")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setFont(QFont("Candara", 14))
-        title_label.setStyleSheet("color: white; font-weight: bold;")
+        title_label.setStyleSheet("color: #60D4B8; font-weight: bold;")
         layout.addWidget(title_label)
 
         form_layout = QFormLayout()
