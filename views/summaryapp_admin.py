@@ -380,7 +380,7 @@ class SummaryAppAdmin(QWidget):
                 if valor is not None:
                     value_label.setText(f"{valor:.2f} {unidad}")
                 else:
-                    value_label.setText("32.00%")
+                    value_label.setText("N/A")
                 time_label.setText(hora)
 
         # Gauges
