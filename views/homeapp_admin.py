@@ -8,7 +8,6 @@ from views.sensorsapp_admin import SensorsAppAdmin
 from views.historyapp_admin import HistoryAppAdmin
 from views.managment_users_admin import ManagmentAppAdmin
 from views.gestionhortalizas_admin import GestionHortalizasAppAdmin
-from models.serial_thread import SerialReaderThread
 
 class HomeappAdmin(QWidget):
     def __init__(self, ventana_login):
@@ -29,7 +28,7 @@ class HomeappAdmin(QWidget):
         # Añade espacio antes del logo
         left_container.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
-        # Logo grande en la parte superior izquierda
+        # Logo
         logo_label = QLabel()
         logo_pixmap = QPixmap("assets/img/logo.png")
         logo_label.setPixmap(logo_pixmap.scaled(462, 168, Qt.KeepAspectRatio, Qt.SmoothTransformation))
@@ -37,7 +36,7 @@ class HomeappAdmin(QWidget):
         logo_label.setStyleSheet("padding: 10px; margin-bottom: 20px;")
         left_container.addWidget(logo_label)
 
-        # Sidebar centrado verticalmente pero más arriba
+        # Sidebar
         sidebar_container = QVBoxLayout() 
         sidebar_container.setContentsMargins(0, 0, 0, 0)
         sidebar_container.setSpacing(0)
@@ -69,7 +68,6 @@ class HomeappAdmin(QWidget):
             }
         """
 
-        # Etiquetas de sección
         label_vistas = QLabel("Vistas")
         label_vistas.setStyleSheet("color: #7FD1B9; font-weight: bold; padding-left: 4px; font-size: 16px;")
         label_vistas.setAlignment(Qt.AlignLeft)
@@ -121,11 +119,8 @@ class HomeappAdmin(QWidget):
         self.btn_hortalizas.setIcon(QIcon("assets/icons/sapling.svg"))
         self.btn_hortalizas.setIconSize(QSize(24, 24))
 
-        # Espacio antes del botón de cerrar sesión
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         
-        # Botones del sidebar (nuevo botón de hortalizas primero)
-
         btn_exit = QPushButton(" Cerrar sesión")
         btn_exit.setStyleSheet(btn_style)
         btn_exit.setIcon(QIcon("assets/icons/log_out-white.svg"))
@@ -141,22 +136,16 @@ class HomeappAdmin(QWidget):
             border-radius: 15px;
         """)
 
-        # Orden de los botones en el sidebar
         sidebar.addWidget(label_vistas)
         sidebar.addWidget(self.btn_home)
         sidebar.addWidget(self.btn_actuators)
         sidebar.addWidget(self.btn_sensors)
         sidebar.addWidget(self.btn_history)
         sidebar.addWidget(self.btn_users)
-
-        # Separador flexible
         sidebar.addItem(spacer)
-
-        # Sección de configuración
         sidebar.addWidget(label_configuracion)
         sidebar.addWidget(self.btn_hortalizas)
         sidebar.addWidget(btn_exit)
-
 
         sidebar_container.addSpacing(50)
         sidebar_container.addWidget(sidebar_widget)
@@ -165,13 +154,12 @@ class HomeappAdmin(QWidget):
         left_container.addLayout(sidebar_container)
         layout_principal.addLayout(left_container)
 
-        # Stacked layout para cambiar entre vistas
+        # Stacked layout
         self.stacked_layout = QStackedLayout()
 
         if hasattr(self, "inicio_widget") and hasattr(self.inicio_widget, "liberar_camara"):
             self.inicio_widget.liberar_camara()
     
-        # Crear las vistas de cada sección (nueva vista de hortalizas primero)
         self.inicio_widget = SummaryAppAdmin(self.ventana_login, embed=True)
         self.actuadores_widget = ActuatorsAppAdmin(self.ventana_login, embed=True)
         self.sensores_widget = SensorsAppAdmin(self.ventana_login, embed=True)
@@ -181,25 +169,22 @@ class HomeappAdmin(QWidget):
 
         self.hortalizas_widget.crop_changed.connect(self.inicio_widget.on_crop_changed)
 
-        # Agregar vistas al stacked layout (nueva vista en posición 0)
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
         self.stacked_layout.addWidget(self.sensores_widget)
         self.stacked_layout.addWidget(self.historial_widget)
         self.stacked_layout.addWidget(self.gestion_usuarios_widget)
         self.stacked_layout.addWidget(self.hortalizas_widget)
-        self.stacked_layout.setCurrentIndex(0)  # Inicia en Inicio (índice 1)
+        self.stacked_layout.setCurrentIndex(0)
 
-        # Contenido principal
         content_widget = QWidget()
         content_widget.setLayout(self.stacked_layout)
         layout_principal.addWidget(content_widget)
 
         self.setLayout(layout_principal)
 
-        self.serial_thread = SerialReaderThread()
-        self.serial_thread.datos_actualizados.connect(self.inicio_widget.recibir_datos_sensores)
-        self.serial_thread.start()
+        # ❌ Se elimina arranque de SerialReaderThread aquí.
+        # ✅ Conexiones al hilo unificado se hacen al crear la ventana desde main.py.
 
     def log_out(self):
         dialog = QDialog(self)
@@ -278,38 +263,21 @@ class HomeappAdmin(QWidget):
     def confirm_logout(self, dialog):
         dialog.accept()
 
-        # 🛑 Detener hilo serial si está corriendo
-        if hasattr(self, 'serial_thread'):
-            self.serial_thread.stop()
-            self.serial_thread.quit()
-            self.serial_thread.wait()
-            # print("Hilo serial detenido correctamente al cerrar sesión.")
-        
-        if hasattr(self, 'nivel_agua_thread'):
-            self.nivel_agua_thread.stop()
-            self.nivel_agua_thread.quit()
-            self.nivel_agua_thread.wait()
-            # print("Hilo de nivel de agua detenido.")
-
-
-        # 🚿 Apagar bomba de agua al cerrar sesión
+        # 🛑 Detener el hilo unificado SI y solo si no hay otra vista usándolo.
         try:
-            import serial
-            arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-            arduino.write(b'BAOFF\n')
-            arduino.close()
-            # print("✅ Bomba de agua apagada al cerrar sesión.")
+            if hasattr(self.ventana_login, "hydro_thread") and self.ventana_login.hydro_thread is not None:
+                # Si vienes de Admin a Login, detenlo aquí:
+                self.ventana_login.hydro_thread.detener()
+                self.ventana_login.hydro_thread = None
         except Exception as e:
-            print("⚠️ No se pudo apagar la bomba al cerrar sesión:", e)
+            print("⚠️ No se pudo detener HydroBoxMainThread al cerrar sesión:", e)
 
         self.ventana_login.show()
         self.close()
 
     def change_view(self, index):
-        """Cambia la vista y actualiza el botón activo"""
         self.stacked_layout.setCurrentIndex(index)
         
-        # Desmarcar todos los botones primero
         self.btn_hortalizas.setChecked(False)
         self.btn_home.setChecked(False)
         self.btn_actuators.setChecked(False)
@@ -317,7 +285,6 @@ class HomeappAdmin(QWidget):
         self.btn_history.setChecked(False)
         self.btn_users.setChecked(False)
         
-        # Marcar el botón activo
         if index == 0:
             self.btn_home.setChecked(True)
         elif index == 1:

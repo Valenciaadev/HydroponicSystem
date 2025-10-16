@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QThread, pyqtSignal
+""" from PyQt5.QtCore import QThread, pyqtSignal
 import RPi.GPIO as GPIO
 import time
 import serial
@@ -96,3 +96,4 @@ class NivelAguaThread(QThread):
         self.quit()
         self.wait()
         GPIO.cleanup()
+ """

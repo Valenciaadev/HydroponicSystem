@@ -1,4 +1,4 @@
-# models/dosificador_thread.py
+""" # models/dosificador_thread.py
 import time
 from datetime import datetime
 import pytz
@@ -163,3 +163,4 @@ class DosificadorThread(QThread):
             self.finished_dose.emit(f"[OK] Bomba {pump}: dosificación puntual completada ({ms} ms).")
         except Exception as e:
             self.error.emit(f"[ERR] Bomba {pump}: {e}")
+ """

@@ -121,7 +121,6 @@ class ActuatorManagmentWidget(QDialog):
 
         self.dosis_input.layout().addWidget(self.dosis_hint_label)
 
-
         for widget in (self.dosis_input, self.fecha_input, self.hora_input):
             form_layout.addRow("", widget)
 
@@ -419,7 +418,6 @@ class ActuatorManagmentWidget(QDialog):
         self.update_buttons()
 
     def _refresh_if_new_day(self):
-        """Si cambió el día y seguimos en modo Automatizado, recalcula el próximo lunes 10:00."""
         current = QDate.currentDate()
         if self.auto_button.isChecked() and current != self._last_auto_date:
             self._last_auto_date = current
@@ -439,14 +437,11 @@ class ActuatorManagmentWidget(QDialog):
         self.fecha_input.icon_button.setCursor(Qt.ForbiddenCursor)
         self.hora_input.icon_button.setCursor(Qt.ForbiddenCursor)
 
-        # Texto informativo
         self.dosis_hint_label.setText("")
         self.dosis_hint_label.hide()
         self.dosis_input.input_field.setText("Programado: lunes 10:00 (recurrente)")
 
-        # Marca el “hoy” actual para que el timer detecte cambio de día
         self._last_auto_date = QDate.currentDate()
-
         self.update_buttons()
 
     def update_buttons(self):
@@ -460,26 +455,22 @@ class ActuatorManagmentWidget(QDialog):
         self.button_layout.addWidget(self.close_button)
 
     def supply_doses(self):
-        # Verifica disponibilidad del hilo
-        hilo = getattr(self.ventana_login, "dosificador_thread", None)
-        if hilo is None or not hilo.isRunning():
+        # ✅ Usar el hilo unificado
+        hilo = getattr(self.ventana_login, "hydro_thread", None)
+        if hilo is None or (not hilo.isRunning()):
             show_message("Dosificador no disponible", "El hilo de dosificación no está corriendo.", type="error", parent=self)
             return
 
-        # Identificar la bomba a partir del actuador
+        # Identificar la bomba
         nombre = self._resolver_nombre_actuador()
         pump = self._pump_index_from_name(nombre)
         if pump == 0:
             show_message("Actuador desconocido", "No se pudo asociar este actuador a una bomba peristáltica.", type="error", parent=self)
             return
 
-        # Leer dosis y fecha/hora del formulario
-        dosis_text = self.dosis_input.input_field.text().strip()
-        fecha_qdate = self.fecha_input.input_field.date()
-        hora_qtime  = self.hora_input.input_field.time()
-
-        # Modo Manual: ejecutar de inmediato en función de la dosis (ml)
+        # Modo Manual: ejecutar inmediato por ml → ms
         if self.manual_button.isChecked():
+            dosis_text = self.dosis_input.input_field.text().strip()
             if not dosis_text:
                 show_message("Dato faltante", "Ingresa la dosis en ml.", type="warning", parent=self)
                 return
@@ -557,7 +548,6 @@ class ActuatorManagmentWidget(QDialog):
 
     def _pump_index_from_name(self, nombre:str) -> int:
         n = (nombre or "").lower()
-        # ✅ Corrección del mapeo
         if "micro" in n:
             return 1
         if "gro" in n:
@@ -568,21 +558,20 @@ class ActuatorManagmentWidget(QDialog):
 
     def _ms_por_ml(self, pump:int) -> float:
         """
-        Calcula ms/ml a partir de la calibración actual del hilo (t_bombaX y ml base).
-        Base conocida: 8.3ml (b1), 8.3ml (b2), 4.1ml (b3) según tu script original.
+        Calcula ms/ml a partir de la calibración del hilo unificado.
+        En HydroBoxMainThread:
+          - t_b1, t_b2, t_b3 están en SEGUNDOS y corresponden a 8.3ml, 8.3ml y 4.1ml.
         """
-        hilo = getattr(self.ventana_login, "dosificador_thread", None)
+        hilo = getattr(self.ventana_login, "hydro_thread", None)
         if not hilo:
             return 0.0
         if pump == 1:
             base_ml = 8.3
-            return float(hilo.t_bomba1) / base_ml
+            return (float(hilo.t_b1) * 1000.0) / base_ml
         if pump == 2:
             base_ml = 8.3
-            return float(hilo.t_bomba2) / base_ml
+            return (float(hilo.t_b2) * 1000.0) / base_ml
         if pump == 3:
             base_ml = 4.1
-            return float(hilo.t_bomba3) / base_ml
+            return (float(hilo.t_b3) * 1000.0) / base_ml
         return 0.0
-
-    

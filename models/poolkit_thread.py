@@ -1,4 +1,4 @@
-import serial
+""" import serial
 import time
 from PyQt5.QtCore import QThread, pyqtSignal
 from datetime import datetime
@@ -57,3 +57,4 @@ class PoolKitThread(QThread):
         self._running = False
         self.quit()
         self.wait()
+ """

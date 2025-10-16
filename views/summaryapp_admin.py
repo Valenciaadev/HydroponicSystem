@@ -33,7 +33,6 @@ class SummaryAppAdmin(QWidget):
                 padding: 4px;
                 border-radius: 6px;
                 min-width: 300px;
-                text-justify: auto;
             }
         """)
 

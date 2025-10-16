@@ -2,11 +2,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from views.seleccion_usuario import TitleBar
-from views.summaryapp_worker import SummaryAppWorker
-from views.actuatorsapp_worker import ActuatorsAppWorker
-from views.sensorsapp_worker import SensorsAppWorker
-from views.historyapp_worker import HistoryAppWorker
-from models.serial_thread import SerialReaderThread
+from views.summaryapp_admin import SummaryAppAdmin
+from views.actuatorsapp_admin import ActuatorsAppAdmin
+from views.sensorsapp_admin import SensorsAppAdmin
+from views.historyapp_admin import HistoryAppAdmin
+from views.managment_users_admin import ManagmentAppAdmin
+from views.gestionhortalizas_admin import GestionHortalizasAppAdmin
 
 class HomeappWorker(QWidget):
     def __init__(self, ventana_login):
@@ -24,8 +25,10 @@ class HomeappWorker(QWidget):
         left_container.setContentsMargins(10, 50, 0, 20)
         left_container.setSpacing(0)
 
+        # Añade espacio antes del logo
         left_container.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
+        # Logo
         logo_label = QLabel()
         logo_pixmap = QPixmap("assets/img/logo.png")
         logo_label.setPixmap(logo_pixmap.scaled(462, 168, Qt.KeepAspectRatio, Qt.SmoothTransformation))
@@ -33,10 +36,11 @@ class HomeappWorker(QWidget):
         logo_label.setStyleSheet("padding: 10px; margin-bottom: 20px;")
         left_container.addWidget(logo_label)
 
+        # Sidebar
         sidebar_container = QVBoxLayout() 
         sidebar_container.setContentsMargins(0, 0, 0, 0)
         sidebar_container.setSpacing(0)
-
+        
         sidebar = QVBoxLayout()
         sidebar.setContentsMargins(10, 20, 10, 20)
         sidebar.setSpacing(15)
@@ -101,10 +105,22 @@ class HomeappWorker(QWidget):
         self.btn_history.setIcon(QIcon("assets/icons/history-white.svg"))
         self.btn_history.setIconSize(QSize(24, 24))
 
-        # Espaciador para empujar el botón de cerrar sesión al final
+        self.btn_users = QPushButton(" Gestionar usuarios")
+        self.btn_users.setCheckable(True)
+        self.btn_users.setStyleSheet(btn_style)
+        self.btn_users.clicked.connect(lambda: self.change_view(4))
+        self.btn_users.setIcon(QIcon("assets/icons/users-solid.svg"))
+        self.btn_users.setIconSize(QSize(24, 24))
+
+        self.btn_hortalizas = QPushButton(" Hortalizas")
+        self.btn_hortalizas.setCheckable(True)
+        self.btn_hortalizas.setStyleSheet(btn_style)
+        self.btn_hortalizas.clicked.connect(lambda: self.change_view(5))
+        self.btn_hortalizas.setIcon(QIcon("assets/icons/sapling.svg"))
+        self.btn_hortalizas.setIconSize(QSize(24, 24))
+
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         
-        # Botón de cerrar sesión
         btn_exit = QPushButton(" Cerrar sesión")
         btn_exit.setStyleSheet(btn_style)
         btn_exit.setIcon(QIcon("assets/icons/log_out-white.svg"))
@@ -120,37 +136,45 @@ class HomeappWorker(QWidget):
             border-radius: 15px;
         """)
 
-        # Orden de los botones en el sidebar
         sidebar.addWidget(label_vistas)
         sidebar.addWidget(self.btn_home)
         sidebar.addWidget(self.btn_actuators)
         sidebar.addWidget(self.btn_sensors)
         sidebar.addWidget(self.btn_history)
+        sidebar.addWidget(self.btn_users)
         sidebar.addItem(spacer)
         sidebar.addWidget(label_configuracion)
+        sidebar.addWidget(self.btn_hortalizas)
         sidebar.addWidget(btn_exit)
 
         sidebar_container.addSpacing(50)
         sidebar_container.addWidget(sidebar_widget)
         sidebar_container.addStretch(0)
-
+        
         left_container.addLayout(sidebar_container)
         layout_principal.addLayout(left_container)
 
+        # Stacked layout
         self.stacked_layout = QStackedLayout()
 
         if hasattr(self, "inicio_widget") and hasattr(self.inicio_widget, "liberar_camara"):
             self.inicio_widget.liberar_camara()
+    
+        self.inicio_widget = SummaryAppAdmin(self.ventana_login, embed=True)
+        self.actuadores_widget = ActuatorsAppAdmin(self.ventana_login, embed=True)
+        self.sensores_widget = SensorsAppAdmin(self.ventana_login, embed=True)
+        self.historial_widget = HistoryAppAdmin(self.ventana_login, embed=True)
+        self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
+        self.hortalizas_widget = GestionHortalizasAppAdmin(self.ventana_login, embed=True)
 
-        self.inicio_widget = SummaryAppWorker(self.ventana_login, embed=True)
-        self.actuadores_widget = ActuatorsAppWorker(self.ventana_login, embed=True)
-        self.sensores_widget = SensorsAppWorker(self.ventana_login, embed=True)
-        self.historial_widget = HistoryAppWorker(self.ventana_login, embed=True)
+        self.hortalizas_widget.crop_changed.connect(self.inicio_widget.on_crop_changed)
 
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
         self.stacked_layout.addWidget(self.sensores_widget)
         self.stacked_layout.addWidget(self.historial_widget)
+        self.stacked_layout.addWidget(self.gestion_usuarios_widget)
+        self.stacked_layout.addWidget(self.hortalizas_widget)
         self.stacked_layout.setCurrentIndex(0)
 
         content_widget = QWidget()
@@ -159,9 +183,8 @@ class HomeappWorker(QWidget):
 
         self.setLayout(layout_principal)
 
-        self.serial_thread = SerialReaderThread()
-        self.serial_thread.datos_actualizados.connect(self.inicio_widget.recibir_datos_sensores)
-        self.serial_thread.start()
+        # ❌ Se elimina arranque de SerialReaderThread aquí.
+        # ✅ Conexiones al hilo unificado se hacen al crear la ventana desde main.py.
 
     def log_out(self):
         dialog = QDialog(self)
@@ -175,23 +198,23 @@ class HomeappWorker(QWidget):
                 font: bold;
             }
         """)
-
+        
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(10, 5, 10, 15)
-
+        
         title_bar = TitleBar(dialog)
         main_layout.addWidget(title_bar)
-
+        
         content_layout = QVBoxLayout()
-
+        
         label = QLabel("¿Está seguro que desea cerrar sesión?")
         label.setFont(QFont("Candara", 12))
         label.setStyleSheet("color: white; font:bold;")
         label.setAlignment(Qt.AlignCenter)
         content_layout.addWidget(label)
-
+        
         button_layout = QHBoxLayout()
-
+        
         confirm_button = QPushButton(" Aceptar")
         confirm_button.setIcon(QIcon("assets/icons/btn-accept-white.svg"))
         confirm_button.setIconSize(QSize(24, 24))
@@ -207,10 +230,10 @@ class HomeappWorker(QWidget):
             QPushButton:hover {
                 background-color: #005A9E;
             }
-        """)
+        """)        
         confirm_button.clicked.connect(lambda: self.confirm_logout(dialog))
         button_layout.addWidget(confirm_button)
-
+        
         cancel_button = QPushButton(" Regresar")
         cancel_button.setIcon(QIcon("assets/icons/btn-return-white.svg"))
         cancel_button.setIconSize(QSize(24, 24))
@@ -227,45 +250,41 @@ class HomeappWorker(QWidget):
             background-color: #505050;
         }
         """)
-
+        
         cancel_button.clicked.connect(dialog.reject)
         button_layout.addWidget(cancel_button)
-
+        
         content_layout.addLayout(button_layout)
         main_layout.addLayout(content_layout)
-
+        
         dialog.setLayout(main_layout)
         dialog.exec_()
-
+        
     def confirm_logout(self, dialog):
         dialog.accept()
 
-        if hasattr(self, 'serial_thread'):
-            self.serial_thread.stop()
-            self.serial_thread.quit()
-            self.serial_thread.wait()
-            # print("🔌 Hilo serial detenido correctamente al cerrar sesión.")
-
+        # 🛑 Detener el hilo unificado SI y solo si no hay otra vista usándolo.
         try:
-            import serial
-            arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-            arduino.write(b'BAOFF\n')
-            arduino.close()
-            # print("✅ Bomba de agua apagada al cerrar sesión.")
+            if hasattr(self.ventana_login, "hydro_thread") and self.ventana_login.hydro_thread is not None:
+                # Si vienes de Admin a Login, detenlo aquí:
+                self.ventana_login.hydro_thread.detener()
+                self.ventana_login.hydro_thread = None
         except Exception as e:
-            print("⚠️ No se pudo apagar la bomba al cerrar sesión:", e)
+            print("⚠️ No se pudo detener HydroBoxMainThread al cerrar sesión:", e)
 
         self.ventana_login.show()
         self.close()
 
     def change_view(self, index):
         self.stacked_layout.setCurrentIndex(index)
-
+        
+        self.btn_hortalizas.setChecked(False)
         self.btn_home.setChecked(False)
         self.btn_actuators.setChecked(False)
         self.btn_sensors.setChecked(False)
         self.btn_history.setChecked(False)
-
+        self.btn_users.setChecked(False)
+        
         if index == 0:
             self.btn_home.setChecked(True)
         elif index == 1:
@@ -274,3 +293,7 @@ class HomeappWorker(QWidget):
             self.btn_sensors.setChecked(True)
         elif index == 3:
             self.btn_history.setChecked(True)
+        elif index == 4:
+            self.btn_users.setChecked(True)
+        elif index == 5:
+            self.btn_hortalizas.setChecked(True)
