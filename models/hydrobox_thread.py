@@ -6,7 +6,7 @@ from datetime import datetime
 from time import monotonic
 
 # Reutiliza tu función existente
-from models.database import guardar_mediciones_cada_6h
+from models.database import *
 
 class HydroBoxMainThread(QThread):
     # Unificamos señales
@@ -25,8 +25,9 @@ class HydroBoxMainThread(QThread):
         tz_name='America/Mexico_City',
         weekday=0, hour=10, minute=0,          # programación por defecto
         t_bomba1=3452, t_bomba2=3452, t_bomba3=1708,
-        parent=None
+        parent=None 
     ):
+    
         super().__init__(parent)
         # Puertos
         self.poolkit_port  = poolkit_port
@@ -43,10 +44,16 @@ class HydroBoxMainThread(QThread):
         self.weekday = int(weekday)
         self.hour    = int(hour)
         self.minute  = int(minute)
-        self.t_b1 = int(t_bomba1) / 1000.0
-        self.t_b2 = int(t_bomba2) / 1000.0
-        self.t_b3 = int(t_bomba3) / 1000.0
 
+        # ms para compatibilidad con la UI (ActuatorManagmentWidget._ms_por_ml usa t_bomba1/2/3)
+        self.t_bomba1 = int(t_bomba1)
+        self.t_bomba2 = int(t_bomba2)
+        self.t_bomba3 = int(t_bomba3)
+
+        # segundos para la lógica interna del hilo (secuencia de dosificación)
+        self.t_b1 = self.t_bomba1 / 1000.0
+        self.t_b2 = self.t_bomba2 / 1000.0
+        self.t_b3 = self.t_bomba3 / 1000.0
         # Flags
         self._running = True
         self._ya_ejecuto_hoy = False
@@ -113,9 +120,15 @@ class HydroBoxMainThread(QThread):
         self.log.emit(f"[CFG] Programación → Día {self.weekday}, {self.hour:02d}:{self.minute:02d}")
 
     def actualizar_tiempos(self, t1:int=None, t2:int=None, t3:int=None):
-        if t1 is not None: self.t_b1 = int(t1)/1000.0
-        if t2 is not None: self.t_b2 = int(t2)/1000.0
-        if t3 is not None: self.t_b3 = int(t3)/1000.0
+        if t1 is not None:
+            self.t_bomba1 = int(t1)
+            self.t_b1 = self.t_bomba1 / 1000.0
+        if t2 is not None:
+            self.t_bomba2 = int(t2)
+            self.t_b2 = self.t_bomba2 / 1000.0
+        if t3 is not None:
+            self.t_bomba3 = int(t3)
+            self.t_b3 = self.t_bomba3 / 1000.0
         self.log.emit(f"[CFG] Tiempos → B1:{self.t_b1}s B2:{self.t_b2}s B3:{self.t_b3}s")
 
     # ---------- Ciclo del hilo ----------
@@ -220,7 +233,7 @@ class HydroBoxMainThread(QThread):
             self._safe_close(self.ser_pool); self.ser_pool = None
 
     def _leer_ambiente_y_nivel(self):
-        # 2.1 Ultrasónico (no bloqueante, con timeout corto)
+        # 2.1 Ultrasónico (igual que ya tienes)
         try:
             GPIO.output(self.trig, False)
             time.sleep(0.0002)
@@ -230,11 +243,9 @@ class HydroBoxMainThread(QThread):
 
             start = time.time()
             timeout = start + 0.03  # 30 ms
-            # Espera subida
             while GPIO.input(self.echo) == 0 and time.time() < timeout:
                 pass
             pulse_start = time.time()
-            # Espera bajada
             timeout2 = pulse_start + 0.03
             while GPIO.input(self.echo) == 1 and time.time() < timeout2:
                 pass
@@ -245,27 +256,76 @@ class HydroBoxMainThread(QThread):
                 nivel = round(self.altura_total - distancia, 2)
                 self._last["nivel_agua"] = float(nivel)
         except Exception:
-            # No detenemos el hilo si falla una medición
             pass
 
-        # 2.2 Temp/Humedad por serial (Arduino). Durante dosificación seguimos leyendo,
-        # pero ignoramos líneas desconocidas (si Arduino imprime algo).
-        if not self.ser_amb: return
-        t_end = time.time() + 0.15  # ventana corta por tick
+        # 2.2 Temp/Humedad por serial (Arduino) — parseo robusto
+        if not self.ser_amb:
+            return
+        t_end = time.time() + 0.15
         try:
             while time.time() < t_end:
-                line = self.ser_amb.readline().decode('utf-8', errors='ignore').strip()
-                if not line:
+                raw = self.ser_amb.readline().decode('utf-8', errors='ignore').strip()
+                if not raw:
                     break
-                if line.startswith("TEMP:"):
-                    m = re.search(r'TEMP:([-+]?\d+(\.\d+)?)', line)
-                    if m:
-                        self._last["temp_aire"] = float(m.group(1))
-                elif line.startswith("HUM:"):
-                    m = re.search(r'HUM:(\d+(\.\d+)?)', line)
-                    if m:
-                        self._last["humedad_aire"] = float(m.group(1))
-                # Otras líneas (por ej. acks) se ignoran
+
+                U = raw.upper()
+
+                # 👉 Log de depuración solo si la línea menciona HUM o TEMP
+                if ("HUM" in U) or ("HUMEDAD" in U) or ("TEMP" in U) or ("TEMPERAT" in U):
+                    self.log.emit(f"[SER][AMB] {raw}")
+
+                # 1) Línea combinada: "Humidity: 55.0% ... Temp: 23.4C"
+                m_combo = re.search(
+                    r'(?i)(?:hum\w*|humedad\w*)[^0-9\-]*([-+]?\d+(?:\.\d+)?)\s*%?.*?'
+                    r'(?:temp\w*|temperatura\w*)[^0-9\-]*([-+]?\d+(?:\.\d+)?)',
+                    raw
+                )
+                if m_combo:
+                    try:
+                        self._last["humedad_aire"] = float(m_combo.group(1))
+                    except Exception:
+                        pass
+                    try:
+                        self._last["temp_aire"] = float(m_combo.group(2))
+                    except Exception:
+                        pass
+                    continue
+
+                # 2) Humedad sola (acepta HUM/HUMEDAD/HRA/HREL con o sin %, con separadores : o = o espacio)
+                m_hum = re.search(
+                    r'(?i)(?:\bhum\b|humedad|hra|hrel)[^0-9\-]*[:=\s]\s*([-+]?\d+(?:\.\d+)?)\s*%?',
+                    raw
+                )
+                if m_hum:
+                    try:
+                        self._last["humedad_aire"] = float(m_hum.group(1))
+                    except Exception:
+                        pass
+                    continue
+
+                # 3) Temperatura sola (TEMP/TEMPERATURA/T_AIRE)
+                m_temp = re.search(
+                    r'(?i)(?:temp(?:_aire)?|temperatura)[^0-9\-]*[:=\s]\s*([-+]?\d+(?:\.\d+)?)',
+                    raw
+                )
+                if m_temp:
+                    try:
+                        self._last["temp_aire"] = float(m_temp.group(1))
+                    except Exception:
+                        pass
+                    continue
+
+                # 4) Último recurso: cualquier "HUM" con número en la línea
+                if "HUM" in U or "HUMEDAD" in U:
+                    m_any = re.search(r'([-+]?\d+(?:\.\d+)?)', raw)
+                    if m_any:
+                        try:
+                            self._last["humedad_aire"] = float(m_any.group(1))
+                        except Exception:
+                            pass
+                        continue
+
+                # Resto de líneas (acks/comandos) se ignoran
         except serial.SerialException as e:
             self.error.emit(f"[SER] Arduino lectura: {e}")
             self._safe_close(self.ser_amb); self.ser_amb = None

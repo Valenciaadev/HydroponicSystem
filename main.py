@@ -147,6 +147,12 @@ class LoginRegisterApp(QDialog):
                 t_bomba1=3452, t_bomba2=3452, t_bomba3=1708,
                 parent=self
             )
+
+            self.hydro_thread.datos_sensores.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
+            self.hydro_thread.log.connect(lambda m: print(m))                 # 👈 verás [SER][AMB] ...
+            self.hydro_thread.error.connect(lambda m: print("ERR:", m))
+            self.hydro_thread.start()
+
             # Conectar señales a la UI (vista inicio)
             iw = self.homeapp_admin.inicio_widget
             self.hydro_thread.datos_sensores.connect(iw.recibir_datos_sensores)

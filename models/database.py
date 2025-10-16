@@ -574,41 +574,39 @@ def getbyYear():
 
 def guardar_mediciones_cada_6h(ph, orp, temp_agua, nivel_agua=0.0, temp_aire=0.0, humedad_aire=0.0):
     """
-    Guarda todos los valores en la tabla `registro_mediciones` si la hora actual es 06:00, 12:00, 18:00 o 00:00.
+    Guarda en `registro_mediciones` a las 06:00, 12:00, 18:00 o 00:00.
+    Columnas: ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
     """
     from datetime import datetime
     from models.database import connect_db
 
     hora_actual = datetime.now().strftime("%H:%M")
-    if hora_actual in ["06:00", "12:00", "18:00", "00:00"]:
-        try:
-            conn = connect_db()
-            if not conn:
-                print("❌ No se pudo conectar para guardar datos.")
-                return
+    if hora_actual not in ["06:00", "12:00", "18:00", "00:00"]:
+        return
 
-            cursor = conn.cursor()
-            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        conn = connect_db()
+        if not conn:
+            print("❌ No se pudo conectar para guardar datos.")
+            return
 
-            query = """
-                INSERT INTO registro_mediciones 
-                (ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha)
-                VALUES (%s, %s, %s, %s, %s, 0.0, %s)
-            """
-            cursor.execute(query, (
-                ph,
-                orp,
-                temp_agua,
-                nivel_agua,
-                temp_aire,
-                now
-            ))
-            conn.commit()
-            print(f"✅ Datos guardados automáticamente a las {hora_actual}:\n"
-                  f"pH={ph}, ORP={orp}, TempAgua={temp_agua}, Nivel={nivel_agua}, TempAire={temp_aire}")
-        except Exception as e:
-            print(f"❌ Error al guardar datos en DB:", e)
-        finally:
-            cursor.close()
-            conn.close()
+        cursor = conn.cursor()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        query = """
+            INSERT INTO registro_mediciones 
+            (ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (ph, orp, temp_agua, nivel_agua, temp_aire, humedad_aire, now))
+        conn.commit()
+        print(f"✅ Guardado 6h {hora_actual}: pH={ph}, ORP={orp}, TAgua={temp_agua}, Nivel={nivel_agua}, TAire={temp_aire}, Hum={humedad_aire}")
+    except Exception as e:
+        print("❌ Error al guardar datos en DB:", e)
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
 
