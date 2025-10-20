@@ -7,6 +7,8 @@ from views.about_actuator_modal import AboutActuatorWidget
 from views.actuator_managment_modal import ActuatorManagmentWidget
 from models.database import connect_db
 
+ACTIVE_LOW_BOMBA = True
+
 class ActuatorsAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__(ventana_login)
@@ -227,20 +229,28 @@ class ActuatorsAppAdmin(QWidget):
                 nuevo_estado = toggle_button.isChecked()
                 actualizar_estilo_toggle(nuevo_estado)
                 self.update_estado(actuator_id, 1 if nuevo_estado else 0)
-                if nuevo_estado:
-                    if "ventilador" in nombre.lower():
+
+                is_vent = "ventilador" in nombre.lower()
+                is_lamp = "lampara" in nombre.lower() or "lámpara" in nombre.lower()
+                is_bomba = "bomba de agua" in nombre.lower()
+
+                if nuevo_estado:  # usuario quiere ENCENDER
+                    if is_vent:
                         enviar_comando("EN")
-                    elif "lampara" in nombre.lower() or "lámpara" in nombre.lower():
+                    elif is_lamp:
                         enviar_comando("ON", dispositivo="lampara")
-                    elif "bomba" in nombre.lower():
-                        enviar_comando("BAON", dispositivo="bomba")
-                else:
-                    if "ventilador" in nombre.lower():
+                    elif is_bomba:
+                        # ENCENDER físico: BAOFF si activo-bajo, BAON si normal
+                        enviar_comando("BAOFF" if ACTIVE_LOW_BOMBA else "BAON", dispositivo="bomba")
+                else:  # usuario quiere APAGAR
+                    if is_vent:
                         enviar_comando("AP")
-                    elif "lampara" in nombre.lower() or "lámpara" in nombre.lower():
+                    elif is_lamp:
                         enviar_comando("OFF", dispositivo="lampara")
-                    elif "bomba" in nombre.lower():
-                        enviar_comando("BAOFF", dispositivo="bomba")
+                    elif is_bomba:
+                        # APAGAR físico: BAON si activo-bajo, BAOFF si normal
+                        enviar_comando("BAON" if ACTIVE_LOW_BOMBA else "BAOFF", dispositivo="bomba")
+
 
             toggle_button.clicked.connect(toggle_state)
 
