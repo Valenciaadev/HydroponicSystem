@@ -271,6 +271,7 @@ class LoginRegisterApp(QDialog):
             self.hydro_thread.started_dose.connect(lambda m: print(m))
             self.hydro_thread.finished_dose.connect(lambda m: print(m))
             self.hydro_thread.start()   # ✅ solo una vez
+            self.hydro_thread._test_guardar_cada_minuto = 0
 
         else:
             iw = self.homeapp_admin.inicio_widget
@@ -306,6 +307,7 @@ class LoginRegisterApp(QDialog):
             self.hydro_thread.finished_dose.connect(lambda m: print(m))
             self.hydro_thread.error.connect(lambda m: print(m))
             self.hydro_thread.start()
+            self.hydro_thread._test_guardar_cada_minuto = 0
         else:
             iw = self.homeapp_worker.inicio_widget
             self.hydro_thread.datos_sensores.connect(iw.recibir_datos_sensores)

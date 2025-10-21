@@ -572,17 +572,16 @@ def getbyYear():
         cursor.close()
         conn.close()
 
-def guardar_mediciones_cada_6h(ph, orp, temp_agua, nivel_agua=0.0, temp_aire=0.0, humedad_aire=0.0):
+def guardar_mediciones_cada_6h(ph=None, orp=None, temp_agua=None,
+                               nivel_agua=None, temp_aire=None, humedad_aire=None):
     """
-    Guarda en `registro_mediciones` a las 06:00, 12:00, 18:00 o 00:00.
-    Columnas: ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
+    Inserta un registro en `registro_mediciones`.
+    El control horario se realiza EXCLUSIVAMENTE desde hydrobox_thread._guardar_si_corresponde().
+    Columnas: ph_value (pH), ce_value (ORP), tagua_value (Temp. Agua),
+              us_value (Nivel ultrasónico), tam_value (Temp. Aire), hum_value (Humedad), fecha.
     """
     from datetime import datetime
     from models.database import connect_db
-
-    hora_actual = datetime.now().strftime("%H:%M")
-    if hora_actual not in ["06:00", "12:00", "18:00", "00:00"]:
-        return
 
     try:
         conn = connect_db()
@@ -600,7 +599,7 @@ def guardar_mediciones_cada_6h(ph, orp, temp_agua, nivel_agua=0.0, temp_aire=0.0
         """
         cursor.execute(query, (ph, orp, temp_agua, nivel_agua, temp_aire, humedad_aire, now))
         conn.commit()
-        print(f"✅ Guardado 6h {hora_actual}: pH={ph}, ORP={orp}, TAgua={temp_agua}, Nivel={nivel_agua}, TAire={temp_aire}, Hum={humedad_aire}")
+        print(f"✅ Guardado: pH={ph}, ORP={orp}, TAgua={temp_agua}, Nivel={nivel_agua}, TAire={temp_aire}, Hum={humedad_aire} @ {now}")
     except Exception as e:
         print("❌ Error al guardar datos en DB:", e)
     finally:
@@ -608,5 +607,3 @@ def guardar_mediciones_cada_6h(ph, orp, temp_agua, nivel_agua=0.0, temp_aire=0.0
         except: pass
         try: conn.close()
         except: pass
-
-

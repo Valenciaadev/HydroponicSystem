@@ -80,9 +80,8 @@ class HydroBoxMainThread(QThread):
             "hora": None
         }
 
-        # Guardados por franja (independientes)
-        self._ultima_hora_guardado_pool = None
-        self._ultima_hora_guardado_amb  = None
+        # Guardado por franja (un único INSERT por bloque horario)
+        self._ultima_hora_guardado = None
 
         # GPIO init
         GPIO.setwarnings(False)
@@ -421,43 +420,73 @@ class HydroBoxMainThread(QThread):
             self._dose_next_ts = monotonic() + (wait_secs if wait_secs > 0 else 0.05)
             self._dose_idx += 1
 
-    # ---------- Guardado 6h ----------
+
     def _guardar_si_corresponde(self):
         now = datetime.now(self._tz)
-        if now.minute != 0:  # sólo al minuto 00
+
+        # --- MODO DEMO: cada N minutos (si configuras self._test_guardar_cada_minuto) ---
+        # Admite:
+        #   - True => cada 1 minuto
+        #   - int  => cada N minutos (ej. 2, 5, 10, 60, ...)
+        test_conf = getattr(self, '_test_guardar_cada_minuto', 0)
+        if isinstance(test_conf, bool):
+            interval_min = 1 if test_conf else 0
+        elif isinstance(test_conf, (int, float)) and test_conf > 0:
+            interval_min = int(test_conf)
+        else:
+            interval_min = 0
+
+        if interval_min > 0:
+            # Intervalo relativo (desde que lo activas)
+            last_ts = getattr(self, '_ultimo_save_ts_test', None)
+            if last_ts and (now - last_ts).total_seconds() < 60 * interval_min:
+                return
+        else:
+            # --- MODO PRODUCCIÓN: cada hora EN PUNTO (HH:00) ---
+            if now.minute != 0:
+                return
+            # Anti-duplicado por fecha y hora (para evitar múltiples inserts en la misma HH:00)
+            slot = (now.date(), now.hour)
+            if getattr(self, '_ultima_slot_guardado', None) == slot:
+                return
+
+        # Toma los últimos valores; si no hay, se guardará NULL
+        ph         = self._last.get("ph")
+        orp        = self._last.get("orp")
+        temp_agua  = self._last.get("temp_agua")
+        nivel      = self._last.get("nivel_agua")
+        temp_aire  = self._last.get("temp_aire")
+        hum        = self._last.get("humedad_aire")
+
+        # Evita filas totalmente vacías
+        if all(v is None for v in (ph, orp, temp_agua, nivel, temp_aire, hum)):
+            self.log.emit("[DB] No hay datos para guardar en este momento.")
+            # Actualiza anti-duplicado igualmente para no martillar la DB
+            if interval_min > 0:
+                setattr(self, '_ultimo_save_ts_test', now)
+            else:
+                setattr(self, '_ultima_slot_guardado', (now.date(), now.hour))
             return
 
-        # 0, 6, 12, 18
-        if now.hour not in (0,6,12,18):
-            return
-
-        # PoolKit
-        if self._ultima_hora_guardado_pool != now.hour and (
-            self._last["ph"] is not None or
-            self._last["orp"] is not None or
-            self._last["temp_agua"] is not None
-        ):
-            try:
-                # Conservamos tu firma previa: (ph, orp, temp_agua)
-                guardar_mediciones_cada_6h(self._last["ph"], self._last["orp"], self._last["temp_agua"])
-                self._ultima_hora_guardado_pool = now.hour
-                self.log.emit("[DB] Guardado 6h PoolKit OK.")
-            except Exception as e:
-                self.error.emit(f"[DB] PoolKit: {e}")
-
-        # Ambiente
-        if self._ultima_hora_guardado_amb != now.hour and (
-            self._last["temp_aire"] is not None or
-            self._last["humedad_aire"] is not None or
-            self._last["nivel_agua"] is not None
-        ):
-            try:
-                # Conservamos tu firma previa: (temp_aire, hum_aire, nivel_agua)
-                guardar_mediciones_cada_6h(self._last["temp_aire"], self._last["humedad_aire"], self._last["nivel_agua"])
-                self._ultima_hora_guardado_amb = now.hour
-                self.log.emit("[DB] Guardado 6h Ambiente OK.")
-            except Exception as e:
-                self.error.emit(f"[DB] Ambiente: {e}")
+        try:
+            # 👇 Con argumentos con nombre respetamos las columnas correctas
+            self.log.emit(f"[DB][Preview] ph={ph}, orp={orp}, tAgua={temp_agua}, nivel={nivel}, tAire={temp_aire}, hum={hum}")
+            guardar_mediciones_cada_6h(
+                ph=ph,
+                orp=orp,
+                temp_agua=temp_agua,
+                nivel_agua=nivel,
+                temp_aire=temp_aire,
+                humedad_aire=hum
+            )
+            if interval_min > 0:
+                setattr(self, '_ultimo_save_ts_test', now)
+                self.log.emit(f"[DB] Guardado OK (cada {interval_min} min @ {now.hour:02d}:{now.minute:02d}).")
+            else:
+                setattr(self, '_ultima_slot_guardado', (now.date(), now.hour))
+                self.log.emit(f"[DB] Guardado OK (cada hora {now.hour:02d}:00).")
+        except Exception as e:
+            self.error.emit(f"[DB] Error al guardar: {e}")
 
     # ---------- Emisión consolidada ----------
     def _emit_update(self):
