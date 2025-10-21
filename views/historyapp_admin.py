@@ -30,8 +30,12 @@ class HistoryAppAdmin(QWidget):
         self.ventana_login = ventana_login
         self.current_filter = None
         self.init_ui()
+        self.ventana_login.hydro_ready.connect(self._wire_hydro)
+        # si ya estaba corriendo al entrar:
+        self._wire_hydro(getattr(self.ventana_login, "hydro_thread", None))
 
     def init_ui(self):
+
         self.datos_completos = []
         self.pagina_actual = 0
         self.registros_por_pagina = 15
@@ -181,6 +185,34 @@ class HistoryAppAdmin(QWidget):
         self.populate_devices()
         self.filter_combo.setCurrentText("Mes anterior")
         self.populate_table()
+
+    def _wire_hydro(self, ht):
+        if ht is None:
+            return
+        try:
+            try:
+                ht.db_saved.disconnect(self.on_new_measurement)
+            except Exception:
+                pass
+            ht.db_saved.connect(self.on_new_measurement)
+            # refresco inicial
+            self.populate_table(force=True)
+        except Exception as e:
+            print("wire_hydro error:", e)
+
+    def on_new_measurement(self, payload: dict):
+        if getattr(self, "_refresh_pending", False):
+            return
+        self._refresh_pending = True
+        QTimer.singleShot(300, self._do_refresh_history)
+
+    def _do_refresh_history(self):
+        try:
+            self.populate_table(force=True)
+        finally:
+            self._refresh_pending = False
+
+
 
     def create_table_frame(self):
         """Crea el frame de la tabla que se usará para 'Datos con tabla'"""
@@ -708,14 +740,11 @@ class HistoryAppAdmin(QWidget):
         self.canvas2.draw()
         self.canvas3.draw()
 
-    def populate_table(self):
+    def populate_table(self, *_unused, force=False):
         filtro = self.filter_combo.currentText()
-        
-        # Solo actualizar si el filtro ha cambiado
-        if hasattr(self, 'current_filter') and self.current_filter == filtro:
+        if (not force) and hasattr(self, 'current_filter') and self.current_filter == filtro:
             return
-            
-        self.current_filter = filtro  # Guardar el filtro actual
+        self.current_filter = filtro
         
         try:
             match filtro:

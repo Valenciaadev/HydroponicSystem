@@ -15,6 +15,7 @@ class HydroBoxMainThread(QThread):
     started_dose   = pyqtSignal(str)
     finished_dose  = pyqtSignal(str)
     error          = pyqtSignal(str)
+    db_saved       = pyqtSignal(dict)
 
     def __init__(
         self,
@@ -479,6 +480,13 @@ class HydroBoxMainThread(QThread):
                 temp_aire=temp_aire,
                 humedad_aire=hum
             )
+            payload = {
+                "fecha": now.strftime('%Y-%m-%d %H:%M:%S'),
+                "ph": ph, "orp": orp, "temp_agua": temp_agua,
+                "nivel_agua": nivel, "temp_aire": temp_aire, "humedad_aire": hum
+            }
+            self.db_saved.emit(payload)
+
             if interval_min > 0:
                 setattr(self, '_ultimo_save_ts_test', now)
                 self.log.emit(f"[DB] Guardado OK (cada {interval_min} min @ {now.hour:02d}:{now.minute:02d}).")

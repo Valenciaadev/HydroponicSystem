@@ -4,7 +4,7 @@ import atexit
 import signal
 import serial
 from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QStackedWidget, QWidget, QHBoxLayout, QPushButton, QLabel
-from PyQt5.QtCore import Qt, QPoint, QSize, QTimer
+from PyQt5.QtCore import Qt, QPoint, QSize, QTimer, pyqtSignal
 from PyQt5.QtGui import QPalette, QColor, QIcon
 
 # Modelos y vistas
@@ -214,6 +214,7 @@ class TitleBar(QWidget):
             event.accept()
 
 class LoginRegisterApp(QDialog):
+    hydro_ready = pyqtSignal(object) 
     def __init__(self):
         super().__init__()
 
@@ -270,8 +271,9 @@ class LoginRegisterApp(QDialog):
             self.hydro_thread.error.connect(lambda m: print("ERR:", m))
             self.hydro_thread.started_dose.connect(lambda m: print(m))
             self.hydro_thread.finished_dose.connect(lambda m: print(m))
-            self.hydro_thread.start()   # ✅ solo una vez
-            self.hydro_thread._test_guardar_cada_minuto = 0
+            self.hydro_thread.start() 
+            self.hydro_ready.emit(self.hydro_thread)    # ✅ solo una vez
+            self.hydro_thread._test_guardar_cada_minuto = 1
 
         else:
             iw = self.homeapp_admin.inicio_widget
@@ -307,7 +309,8 @@ class LoginRegisterApp(QDialog):
             self.hydro_thread.finished_dose.connect(lambda m: print(m))
             self.hydro_thread.error.connect(lambda m: print(m))
             self.hydro_thread.start()
-            self.hydro_thread._test_guardar_cada_minuto = 0
+            self.hydro_ready.emit(self.hydro_thread)  
+            self.hydro_thread._test_guardar_cada_minuto = 1
         else:
             iw = self.homeapp_worker.inicio_widget
             self.hydro_thread.datos_sensores.connect(iw.recibir_datos_sensores)
