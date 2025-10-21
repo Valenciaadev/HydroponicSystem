@@ -347,7 +347,7 @@ class HydroBoxMainThread(QThread):
         # Manual completa
         if self._manual_trigger and not self._dose_active:
             self._manual_trigger = False
-            self._programar_dosis_completa("manual")
+            self._programar_dosis_completa("manual") 
 
         # Manual puntual (una bomba)
         if (self._dose_custom is not None) and (not self._dose_active):

@@ -273,7 +273,7 @@ class LoginRegisterApp(QDialog):
             self.hydro_thread.start()   # ✅ solo una vez
 
         else:
-             iw = self.homeapp_admin.inicio_widget
+            iw = self.homeapp_admin.inicio_widget
             self.hydro_thread.datos_sensores.connect(iw.recibir_datos_sensores)
 
         self.homeapp_admin.showFullScreen()
