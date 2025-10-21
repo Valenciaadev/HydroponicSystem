@@ -23,35 +23,6 @@ def connect_db():
         return None
 
 
-def get_averages_all():
-    """Obtiene los promedios de todos los registros"""
-    conn = connect_db()
-    if conn is None:
-        return []
-
-    try:
-        cursor = conn.cursor()
-        query = """
-        
-        SELECT 
-            AVG(ph_value) as avg_ph,
-            AVG(ce_value) as avg_ce,
-            AVG(tagua_value) as avg_t_agua,
-            AVG(us_value) as avg_nivel,
-            AVG(tam_value) as avg_t_ambiente,
-            AVG(hum_value) as avg_humedad
-        FROM registro_mediciones
-        """
-        cursor.execute(query)
-        return cursor.fetchone()
-    except Exception as e:
-        print(f"Error al obtener promedios generales: {e}")
-        return []
-    finally:
-        cursor.close()
-        conn.close()
-
-
 def update_hortaliza_seleccion(id_hortaliza):
     conn = connect_db()
     if not conn:
@@ -474,7 +445,11 @@ def getAll():
     
     try:
         cursor = conn.cursor()
-        query = "SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha FROM registro_mediciones"
+        query = """
+            SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha 
+            FROM registro_mediciones
+            ORDER BY fecha DESC
+            """
         cursor.execute(query)
         return cursor.fetchall()
     except Exception as e:
@@ -496,6 +471,7 @@ def getbyMonth():
             SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+            ORDER BY fecha DESC
         """
         cursor.execute(query)
         return cursor.fetchall()
@@ -518,6 +494,7 @@ def getbyQuarter():
             SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+            ORDER BY fecha DESC
         """
         cursor.execute(query)
         return cursor.fetchall()
@@ -540,6 +517,7 @@ def getbySemester():
             SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            ORDER BY fecha DESC
         """
         cursor.execute(query)
         return cursor.fetchall()
@@ -562,6 +540,7 @@ def getbyYear():
             SELECT ph_value, ce_value, tagua_value, us_value, tam_value, hum_value, fecha
             FROM registro_mediciones
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
+            ORDER BY fecha DESC
         """
         cursor.execute(query)
         return cursor.fetchall()
