@@ -20,6 +20,24 @@ class ActuatorsAppAdmin(QWidget):
             print("No se pudo establecer la conexión a la base de datos.")
         self.init_ui()
 
+    # ===== Helper central para enviar comandos =====
+    def _send(self, s, dispositivo=None):
+        """
+        Envía el comando por el hilo HydroBoxMainThread (tx_command) si está disponible.
+        Si no, usa el fallback enviar_comando() legado.
+        """
+        try:
+            ht = getattr(self.ventana_login, 'hydro_thread', None)
+        except Exception:
+            ht = None
+
+        if ht is not None and hasattr(ht, 'tx_command'):
+            data = s.encode('utf-8') if isinstance(s, str) else s
+            ht.tx_command.emit(data)
+        else:
+            # Fallback (abre/cierra serial). Preferible evitarlo, pero mantiene compatibilidad.
+            enviar_comando(s, dispositivo=dispositivo)
+
     def init_ui(self):
         self.setStyleSheet("""
             QLabel#Title {
@@ -236,21 +254,20 @@ class ActuatorsAppAdmin(QWidget):
 
                 if nuevo_estado:  # usuario quiere ENCENDER
                     if is_vent:
-                        enviar_comando("EN")
+                        self._send("EN")
                     elif is_lamp:
-                        enviar_comando("ON", dispositivo="lampara")
+                        self._send("ON", dispositivo="lampara")
                     elif is_bomba:
                         # ENCENDER físico: BAOFF si activo-bajo, BAON si normal
-                        enviar_comando("BAOFF" if ACTIVE_LOW_BOMBA else "BAON", dispositivo="bomba")
+                        self._send("BAOFF" if ACTIVE_LOW_BOMBA else "BAON", dispositivo="bomba")
                 else:  # usuario quiere APAGAR
                     if is_vent:
-                        enviar_comando("AP")
+                        self._send("AP")
                     elif is_lamp:
-                        enviar_comando("OFF", dispositivo="lampara")
+                        self._send("OFF", dispositivo="lampara")
                     elif is_bomba:
                         # APAGAR físico: BAON si activo-bajo, BAOFF si normal
-                        enviar_comando("BAON" if ACTIVE_LOW_BOMBA else "BAOFF", dispositivo="bomba")
-
+                        self._send("BAON" if ACTIVE_LOW_BOMBA else "BAOFF", dispositivo="bomba")
 
             toggle_button.clicked.connect(toggle_state)
 

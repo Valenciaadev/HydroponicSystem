@@ -1,5 +1,7 @@
 # models/hydrobox_thread.py
-from PyQt5.QtCore import QThread, pyqtSignal
+from collections import deque
+from threading import Lock
+from PyQt5.QtCore import QTimer, pyqtSignal, QThread, pyqtSlot
 import time, serial, re, pytz
 import RPi.GPIO as GPIO
 from datetime import datetime
@@ -9,8 +11,10 @@ from time import monotonic
 from models.database import *
 
 class HydroBoxMainThread(QThread):
-    # Unificamos señales
-    datos_sensores = pyqtSignal(dict)  # payload con todo
+
+    # ---- Señales públicas ----
+    tx_command     = pyqtSignal(bytes)   # ← ENVÍO CENTRALIZADO DE COMANDOS (UI → hilo)
+    datos_sensores = pyqtSignal(dict)
     log            = pyqtSignal(str)
     started_dose   = pyqtSignal(str)
     finished_dose  = pyqtSignal(str)
@@ -24,11 +28,10 @@ class HydroBoxMainThread(QThread):
         baudrate=9600,
         trig_pin=8, echo_pin=10, altura_total=45,
         tz_name='America/Mexico_City',
-        weekday=0, hour=10, minute=0,          # programación por defecto
+        weekday=0, hour=10, minute=0,
         t_bomba1=3452, t_bomba2=3452, t_bomba3=1708,
-        parent=None 
+        parent=None
     ):
-    
         super().__init__(parent)
         # Puertos
         self.poolkit_port  = poolkit_port
@@ -46,15 +49,15 @@ class HydroBoxMainThread(QThread):
         self.hour    = int(hour)
         self.minute  = int(minute)
 
-        # ms para compatibilidad con la UI (ActuatorManagmentWidget._ms_por_ml usa t_bomba1/2/3)
+        # ms para compatibilidad con la UI
         self.t_bomba1 = int(t_bomba1)
         self.t_bomba2 = int(t_bomba2)
         self.t_bomba3 = int(t_bomba3)
-
-        # segundos para la lógica interna del hilo (secuencia de dosificación)
+        # s internos
         self.t_b1 = self.t_bomba1 / 1000.0
         self.t_b2 = self.t_bomba2 / 1000.0
         self.t_b3 = self.t_bomba3 / 1000.0
+
         # Flags
         self._running = True
         self._ya_ejecuto_hoy = False
@@ -64,16 +67,20 @@ class HydroBoxMainThread(QThread):
         self.ser_pool = None    # ESP32
         self.ser_amb  = None    # Arduino
 
-        # Máquina de estados NO bloqueante para dosificación
+        # Cola TX para comandos UI → Arduino (sin reabrir serial)
+        self.tx_queue = deque()
+        self._tx_lock = Lock()          # ← acceso seguro entre hilos
+
+        # Máquina de estados de dosificación
         self._dose_active = False
-        self._dose_steps = []         # lista de pasos
+        self._dose_steps = []
         self._dose_idx = 0
         self._dose_next_ts = 0.0
         self._dose_etiqueta = ""
-        self._dose_custom = None      # (pump, segs) si es puntual
+        self._dose_custom = None
         self._ultimo_estado_dose = "idle"
 
-        # Cache de últimos datos para emisión consolidada
+        # Cache últimos datos
         self._last = {
             "temp_agua": None, "ph": None, "orp": None,
             "temp_aire": None, "humedad_aire": None, "nivel_agua": None,
@@ -81,10 +88,10 @@ class HydroBoxMainThread(QThread):
             "hora": None
         }
 
-        # Guardado por franja (un único INSERT por bloque horario)
+        # Guardado por franja
         self._ultima_hora_guardado = None
 
-        # GPIO init
+        # GPIO
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.trig, GPIO.OUT, initial=GPIO.LOW)
@@ -92,24 +99,37 @@ class HydroBoxMainThread(QThread):
 
     # ---------- API pública ----------
     def detener(self):
+        """
+        Detiene el hilo y garantiza que se envíen los comandos pendientes (ALL_OFF/BAON, etc.)
+        antes de cerrar el puerto serie.
+        """
+        # Prioridad: abortar dosificación y drenar TX antes de cerrar
+        self._dose_active = False
         self._running = False
-        self.quit()
-        self.wait()
+
+        # Drenaje bloqueante de la cola de TX (hasta 2 s)
+        try:
+            self._flush_tx_blocking(timeout=2.0, spacing=0.12)
+        except Exception:
+            pass
+
+        # Limpieza GPIO y cierre del hilo
         try:
             GPIO.cleanup()
         except Exception:
             pass
+
+        # No llamamos a quit()/exec_; nuestro run() sale por _running = False
+        self.wait(1000)  # espera breve a que termine run()
         self._close_serials()
 
     def dosificar_ahora(self):
         self._manual_trigger = True
 
     def dosificar_bomba(self, pump:int, ms:int):
-        # programa una dosificación puntual NO bloqueante
         if pump not in (1,2,3) or ms <= 0:
             self.error.emit(f"[DOSIS] Parámetros inválidos pump={pump} ms={ms}")
             return
-        # Si ya hay una dosificación activa, la ponemos en cola simple (cuando termine)
         self._dose_custom = (pump, ms/1000.0)
         self.log.emit(f"[DOSIS] Petición puntual B{pump} por {ms} ms encolada.")
 
@@ -121,24 +141,91 @@ class HydroBoxMainThread(QThread):
 
     def actualizar_tiempos(self, t1:int=None, t2:int=None, t3:int=None):
         if t1 is not None:
-            self.t_bomba1 = int(t1)
-            self.t_b1 = self.t_bomba1 / 1000.0
+            self.t_bomba1 = int(t1); self.t_b1 = self.t_bomba1 / 1000.0
         if t2 is not None:
-            self.t_bomba2 = int(t2)
-            self.t_b2 = self.t_bomba2 / 1000.0
+            self.t_bomba2 = int(t2); self.t_b2 = self.t_bomba2 / 1000.0
         if t3 is not None:
-            self.t_bomba3 = int(t3)
-            self.t_b3 = self.t_bomba3 / 1000.0
+            self.t_bomba3 = int(t3); self.t_b3 = self.t_bomba3 / 1000.0
         self.log.emit(f"[CFG] Tiempos → B1:{self.t_b1}s B2:{self.t_b2}s B3:{self.t_b3}s")
+
+    # ---------- RX/TX ----------
+    @pyqtSlot(bytes)
+    def _enqueue_tx(self, data: bytes):
+        """Recibe comandos desde la UI y los encola para enviarlos por el puerto del Arduino."""
+        try:
+            if not isinstance(data, (bytes, bytearray)):
+                data = bytes(data)
+            if not data.endswith(b'\n'):
+                data += b'\n'
+            with self._tx_lock:
+                self.tx_queue.append(data)
+        except Exception as e:
+            self.error.emit(f"TX enqueue error: {e}")
+
+    def _pump_tx(self, max_per_loop=8, spacing=0.12):
+        """
+        Drena hasta max_per_loop comandos por iteración con pequeño espaciamiento.
+        Esto permite que secuencias como ALL_OFF/BAON lleguen completas antes de detener el hilo.
+        """
+        if (self.ser_amb is None) or (not getattr(self.ser_amb, "is_open", False)):
+            return
+        sent = 0
+        while sent < max_per_loop:
+            with self._tx_lock:
+                if not self.tx_queue:
+                    break
+                data = self.tx_queue.popleft()
+            try:
+                self.ser_amb.write(data)
+                self.ser_amb.flush()
+                # Opcional: log de depuración
+                # self.log.emit(f"[SER][TX] {data.strip()!r}")
+            except serial.SerialException as e:
+                self.error.emit(f"TX error: {e}")
+                self._safe_close(self.ser_amb)
+                self.ser_amb = None
+                # Reinsertar y salir; se reintentará cuando el puerto vuelva
+                with self._tx_lock:
+                    self.tx_queue.appendleft(data)
+                break
+            sent += 1
+            # breve descanso para no saturar el micro
+            time.sleep(spacing)
+
+    def _flush_tx_blocking(self, timeout=2.0, spacing=0.12):
+        """
+        Envía de forma bloqueante todo lo pendiente en la cola de TX o hasta que
+        expire el timeout. No depende del bucle principal.
+        """
+        t0 = monotonic()
+        while True:
+            # Si no hay puerto o ya está vacío, terminamos
+            if (self.ser_amb is None) or (not getattr(self.ser_amb, "is_open", False)):
+                break
+            with self._tx_lock:
+                empty = (len(self.tx_queue) == 0)
+            if empty:
+                break
+            # Envía varios por ráfagas
+            self._pump_tx(max_per_loop=8, spacing=spacing)
+            if monotonic() - t0 > timeout:
+                self.error.emit("[SER][TX] Flush timeout: quedaron comandos sin enviar.")
+                break
 
     # ---------- Ciclo del hilo ----------
     def run(self):
         self.log.emit("[HydroBox] Hilo principal iniciado.")
+        # Conectar la señal de TX a nuestro encolador (desde la UI)
+        self.tx_command.connect(self._enqueue_tx)
+
         self._open_serials(initial=True)
 
         while self._running:
             try:
                 self._ensure_serials()
+
+                # Drenar TX al inicio para priorizar órdenes de usuario (apagados, etc.)
+                self._pump_tx()
 
                 # 1) Lectura PoolKit (ESP32)
                 self._leer_poolkit()
@@ -146,26 +233,36 @@ class HydroBoxMainThread(QThread):
                 # 2) Lectura Ambiente + Nivel (Arduino)
                 self._leer_ambiente_y_nivel()
 
-                # 3) Scheduler y progreso de dosificación (NO bloqueante)
+                # 3) Scheduler y progreso de dosificación
                 self._chequear_dosificacion()
                 self._progresar_dosificacion()
 
-                # 4) Guardado cada 6h
+                # 4) Guardado periódico
                 self._guardar_si_corresponde()
 
-                # 5) Emitir a UI (consolidado)
+                # 5) Emisión UI
                 self._emit_update()
 
-                time.sleep(0.15)  # tick corto y suave
+                # Drenar TX otra vez por si quedaron comandos
+                self._pump_tx()
+
+                time.sleep(0.12)  # tick suave
             except Exception as e:
                 self.error.emit(f"[HydroBox] Loop error: {e}")
-                time.sleep(0.5)
+                time.sleep(0.3)
+
+        # Al salir, intentar último flush breve
+        try:
+            self._flush_tx_blocking(timeout=0.6, spacing=0.08)
+        except Exception:
+            pass
 
         self._close_serials()
         self.log.emit("[HydroBox] Hilo principal finalizado.")
 
     # ---------- Serial: abrir/cerrar/asegurar ----------
     def _open_serials(self, initial=False):
+        # ESP32
         try:
             if self.ser_pool is None:
                 self.ser_pool = serial.Serial(self.poolkit_port, self.baudrate, timeout=0.1)
@@ -175,17 +272,33 @@ class HydroBoxMainThread(QThread):
             if initial: self.error.emit(f"[SER] PoolKit no disponible: {e}")
             self.ser_pool = None
 
+        # Arduino (sin reset por DTR/RTS)
         try:
             if self.ser_amb is None:
-                self.ser_amb = serial.Serial(self.ambiente_port, self.baudrate, timeout=0.05)
-                time.sleep(2)  # Arduino puede resetear al abrir
-                # Inicializar modo lectura continua en Arduino (como hacías)
+                self.ser_amb = serial.Serial(
+                    self.ambiente_port,
+                    self.baudrate,
+                    timeout=0.05,
+                    rtscts=False,
+                    dsrdtr=False,
+                )
+                # Evitar reset al abrir: bajar DTR/RTS
                 try:
-                    self.ser_amb.reset_input_buffer()
-                    self.ser_amb.write(b"LEER\r\n")
-                    self.ser_amb.write(b"TON\r\n")
+                    self.ser_amb.setDTR(False)
+                    self.ser_amb.setRTS(False)
                 except Exception:
                     pass
+
+                time.sleep(1.0)  # breve estabilización
+
+                try:
+                    self.ser_amb.reset_input_buffer()
+                    # Inicialización de modo lectura continua (ajusta a tu firmware)
+                    self.ser_amb.write(b"LEER\n")
+                    self.ser_amb.write(b"TON\n")
+                except Exception:
+                    pass
+
                 if initial: self.log.emit(f"[SER] Conectado Arduino en {self.ambiente_port}")
         except Exception as e:
             if initial: self.error.emit(f"[SER] Arduino no disponible: {e}")
@@ -216,7 +329,7 @@ class HydroBoxMainThread(QThread):
         try:
             line = self.ser_pool.readline().decode('utf-8', errors='ignore').strip()
             if not line: return
-            # Esperamos formato: "TEMP:xx.x,PH:xx.xx,ORP:xxx"
+            # Formato: "TEMP:xx.x,PH:xx.xx,ORP:xxx"
             try:
                 data = dict(item.split(':') for item in line.split(','))
                 temp = float(data.get('TEMP', 'nan'))
@@ -226,14 +339,13 @@ class HydroBoxMainThread(QThread):
                 if ph   == ph:    self._last["ph"]        = ph
                 if orp  == orp:   self._last["orp"]       = orp
             except Exception:
-                # Línea no válida pero no rompemos el hilo
                 pass
         except serial.SerialException as e:
             self.error.emit(f"[SER] PoolKit lectura: {e}")
             self._safe_close(self.ser_pool); self.ser_pool = None
 
     def _leer_ambiente_y_nivel(self):
-        # 2.1 Ultrasónico (igual que ya tienes)
+        # Ultrasonico
         try:
             GPIO.output(self.trig, False)
             time.sleep(0.0002)
@@ -242,7 +354,7 @@ class HydroBoxMainThread(QThread):
             GPIO.output(self.trig, False)
 
             start = time.time()
-            timeout = start + 0.03  # 30 ms
+            timeout = start + 0.03
             while GPIO.input(self.echo) == 0 and time.time() < timeout:
                 pass
             pulse_start = time.time()
@@ -258,7 +370,7 @@ class HydroBoxMainThread(QThread):
         except Exception:
             pass
 
-        # 2.2 Temp/Humedad por serial (Arduino) — parseo robusto
+        # Temp/Humedad (Arduino)
         if not self.ser_amb:
             return
         t_end = time.time() + 0.15
@@ -270,62 +382,49 @@ class HydroBoxMainThread(QThread):
 
                 U = raw.upper()
 
-                # 👉 Log de depuración solo si la línea menciona HUM o TEMP
                 if ("HUM" in U) or ("HUMEDAD" in U) or ("TEMP" in U) or ("TEMPERAT" in U):
                     self.log.emit(f"[SER][AMB] {raw}")
 
-                # 1) Línea combinada: "Humidity: 55.0% ... Temp: 23.4C"
+                # Combinado
                 m_combo = re.search(
                     r'(?i)(?:hum\w*|humedad\w*)[^0-9\-]*([-+]?\d+(?:\.\d+)?)\s*%?.*?'
                     r'(?:temp\w*|temperatura\w*)[^0-9\-]*([-+]?\d+(?:\.\d+)?)',
                     raw
                 )
                 if m_combo:
-                    try:
-                        self._last["humedad_aire"] = float(m_combo.group(1))
-                    except Exception:
-                        pass
-                    try:
-                        self._last["temp_aire"] = float(m_combo.group(2))
-                    except Exception:
-                        pass
+                    try: self._last["humedad_aire"] = float(m_combo.group(1))
+                    except Exception: pass
+                    try: self._last["temp_aire"] = float(m_combo.group(2))
+                    except Exception: pass
                     continue
 
-                # 2) Humedad sola (acepta HUM/HUMEDAD/HRA/HREL con o sin %, con separadores : o = o espacio)
+                # Humedad sola
                 m_hum = re.search(
                     r'(?i)(?:\bhum\b|humedad|hra|hrel)[^0-9\-]*[:=\s]\s*([-+]?\d+(?:\.\d+)?)\s*%?',
                     raw
                 )
                 if m_hum:
-                    try:
-                        self._last["humedad_aire"] = float(m_hum.group(1))
-                    except Exception:
-                        pass
+                    try: self._last["humedad_aire"] = float(m_hum.group(1))
+                    except Exception: pass
                     continue
 
-                # 3) Temperatura sola (TEMP/TEMPERATURA/T_AIRE)
+                # Temperatura sola
                 m_temp = re.search(
                     r'(?i)(?:temp(?:_aire)?|temperatura)[^0-9\-]*[:=\s]\s*([-+]?\d+(?:\.\d+)?)',
                     raw
                 )
                 if m_temp:
-                    try:
-                        self._last["temp_aire"] = float(m_temp.group(1))
-                    except Exception:
-                        pass
+                    try: self._last["temp_aire"] = float(m_temp.group(1))
+                    except Exception: pass
                     continue
 
-                # 4) Último recurso: cualquier "HUM" con número en la línea
+                # Último recurso
                 if "HUM" in U or "HUMEDAD" in U:
                     m_any = re.search(r'([-+]?\d+(?:\.\d+)?)', raw)
                     if m_any:
-                        try:
-                            self._last["humedad_aire"] = float(m_any.group(1))
-                        except Exception:
-                            pass
+                        try: self._last["humedad_aire"] = float(m_any.group(1))
+                        except Exception: pass
                         continue
-
-                # Resto de líneas (acks/comandos) se ignoran
         except serial.SerialException as e:
             self.error.emit(f"[SER] Arduino lectura: {e}")
             self._safe_close(self.ser_amb); self.ser_amb = None
@@ -347,9 +446,9 @@ class HydroBoxMainThread(QThread):
         # Manual completa
         if self._manual_trigger and not self._dose_active:
             self._manual_trigger = False
-            self._programar_dosis_completa("manual") 
+            self._programar_dosis_completa("manual")
 
-        # Manual puntual (una bomba)
+        # Manual puntual
         if (self._dose_custom is not None) and (not self._dose_active):
             pump, segs = self._dose_custom
             self._dose_custom = None
@@ -396,10 +495,8 @@ class HydroBoxMainThread(QThread):
             return
 
         now = monotonic()
-        # Si no hay “próximo” programado, ejecuta el step actual
         if self._dose_next_ts == 0.0 or now >= self._dose_next_ts:
             if self._dose_idx >= len(self._dose_steps):
-                # Terminado
                 self._dose_active = False
                 self._ultimo_estado_dose = "idle"
                 stamp = datetime.now(self._tz).strftime('%Y-%m-%d %H:%M:%S')
@@ -413,7 +510,6 @@ class HydroBoxMainThread(QThread):
                 self.log.emit(f"[DOSIS] {label}")
             except serial.SerialException as e:
                 self.error.emit(f"[DOSIS] Error serial al enviar '{cmd.strip()}': {e}")
-                # abortamos la secuencia
                 self._dose_active = False
                 self._ultimo_estado_dose = "abort"
                 return
@@ -421,14 +517,10 @@ class HydroBoxMainThread(QThread):
             self._dose_next_ts = monotonic() + (wait_secs if wait_secs > 0 else 0.05)
             self._dose_idx += 1
 
-
+    # ---------- Guardado ----------
     def _guardar_si_corresponde(self):
         now = datetime.now(self._tz)
 
-        # --- MODO DEMO: cada N minutos (si configuras self._test_guardar_cada_minuto) ---
-        # Admite:
-        #   - True => cada 1 minuto
-        #   - int  => cada N minutos (ej. 2, 5, 10, 60, ...)
         test_conf = getattr(self, '_test_guardar_cada_minuto', 0)
         if isinstance(test_conf, bool):
             interval_min = 1 if test_conf else 0
@@ -438,20 +530,16 @@ class HydroBoxMainThread(QThread):
             interval_min = 0
 
         if interval_min > 0:
-            # Intervalo relativo (desde que lo activas)
             last_ts = getattr(self, '_ultimo_save_ts_test', None)
             if last_ts and (now - last_ts).total_seconds() < 60 * interval_min:
                 return
         else:
-            # --- MODO PRODUCCIÓN: cada hora EN PUNTO (HH:00) ---
             if now.minute != 0:
                 return
-            # Anti-duplicado por fecha y hora (para evitar múltiples inserts en la misma HH:00)
             slot = (now.date(), now.hour)
             if getattr(self, '_ultima_slot_guardado', None) == slot:
                 return
 
-        # Toma los últimos valores; si no hay, se guardará NULL
         ph         = self._last.get("ph")
         orp        = self._last.get("orp")
         temp_agua  = self._last.get("temp_agua")
@@ -459,10 +547,8 @@ class HydroBoxMainThread(QThread):
         temp_aire  = self._last.get("temp_aire")
         hum        = self._last.get("humedad_aire")
 
-        # Evita filas totalmente vacías
         if all(v is None for v in (ph, orp, temp_agua, nivel, temp_aire, hum)):
             self.log.emit("[DB] No hay datos para guardar en este momento.")
-            # Actualiza anti-duplicado igualmente para no martillar la DB
             if interval_min > 0:
                 setattr(self, '_ultimo_save_ts_test', now)
             else:
@@ -470,7 +556,6 @@ class HydroBoxMainThread(QThread):
             return
 
         try:
-            # 👇 Con argumentos con nombre respetamos las columnas correctas
             self.log.emit(f"[DB][Preview] ph={ph}, orp={orp}, tAgua={temp_agua}, nivel={nivel}, tAire={temp_aire}, hum={hum}")
             guardar_mediciones_cada_6h(
                 ph=ph,

@@ -52,7 +52,6 @@ def _db_get_estado_actuador(nombre_like: str):
         print("⚠️ _db_get_estado_actuador:", e)
         return None
 
-
 def _db_set_estado_actuador(nombre_like: str, estado: int):
     try:
         conn = connect_db()
@@ -65,7 +64,6 @@ def _db_set_estado_actuador(nombre_like: str, estado: int):
     except Exception as e:
         print("⚠️ _db_set_estado_actuador:", e)
         return False
-
 
 def _db_set_todos_apagados():
     try:
@@ -80,74 +78,162 @@ def _db_set_todos_apagados():
         print("⚠️ _db_set_todos_apagados:", e)
         return False
 
-
+# --- Fallback legado (solo si NO hay hilo): abre/cierra serial de forma segura (sin reset) ---
 def _serial_send_many(commands):
     try:
-        with serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=1) as ser:
-            time.sleep(1.5)  # tiempo para estabilizar
+        ser = serial.Serial(
+            SERIAL_PORT, SERIAL_BAUD, timeout=1,
+            rtscts=False, dsrdtr=False
+        )
+        try:
+            # Evitar reset por DTR/RTS
+            try:
+                ser.setDTR(False)
+                ser.setRTS(False)
+            except Exception:
+                pass
+            time.sleep(0.3)  # breve estabilización
             for cmd in commands:
-                if isinstance(cmd, str):
-                    data = cmd.encode('utf-8')
-                else:
-                    data = cmd
+                data = cmd.encode('utf-8') if isinstance(cmd, str) else cmd
                 if not data.endswith(b'\n'):
                     data += b'\n'
                 ser.write(data)
                 ser.flush()
-                time.sleep(0.05)
+                time.sleep(0.08)  # pequeño espaciamiento
+        finally:
+            ser.close()
         return True
     except Exception as e:
         print("⚠️ _serial_send_many:", e)
         return False
 
+# Helper central para TX (prioriza el hilo; si no hay, usa serial directo)
+def send_cmd(cmd):
+    # cmd puede ser str o bytes
+    try:
+        ht = getattr(window, 'hydro_thread', None)
+    except NameError:
+        ht = None
+    data = cmd.encode('utf-8') if isinstance(cmd, str) else cmd
+    if ht and hasattr(ht, 'tx_command') and ht.isRunning():
+        ht.tx_command.emit(data)
+        return True
+    else:
+        # Fallback: serial directo
+        return _serial_send_many([data])
+
 def encender_bomba_agua_seguro():
     estado = _db_get_estado_actuador(BOMBA_LIKE)
     if estado == 1:
-        print("ℹ️ Bomba ya estaba encendida. No se vuelve a encender.")
+        print("ℹ️ Bomba ya estaba encendida.")
         return False
-    ok_serial = _serial_send_many([_bomba_serial_cmd(True)])
+    ok_serial = send_cmd(_bomba_serial_cmd(True))
     if ok_serial:
         _db_set_estado_actuador(BOMBA_LIKE, 1)  # DB = encendida
         print("✅ Bomba encendida (arranque).")
         return True
-    else:
-        print("❌ No se pudo encender la bomba por serial.")
-        return False
+    print("❌ No se pudo encender la bomba por serial.")
+    return False
 
-
-def apagar_bomba_agua_seguro(motivo="salida"):
+def apagar_bomba_agua_seguro(motivo="salida", sync=False):
     estado = _db_get_estado_actuador(BOMBA_LIKE)
     if estado == 0:
-        print(f"ℹ️ Bomba ya estaba apagada. No se envía comando ({motivo}).")
+        print(f"ℹ️ Bomba ya estaba apagada ({motivo}).")
         return False
-    ok_serial = _serial_send_many([_bomba_serial_cmd(False)])
+
+    try:
+        ht = getattr(window, 'hydro_thread', None)
+    except NameError:
+        ht = None
+
+    cmd_off = _bomba_serial_cmd(False)
+    ok_serial = False
+
+    if sync and ht and hasattr(ht, 'tx_command') and ht.isRunning():
+        # Enviar directo al hilo y esperar a que lo drene
+        ht.tx_command.emit(cmd_off)
+        time.sleep(0.25)  # darle tiempo a _pump_tx
+        ok_serial = True
+    elif sync:
+        # Sin hilo: manda por serial directo (bloqueante)
+        ok_serial = _serial_send_many([cmd_off])
+    else:
+        ok_serial = send_cmd(cmd_off)
+
     if ok_serial:
         _db_set_estado_actuador(BOMBA_LIKE, 0)  # DB = apagada
         print(f"✅ Bomba apagada ({motivo}).")
         return True
-    else:
-        print("❌ No se pudo apagar la bomba por serial.")
-        return False
+    print("❌ No se pudo apagar la bomba por serial.")
+    return False
 
-
-def apagar_todos_actuadores_seguro(motivo="salida"):
+def apagar_todos_actuadores_seguro(motivo="salida", sync=False):
     cmds = [
         b'ALL_OFF',   # si tu firmware lo soporta
         b'LAMPOFF', b'FANOFF',
         b'B1OFF', b'B2OFF', b'B3OFF',
         _bomba_serial_cmd(False),  # ← BOMBA APAGADA físico
     ]
-    ok_serial = _serial_send_many(cmds)
-    ok_db = _db_set_todos_apagados()
-    if ok_serial:
-        print(f"✅ Actuadores apagados por serial ({motivo}).")
+
+    try:
+        ht = getattr(window, 'hydro_thread', None)
+    except NameError:
+        ht = None
+
+    serial_ok = True
+
+    if sync:
+        if ht and hasattr(ht, 'tx_command') and ht.isRunning():
+            # Enviar por el hilo, pero BLOQUEANTE (sin QTimer)
+            for c in cmds:
+                ht.tx_command.emit(c)
+                time.sleep(0.15)  # coincide con espaciamiento del hilo
+        else:
+            # Sin hilo: manda por serial directo (bloqueante)
+            serial_ok = _serial_send_many(cmds)
     else:
-        print("⚠️ No se pudieron enviar todos los comandos de apagado por serial.")
+        # Camino normal en ejecución (UI viva): programar con pequeños retardos
+        for i, c in enumerate(cmds):
+            QTimer.singleShot(120 * i, lambda cc=c: send_cmd(cc))
+
+    ok_db = _db_set_todos_apagados()
     if ok_db:
         print("✅ Estados de actuadores = 0 en DB.")
     else:
         print("⚠️ No se pudo actualizar la DB al apagar todos.")
-    return ok_serial and ok_db
+
+    return serial_ok and ok_db
+
+# ===== Helper para cablear señales de sensores a CUANTOS widgets existan =====
+def _wire_sensor_consumers(app_obj, homeapp):
+    """
+    Conecta hydro_thread.datos_sensores a:
+      - homeapp.inicio_widget (si existe)
+      - homeapp.summary_widget (si existe)
+      - cualquier atributo del homeapp que tenga 'recibir_datos_sensores'
+    Esto asegura que Temp/Humedad de aire lleguen a las cartas del Summary.
+    """
+    ht = getattr(app_obj, 'hydro_thread', None)
+    if not ht:
+        return
+
+    def _try_connect(target):
+        if target and hasattr(target, 'recibir_datos_sensores'):
+            try:
+                ht.datos_sensores.connect(target.recibir_datos_sensores)
+            except Exception:
+                pass
+
+    posibles = []
+    posibles.append(getattr(homeapp, 'inicio_widget', None))
+    posibles.append(getattr(homeapp, 'summary_widget', None))
+    # Escanea atributos comunes del contenedor por si cambian nombres:
+    for name in dir(homeapp):
+        if name.endswith('_widget') and name not in ('inicio_widget', 'summary_widget'):
+            posibles.append(getattr(homeapp, name, None))
+
+    for w in posibles:
+        _try_connect(w)
 
 class TitleBar(QWidget):
     def __init__(self, parent):
@@ -245,16 +331,8 @@ class LoginRegisterApp(QDialog):
 
         self.hydro_thread = None
 
-    def mostrar_panel_admin(self):
-        if hasattr(self, 'homeapp_admin'):
-            if hasattr(self.homeapp_admin, 'inicio_widget') and hasattr(self.homeapp_admin.inicio_widget, 'liberar_camara'):
-                self.homeapp_admin.inicio_widget.liberar_camara()
-            self.homeapp_admin.close()
-            del self.homeapp_admin
-
-        self.homeapp_admin = HomeappAdmin(self)
-
-        # Crear hilo si no está corriendo
+    def _start_hydro_if_needed(self):
+        """Arranca el hilo una sola vez y cablea señales al/los widgets existentes."""
         if (self.hydro_thread is None) or (not self.hydro_thread.isRunning()):
             self.hydro_thread = HydroBoxMainThread(
                 poolkit_port='/dev/ttyUSB0',     # ESP32 (TEMP_agua/PH/ORP)
@@ -266,18 +344,34 @@ class LoginRegisterApp(QDialog):
                 t_bomba1=3452, t_bomba2=3452, t_bomba3=1708,
                 parent=self
             )
-            self.hydro_thread.datos_sensores.connect(self.homeapp_admin.inicio_widget.recibir_datos_sensores)
+            # Logs y eventos
             self.hydro_thread.log.connect(lambda m: print(m))
             self.hydro_thread.error.connect(lambda m: print("ERR:", m))
             self.hydro_thread.started_dose.connect(lambda m: print(m))
             self.hydro_thread.finished_dose.connect(lambda m: print(m))
-            self.hydro_thread.start() 
-            self.hydro_ready.emit(self.hydro_thread)    # ✅ solo una vez
+            # Arranca
+            self.hydro_thread.start()
+            self.hydro_ready.emit(self.hydro_thread)
+            # Demo: guarda cada minuto para que el Summary vea datos recientes
             self.hydro_thread._test_guardar_cada_minuto = 1
 
-        else:
-            iw = self.homeapp_admin.inicio_widget
-            self.hydro_thread.datos_sensores.connect(iw.recibir_datos_sensores)
+        # Si ya existen vistas Home, conecta ahora a sus consumidores
+        if hasattr(self, 'homeapp_admin'):
+            _wire_sensor_consumers(self, self.homeapp_admin)
+        if hasattr(self, 'homeapp_worker'):
+            _wire_sensor_consumers(self, self.homeapp_worker)
+
+    def mostrar_panel_admin(self):
+        if hasattr(self, 'homeapp_admin'):
+            if hasattr(self.homeapp_admin, 'inicio_widget') and hasattr(self.homeapp_admin.inicio_widget, 'liberar_camara'):
+                self.homeapp_admin.inicio_widget.liberar_camara()
+            self.homeapp_admin.close()
+            del self.homeapp_admin
+
+        self.homeapp_admin = HomeappAdmin(self)
+        # Asegura hilo y conecta sensores a todos los widgets relevantes
+        self._start_hydro_if_needed()
+        _wire_sensor_consumers(self, self.homeapp_admin)
 
         self.homeapp_admin.showFullScreen()
         self.hide()
@@ -290,30 +384,9 @@ class LoginRegisterApp(QDialog):
             del self.homeapp_worker
 
         self.homeapp_worker = HomeappWorker(self)
-
-        if (self.hydro_thread is None) or (not self.hydro_thread.isRunning()):
-            self.hydro_thread = HydroBoxMainThread(
-                poolkit_port='/dev/ttyUSB0',
-                ambiente_port=SERIAL_PORT,
-                baudrate=SERIAL_BAUD,
-                trig_pin=8, echo_pin=10, altura_total=45,
-                tz_name='America/Mexico_City',
-                weekday=0, hour=10, minute=0,
-                t_bomba1=3452, t_bomba2=3452, t_bomba3=1708,
-                parent=self
-            )
-            iw = self.homeapp_worker.inicio_widget
-            self.hydro_thread.datos_sensores.connect(iw.recibir_datos_sensores)
-            self.hydro_thread.log.connect(lambda m: print(m))
-            self.hydro_thread.started_dose.connect(lambda m: print(m))
-            self.hydro_thread.finished_dose.connect(lambda m: print(m))
-            self.hydro_thread.error.connect(lambda m: print(m))
-            self.hydro_thread.start()
-            self.hydro_ready.emit(self.hydro_thread)  
-            self.hydro_thread._test_guardar_cada_minuto = 1
-        else:
-            iw = self.homeapp_worker.inicio_widget
-            self.hydro_thread.datos_sensores.connect(iw.recibir_datos_sensores)
+        # Asegura hilo y conecta sensores a todos los widgets relevantes
+        self._start_hydro_if_needed()
+        _wire_sensor_consumers(self, self.homeapp_worker)
 
         self.homeapp_worker.showFullScreen()
         self.hide()
@@ -332,7 +405,8 @@ class LoginRegisterApp(QDialog):
 
     def switch_to_user_selection(self):
         try:
-            apagar_todos_actuadores_seguro(motivo="cerrar_sesion")
+            # 🔴 Apaga en modo bloqueante (estamos cambiando de vista)
+            apagar_todos_actuadores_seguro(motivo="cerrar_sesion", sync=True)
         except Exception as e:
             print("⚠️ Error apagando al cerrar sesión:", e)
 
@@ -350,7 +424,6 @@ def _encendido_inicial_bomba():
     except Exception as e:
         print("❌ Error en encendido inicial de bomba:", e)
 
-
 def _cierre_ordenado(window: LoginRegisterApp, motivo="aboutToQuit/atexit/signal"):
     global _app_closing_flag
     if _app_closing_flag:
@@ -360,16 +433,14 @@ def _cierre_ordenado(window: LoginRegisterApp, motivo="aboutToQuit/atexit/signal
     print(f"🔻 Cierre ordenado invocado ({motivo})")
 
     try:
-        if hasattr(window, "hydro_thread") and window.hydro_thread is not None:
+        # 1) Apagar TODO de forma BLOQUEANTE para asegurar OFF aunque el loop muera
+        apagar_todos_actuadores_seguro(motivo=motivo, sync=True)
+        # 2) Si el hilo existe, darle un respiro para drenar TX y luego detener
+        if hasattr(window, "hydro_thread") and window.hydro_thread is not None and window.hydro_thread.isRunning():
+            time.sleep(0.3)
             window.hydro_thread.detener()
     except Exception as e:
-        print("⚠️ No se pudo detener HydroBoxMainThread:", e)
-
-    try:
-        apagar_todos_actuadores_seguro(motivo=motivo)
-    except Exception as e:
-        print("⚠️ No se pudo apagar todos los actuadores:", e)
-
+        print("⚠️ Problema durante cierre ordenado:", e)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -382,7 +453,12 @@ if __name__ == "__main__":
     window = LoginRegisterApp()
     window.show()
 
-    _encendido_inicial_bomba()
+    # Enciende la bomba 3 s después (evita golpear al sistema durante el arranque gráfico)
+    QTimer.singleShot(3000, _encendido_inicial_bomba)
+
+    # Opcional: arranca el hilo YA para que Temp/Humedad lleguen al Summary aunque
+    # aún no entres a Admin/Worker (si prefieres, comenta esta línea).
+    window._start_hydro_if_needed()
 
     def _on_about_to_quit():
         _cierre_ordenado(window, motivo="aboutToQuit")
@@ -405,3 +481,4 @@ if __name__ == "__main__":
             pass
 
     sys.exit(exit_code)
+
