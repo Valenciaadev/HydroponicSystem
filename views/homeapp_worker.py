@@ -2,12 +2,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from views.seleccion_usuario import TitleBar
-from views.summaryapp_admin import SummaryAppAdmin
-from views.actuatorsapp_admin import ActuatorsAppAdmin
-from views.sensorsapp_admin import SensorsAppAdmin
-from views.historyapp_admin import HistoryAppAdmin
-from views.managment_users_admin import ManagmentAppAdmin
-from views.gestionhortalizas_admin import GestionHortalizasAppAdmin
+from views.summaryapp_worker import SummaryAppWorker
+from views.actuatorsapp_worker import ActuatorsAppWorker
+from views.sensorsapp_worker import SensorsAppWorker
+from views.historyapp_worker import HistoryAppWorker
 
 class HomeappWorker(QWidget):
     def __init__(self, ventana_login):
@@ -105,20 +103,6 @@ class HomeappWorker(QWidget):
         self.btn_history.setIcon(QIcon("assets/icons/history-white.svg"))
         self.btn_history.setIconSize(QSize(24, 24))
 
-        self.btn_users = QPushButton(" Gestionar usuarios")
-        self.btn_users.setCheckable(True)
-        self.btn_users.setStyleSheet(btn_style)
-        self.btn_users.clicked.connect(lambda: self.change_view(4))
-        self.btn_users.setIcon(QIcon("assets/icons/users-solid.svg"))
-        self.btn_users.setIconSize(QSize(24, 24))
-
-        self.btn_hortalizas = QPushButton(" Hortalizas")
-        self.btn_hortalizas.setCheckable(True)
-        self.btn_hortalizas.setStyleSheet(btn_style)
-        self.btn_hortalizas.clicked.connect(lambda: self.change_view(5))
-        self.btn_hortalizas.setIcon(QIcon("assets/icons/sapling.svg"))
-        self.btn_hortalizas.setIconSize(QSize(24, 24))
-
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         
         btn_exit = QPushButton(" Cerrar sesión")
@@ -141,10 +125,8 @@ class HomeappWorker(QWidget):
         sidebar.addWidget(self.btn_actuators)
         sidebar.addWidget(self.btn_sensors)
         sidebar.addWidget(self.btn_history)
-        sidebar.addWidget(self.btn_users)
         sidebar.addItem(spacer)
         sidebar.addWidget(label_configuracion)
-        sidebar.addWidget(self.btn_hortalizas)
         sidebar.addWidget(btn_exit)
 
         sidebar_container.addSpacing(50)
@@ -159,22 +141,26 @@ class HomeappWorker(QWidget):
 
         if hasattr(self, "inicio_widget") and hasattr(self.inicio_widget, "liberar_camara"):
             self.inicio_widget.liberar_camara()
-    
-        self.inicio_widget = SummaryAppAdmin(self.ventana_login, embed=True)
-        self.actuadores_widget = ActuatorsAppAdmin(self.ventana_login, embed=True)
-        self.sensores_widget = SensorsAppAdmin(self.ventana_login, embed=True)
-        self.historial_widget = HistoryAppAdmin(self.ventana_login, embed=True)
-        self.gestion_usuarios_widget = ManagmentAppAdmin(self.ventana_login, embed=True)
-        self.hortalizas_widget = GestionHortalizasAppAdmin(self.ventana_login, embed=True)
 
-        self.hortalizas_widget.crop_changed.connect(self.inicio_widget.on_crop_changed)
+        def _safe_init(widget_cls, *args, **kwargs):
+            try:
+                return widget_cls(*args, **kwargs)
+            except TypeError as e:
+                # Si la clase no acepta `embed`, reintenta sin ese kwarg
+                if "unexpected keyword argument 'embed'" in str(e):
+                    kwargs.pop('embed', None)
+                    return widget_cls(*args, **kwargs)
+                raise
+    
+        self.inicio_widget = _safe_init(SummaryAppWorker, self.ventana_login, embed=True)
+        self.actuadores_widget = _safe_init(ActuatorsAppWorker, self.ventana_login, embed=True)
+        self.sensores_widget = _safe_init(SensorsAppWorker, self.ventana_login, embed=True)
+        self.historial_widget = _safe_init(HistoryAppWorker, self.ventana_login, embed=True)
 
         self.stacked_layout.addWidget(self.inicio_widget)
         self.stacked_layout.addWidget(self.actuadores_widget)
         self.stacked_layout.addWidget(self.sensores_widget)
         self.stacked_layout.addWidget(self.historial_widget)
-        self.stacked_layout.addWidget(self.gestion_usuarios_widget)
-        self.stacked_layout.addWidget(self.hortalizas_widget)
         self.stacked_layout.setCurrentIndex(0)
 
         content_widget = QWidget()
@@ -278,12 +264,10 @@ class HomeappWorker(QWidget):
     def change_view(self, index):
         self.stacked_layout.setCurrentIndex(index)
         
-        self.btn_hortalizas.setChecked(False)
         self.btn_home.setChecked(False)
         self.btn_actuators.setChecked(False)
         self.btn_sensors.setChecked(False)
         self.btn_history.setChecked(False)
-        self.btn_users.setChecked(False)
         
         if index == 0:
             self.btn_home.setChecked(True)
@@ -293,7 +277,3 @@ class HomeappWorker(QWidget):
             self.btn_sensors.setChecked(True)
         elif index == 3:
             self.btn_history.setChecked(True)
-        elif index == 4:
-            self.btn_users.setChecked(True)
-        elif index == 5:
-            self.btn_hortalizas.setChecked(True)

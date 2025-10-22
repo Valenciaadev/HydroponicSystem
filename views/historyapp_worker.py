@@ -35,6 +35,7 @@ class HistoryAppWorker(QWidget):
         self._wire_hydro(getattr(self.ventana_login, "hydro_thread", None))
 
     def init_ui(self):
+
         self.datos_completos = []
         self.pagina_actual = 0
         self.registros_por_pagina = 15
@@ -184,6 +185,34 @@ class HistoryAppWorker(QWidget):
         self.populate_devices()
         self.filter_combo.setCurrentText("Mes anterior")
         self.populate_table()
+
+    def _wire_hydro(self, ht):
+        if ht is None:
+            return
+        try:
+            try:
+                ht.db_saved.disconnect(self.on_new_measurement)
+            except Exception:
+                pass
+            ht.db_saved.connect(self.on_new_measurement)
+            # refresco inicial
+            self.populate_table(force=True)
+        except Exception as e:
+            print("wire_hydro error:", e)
+
+    def on_new_measurement(self, payload: dict):
+        if getattr(self, "_refresh_pending", False):
+            return
+        self._refresh_pending = True
+        QTimer.singleShot(300, self._do_refresh_history)
+
+    def _do_refresh_history(self):
+        try:
+            self.populate_table(force=True)
+        finally:
+            self._refresh_pending = False
+
+
 
     def create_table_frame(self):
         """Crea el frame de la tabla que se usará para 'Datos con tabla'"""
@@ -540,7 +569,7 @@ class HistoryAppWorker(QWidget):
         # Configuración inicial de ejes Y para todas las gráficas
         self.ax1.clear()
         self.ax1.set_ylim(0, 9)
-        self.ax1.set_yticks([0, 3, 6, 9])
+        self.ax1.set_yticks([0, 150, 300, 450])
         
         self.ax2.clear()
         self.ax2.set_ylim(0, 40)
@@ -744,34 +773,6 @@ class HistoryAppWorker(QWidget):
         else:
             self.mostrar_mensaje_error(f"No hay datos disponibles para el filtro: {filtro}")
 
-
-    def _wire_hydro(self, ht):
-        if ht is None:
-            return
-        try:
-            try:
-                ht.db_saved.disconnect(self.on_new_measurement)
-            except Exception:
-                pass
-            ht.db_saved.connect(self.on_new_measurement)
-            # refresco inicial
-            self.populate_table(force=True)
-        except Exception as e:
-            print("wire_hydro error:", e)
-
-    def on_new_measurement(self, payload: dict):
-        if getattr(self, "_refresh_pending", False):
-            return
-        self._refresh_pending = True
-        QTimer.singleShot(300, self._do_refresh_history)
-
-    def _do_refresh_history(self):
-        try:
-            self.populate_table(force=True)
-        finally:
-            self._refresh_pending = False
-
-
     def mostrar_pagina(self):
         inicio = self.pagina_actual * self.registros_por_pagina
         fin = inicio + self.registros_por_pagina
@@ -921,7 +922,7 @@ class HistoryAppWorker(QWidget):
                 c.showPage()
 
         c.save()
-        # print(f"PDF guardado en: {file_path}")
+        print(f"PDF guardado en: {file_path}")
         
         # Limpiar archivos temporales
         import os

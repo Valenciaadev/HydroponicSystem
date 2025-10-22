@@ -7,6 +7,8 @@ from views.about_actuator_modal import AboutActuatorWidget
 from views.actuator_managment_modal import ActuatorManagmentWidget
 from models.database import connect_db
 
+ACTIVE_LOW_BOMBA = True
+
 class ActuatorsAppWorker(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__(ventana_login)
@@ -17,6 +19,24 @@ class ActuatorsAppWorker(QWidget):
         else:
             print("No se pudo establecer la conexión a la base de datos.")
         self.init_ui()
+
+    # ===== Helper central para enviar comandos =====
+    def _send(self, s, dispositivo=None):
+        """
+        Envía el comando por el hilo HydroBoxMainThread (tx_command) si está disponible.
+        Si no, usa el fallback enviar_comando() legado.
+        """
+        try:
+            ht = getattr(self.ventana_login, 'hydro_thread', None)
+        except Exception:
+            ht = None
+
+        if ht is not None and hasattr(ht, 'tx_command'):
+            data = s.encode('utf-8') if isinstance(s, str) else s
+            ht.tx_command.emit(data)
+        else:
+            # Fallback (abre/cierra serial). Preferible evitarlo, pero mantiene compatibilidad.
+            enviar_comando(s, dispositivo=dispositivo)
 
     def init_ui(self):
         self.setStyleSheet("""
@@ -161,10 +181,10 @@ class ActuatorsAppWorker(QWidget):
         features_button.clicked.connect(lambda _, sid=actuator_id: self.about_actuators(sid))
 
         if tipo == "Bomba peristáltica":
-            gestionar_button = QPushButton("Gestionar dosis")
-            gestionar_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #2B2300;
+            """
+            QPushButton {gestionar_button = QPushButton("Gestionar dosis")
+            gestionar_button.setStyleSheet(
+                    backgro"""  """und-color: #2B2300;
                     color: white;
                     font-weight: bold;
                     border-radius: 14px;
@@ -174,12 +194,11 @@ class ActuatorsAppWorker(QWidget):
                 QPushButton:hover {
                     background-color: #B88417;
                 }
-            """)
+            )
             gestionar_button.clicked.connect(lambda _, sid=actuator_id: self.actuators_managment(sid))
-
+            """
             buttons_layout = QHBoxLayout()
             buttons_layout.setSpacing(10)
-            # buttons_layout.addWidget(gestionar_button)
             buttons_layout.addWidget(features_button)
 
         else:
@@ -228,20 +247,27 @@ class ActuatorsAppWorker(QWidget):
                 nuevo_estado = toggle_button.isChecked()
                 actualizar_estilo_toggle(nuevo_estado)
                 self.update_estado(actuator_id, 1 if nuevo_estado else 0)
-                if nuevo_estado:
-                    if "ventilador" in nombre.lower():
-                        enviar_comando("EN")
-                    elif "lampara" in nombre.lower() or "lámpara" in nombre.lower():
-                        enviar_comando("ON", dispositivo="lampara")
-                    elif "bomba" in nombre.lower():
-                        enviar_comando("BAON", dispositivo="bomba")
-                else:
-                    if "ventilador" in nombre.lower():
-                        enviar_comando("AP")
-                    elif "lampara" in nombre.lower() or "lámpara" in nombre.lower():
-                        enviar_comando("OFF", dispositivo="lampara")
-                    elif "bomba" in nombre.lower():
-                        enviar_comando("BAOFF", dispositivo="bomba")
+
+                is_vent = "ventilador" in nombre.lower()
+                is_lamp = "lampara" in nombre.lower() or "lámpara" in nombre.lower()
+                is_bomba = "bomba de agua" in nombre.lower()
+
+                if nuevo_estado:  # usuario quiere ENCENDER
+                    if is_vent:
+                        self._send("EN")
+                    elif is_lamp:
+                        self._send("ON", dispositivo="lampara")
+                    elif is_bomba:
+                        # ENCENDER físico: BAOFF si activo-bajo, BAON si normal
+                        self._send("BAOFF" if ACTIVE_LOW_BOMBA else "BAON", dispositivo="bomba")
+                else:  # usuario quiere APAGAR
+                    if is_vent:
+                        self._send("AP")
+                    elif is_lamp:
+                        self._send("OFF", dispositivo="lampara")
+                    elif is_bomba:
+                        # APAGAR físico: BAON si activo-bajo, BAOFF si normal
+                        self._send("BAON" if ACTIVE_LOW_BOMBA else "BAOFF", dispositivo="bomba")
 
             toggle_button.clicked.connect(toggle_state)
 
@@ -292,7 +318,7 @@ class ActuatorsAppWorker(QWidget):
                 (nuevo_estado, actuator_id)
             )
             self.conn.commit()
-            # print(f"Estado del actuador {actuator_id} actualizado a {nuevo_estado}")
+            print(f"Estado del actuador {actuator_id} actualizado a {nuevo_estado}")
         except Exception as e:
             print("Error al actualizar el estado del actuador:", e)
 

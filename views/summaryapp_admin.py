@@ -17,11 +17,20 @@ class SummaryAppAdmin(QWidget):
     def __init__(self, ventana_login, embed=False):
         super().__init__()
         self.gauges = {}
-        self.sensor_data = {}  # Para conservar los últimos valores conocidos
+        self.sensor_data = {}
+        self.cards = {}
+        self.rangos_ideales = {}
         self.camera = None
-        # Cargar rangos ideales al arrancar según la hortaliza seleccionada
-        
 
+        # ⬇️ MAPEOS NECESARIOS PARA REPINTAR TARJETAS
+        self.title_to_key = {
+            "Temperatura del agua": "temp_agua",
+            "Nivel pH del agua": "ph",
+            "Nivel ORP": "orp",
+            "Nivel del agua": "nivel_agua",   # sin rango → se mantiene 'na'
+            "Temperatura del aire": "temp_aire",
+            "Humedad del aire": "humedad_aire",
+        }
 
         QToolTip.setFont(QFont("Arial", 12))
         QApplication.instance().setStyleSheet("""
@@ -184,23 +193,51 @@ class SummaryAppAdmin(QWidget):
 
     def create_card(self, title, value, timestamp, tooltip_text):
         card = QFrame()
+        card.setProperty("role", "card")
+        card.setProperty("state", "na")  # estados: low | ok | high | na
         card.setStyleSheet("""
-            QFrame {
+            QFrame[role="card"] {
                 background-color: #1f2232;
                 border-radius: 25px;
                 padding: 5px;
                 color: white;
+                border: 1px solid transparent;
             }
-            QLabel {
-                qproperty-alignment: AlignCenter;
+
+            /* Hacemos que todo dentro de la card no pinte fondos extra */
+            QFrame[role="card"] QLabel { 
+                background: transparent; 
+                color: white; 
             }
+            QFrame[role="card"] QPushButton { 
+                background: transparent; 
+            }
+            QFrame[role="card"] QPushButton:hover { 
+                background-color: rgba(255,255,255,0.08); 
+                border-radius: 12px; 
+            }
+
+            /* Estados: igualamos el "fondo del texto" al de la card por seguridad */
+            QFrame[role="card"][state="low"]  { background-color: #1E2B3A; border: 2px solid #3B82F6; }
+            QFrame[role="card"][state="low"]  QLabel { background-color: #1E2B3A; }
+
+            QFrame[role="card"][state="ok"]   { background-color: #1F3A2E; border: 2px solid #22C55E; }
+            QFrame[role="card"][state="ok"]   QLabel { background-color: #1F3A2E; }
+
+            QFrame[role="card"][state="high"] { background-color: #3A1F2A; border: 2px solid #EF4444; }
+            QFrame[role="card"][state="high"] QLabel { background-color: #3A1F2A; }
+
+            QFrame[role="card"][state="na"]   { background-color: #1f2232; border: 1px dashed #6B7280; }
+            QFrame[role="card"][state="na"]   QLabel { background-color: #1f2232; }
+
+            QLabel { qproperty-alignment: AlignCenter; }
         """)
         card.setFixedSize(250, 185)
 
         # Diccionario de tooltips dinámicos
         if not hasattr(self, "tooltips_dict"):
             self.tooltips_dict = {}
-        self.tooltips_dict[title] = tooltip_text  # guarda el inicial; luego lo actualizaremos
+        self.tooltips_dict[title] = tooltip_text
 
         # Botón info
         info_button = QPushButton()
@@ -210,18 +247,10 @@ class SummaryAppAdmin(QWidget):
         info_button.setFixedSize(24, 24)
         info_button.setIconSize(QSize(20, 20))
         info_button.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: none;
-                margin-left: 6px;
-            }
-            QPushButton:hover {
-                background-color: #444;
-                border-radius: 12px;
-            }
+            QPushButton { background-color: transparent; border: none; margin-left: 6px; }
+            QPushButton:hover { background-color: #444; border-radius: 12px; }
         """)
 
-        # Tooltip que SIEMPRE lee el texto actual del diccionario
         class InfoButtonEnterEvent:
             def __init__(self, button, get_tooltip):
                 self.button = button
@@ -251,7 +280,7 @@ class SummaryAppAdmin(QWidget):
         title_info_layout.addWidget(title_label)
         title_info_layout.addWidget(info_button)
 
-        # Centro del contenido
+        # Centro
         value_label = QLabel(value)
         value_label.setFont(QFont("Arial", 18, QFont.Bold))
         value_label.setMinimumHeight(40)
@@ -261,10 +290,15 @@ class SummaryAppAdmin(QWidget):
         time_label.setFont(QFont("Arial", 9))
         time_label.setAlignment(Qt.AlignCenter)
 
+        for w in (title_label, value_label, time_label):
+            w.setAutoFillBackground(False)
+            w.setStyleSheet("background: transparent; color: white;")
+
         # Guardar referencias
         if not hasattr(self, "card_labels"):
             self.card_labels = {}
         self.card_labels[title] = (value_label, time_label)
+        self.cards[title] = card  # ← NUEVO: guardar tarjeta
 
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignCenter)
@@ -272,7 +306,54 @@ class SummaryAppAdmin(QWidget):
         main_layout.addWidget(value_label)
         main_layout.addWidget(time_label)
         card.setLayout(main_layout)
+
+        # Forzar aplicar el estado inicial
+        card.style().unpolish(card)
+        card.style().polish(card)
         return card
+
+    def _compute_state(self, title, valor):
+        """
+        Devuelve 'low' | 'ok' | 'high' | 'na' según rangos y valor.
+        """
+        if valor is None:
+            return "na"
+        rangos = self.rangos_ideales.get(title)
+        try:
+            v = float(valor)
+        except (TypeError, ValueError):
+            return "na"
+        if not rangos:
+            return "na"
+        vmin, vmax = rangos
+        if v < vmin:
+            return "low"
+        if v > vmax:
+            return "high"
+        return "ok"
+
+    def _apply_card_state(self, title, valor):
+        """
+        Aplica el estado calculado a la tarjeta correspondiente.
+        """
+        card = self.cards.get(title)
+        if not card:
+            return
+        state = self._compute_state(title, valor)
+        card.setProperty("state", state)
+        card.style().unpolish(card)
+        card.style().polish(card)
+        card.update()
+
+    def _recompute_all_card_states(self):
+        """
+        Recalcula y pinta TODAS las tarjetas con el último valor conocido,
+        útil al cambiar de hortaliza.
+        """
+        for title, key in self.title_to_key.items():
+            valor = self.sensor_data.get(key)
+            self._apply_card_state(title, valor)
+
 
     def recibir_datos_sensores(self, data):
         self.sensor_data.update(data)  # Mantener unificado el estado
@@ -292,10 +373,16 @@ class SummaryAppAdmin(QWidget):
                 valor = self.sensor_data.get(key)
                 hora = self.sensor_data.get("hora", "—")
                 if valor is not None:
-                    value_label.setText(f"{valor:.2f} {unidad}")
+                    try:
+                        value_label.setText(f"{float(valor):.2f} {unidad}")
+                    except Exception:
+                        value_label.setText(f"{valor} {unidad}")
                 else:
                     value_label.setText("N/A")
                 time_label.setText(hora)
+
+                # ← NUEVO: Pintar estado de esta tarjeta
+                self._apply_card_state(title, valor)
 
         # Gauges
         if "ph" in self.sensor_data and "PH Agua" in self.gauges:
@@ -329,22 +416,24 @@ class SummaryAppAdmin(QWidget):
     def _build_tooltips_from_sensors_data(self, crop_name, sensores_data):
         """
         sensores_data: lista de dicts con al menos { 'nombre', 'rango_min', 'rango_max' }
-        Actualiza self.tooltips_dict por TÍTULO de tarjeta (excepto 'Nivel del agua').
+        Actualiza self.tooltips_dict y self.rangos_ideales por TÍTULO de tarjeta.
         """
-        # Mapeo por nombre de sensor → título de tarjeta + plantilla
+        # nombre de sensor → título de tarjeta
         name_to_title = {
             "Sensor PH": "Nivel pH del agua",
             "Temperatura en el aire": "Temperatura del aire",
             "Temperatura en el agua": "Temperatura del agua",
             "Sensor de Humedad": "Humedad del aire",
             "Sensor de ORP": "Nivel ORP",
-            # "Sensor Ultrasónico": "Nivel del agua"  # ← este NO se modifica
+            # "Sensor Ultrasónico": "Nivel del agua"  # sin rango
         }
 
         def tooltip_tpl(titulo, cuerpo):
             return f"<b>{titulo}</b><br>{cuerpo}"
 
-        # Recorre sensores y arma textos
+        # Limpia rangos antes de reconstruir (conserva 'Nivel del agua' como na)
+        self.rangos_ideales = {}
+
         for s in sensores_data or []:
             nombre = s.get("nombre", "")
             vmin = s.get("rango_min", None)
@@ -353,39 +442,46 @@ class SummaryAppAdmin(QWidget):
                 continue
 
             title = name_to_title[nombre]
-            # Construye según el tipo
+            try:
+                vmin_f = float(vmin)
+                vmax_f = float(vmax)
+            except (TypeError, ValueError):
+                continue
+
+            # Guarda rangos para evaluación de color
+            self.rangos_ideales[title] = (vmin_f, vmax_f)
+
+            # Tooltips
             if nombre == "Sensor PH":
                 self.tooltips_dict[title] = tooltip_tpl(
                     "Nivel de pH del Agua",
-                    f"Rango ideal: <b>{float(vmin):.2f} a {float(vmax):.2f}</b> para {crop_name}.<br>"
+                    f"Rango ideal: <b>{vmin_f:.2f} a {vmax_f:.2f}</b> para {crop_name}.<br>"
                     "Valores fuera de este rango dificultan la absorción de nutrientes."
                 )
             elif nombre == "Temperatura en el aire":
                 self.tooltips_dict[title] = tooltip_tpl(
                     "Temperatura del Aire",
-                    f"Ideal entre <b>{float(vmin):.0f}°C y {float(vmax):.0f}°C</b> para el crecimiento óptimo de {crop_name}.<br>"
+                    f"Ideal entre <b>{vmin_f:.0f}°C y {vmax_f:.0f}°C</b> para {crop_name}.<br>"
                     "Evita temperaturas mayores a 27°C para prevenir estrés térmico."
                 )
             elif nombre == "Temperatura en el agua":
                 self.tooltips_dict[title] = tooltip_tpl(
                     "Temperatura del Agua",
-                    f"Ideal entre <b>{float(vmin):.0f}°C y {float(vmax):.0f}°C</b>.<br>"
-                    "Temperaturas superiores a 24°C pueden reducir el oxígeno disuelto, afectando las raíces."
+                    f"Ideal entre <b>{vmin_f:.0f}°C y {vmax_f:.0f}°C</b>.<br>"
+                    "Temperaturas superiores a 24°C pueden reducir el oxígeno disuelto."
                 )
             elif nombre == "Sensor de Humedad":
                 self.tooltips_dict[title] = tooltip_tpl(
                     "Humedad Relativa del Aire",
-                    f"Rango ideal: <b>{float(vmin):.0f}% a {float(vmax):.0f}%</b>.<br>"
-                    "Niveles adecuados reducen la transpiración excesiva y promueven la fotosíntesis."
+                    f"Rango ideal: <b>{vmin_f:.0f}% a {vmax_f:.0f}%</b>.<br>"
+                    "Niveles adecuados reducen la transpiración y promueven la fotosíntesis."
                 )
             elif nombre == "Sensor de ORP":
                 self.tooltips_dict[title] = tooltip_tpl(
                     "Potencial Redox (ORP)",
-                    f"Rango ideal para {crop_name}: <b>{float(vmin):.0f} mV a {float(vmax):.0f} mV</b>.<br>"
-                    "Un ORP dentro de este rango indica un buen equilibrio entre oxidantes y reductores, "
-                    "lo cual favorece la absorción de nutrientes y evita la proliferación de microorganismos indeseados."
+                    f"Rango ideal para {crop_name}: <b>{vmin_f:.0f} mV a {vmax_f:.0f} mV</b>."
                 )
-        # 'Nivel del agua' lo dejamos igual (sin rango)
+        # 'Nivel del agua' queda sin rango → estado 'na'
 
     @pyqtSlot()
     def actualizar_rangos_ideales_desde_db(self, id_hortaliza=None):
@@ -423,8 +519,8 @@ class SummaryAppAdmin(QWidget):
             crop_name = "esta hortaliza"
 
         self._build_tooltips_from_sensors_data(crop_name, sensores_data)
-        # No hace falta refrescar widgets; el hover leerá los nuevos tooltips
         print(f"ℹ️ Rangos ideales actualizados para {crop_name} (id={crop_id}).")
+        self._recompute_all_card_states()
 
     @pyqtSlot(int)
     def on_crop_changed(self, id_hortaliza):
